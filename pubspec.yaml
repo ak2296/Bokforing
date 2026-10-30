@@ -1,0 +1,22 @@
+name: bokforing
+description: Lokal bokföringsassistent för småföretag i Sverige.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+# Phase 1 uses only SDK packages. Camera, ML Kit, database and PDF packages are
+# added in later phases, with versions checked against pub.dev at that time.
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
