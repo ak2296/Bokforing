@@ -28,12 +28,12 @@ FAKTURA
 Fakturanummer: 55120
 Fakturadatum: 2026-10-26
 Förfallodatum: 2026-11-25
-Netto 8 000,00
-Moms 25% 250,00
-Moms 12% 120,00
-Moms 6% 60,00
+Netto 3 000,00
+Moms 25% på 1 000,00 250,00
+Moms 12% på 1 000,00 120,00
+Moms 6% på 1 000,00 60,00
 Summa moms 430,00
-Att betala 8 430,00''';
+Att betala 3 430,00''';
 
 const sampleZReport = '''Z-RAPPORT
 Z-nummer: 0142

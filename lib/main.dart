@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -8,6 +10,7 @@ import 'domain/patterns.dart';
 import 'domain/validation.dart';
 import 'domain/z_extractor.dart';
 import 'samples.dart';
+import 'ui/scan_page.dart';
 
 void main() => runApp(const BokforingApp());
 
@@ -44,12 +47,26 @@ class _ShellState extends State<Shell> {
     ('Skanna', Icons.document_scanner_outlined),
     ('Utgifter', Icons.receipt_long_outlined),
     ('Rapporter', Icons.table_chart_outlined),
-    ('Inställningar', Icons.settings_outlined),
   ];
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(_tabs[_i].$1)),
+        appBar: AppBar(
+          title: Text(_tabs[_i].$1),
+          actions: [
+            IconButton(
+              tooltip: 'Inställningar',
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => Scaffold(
+                      appBar: AppBar(title: const Text('Inställningar')),
+                      body: const Center(
+                          child: Padding(
+                              padding: EdgeInsets.all(24),
+                              child: Text('Inställningar byggs i nästa fas.')))))),
+            ),
+          ],
+        ),
         body: _i == 2
             ? const AnalyzePage()
             : Center(
@@ -59,13 +76,18 @@ class _ShellState extends State<Shell> {
                       textAlign: TextAlign.center),
                 ),
               ),
-        bottomNavigationBar: NavigationBar(
+        bottomNavigationBar: NavigationBarTheme(
+          data: NavigationBarThemeData(
+              labelTextStyle:
+                  WidgetStateProperty.all(const TextStyle(fontSize: 11, fontWeight: FontWeight.w500))),
+          child: NavigationBar(
           selectedIndex: _i,
           onDestinationSelected: (v) => setState(() => _i = v),
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: [
             for (final t in _tabs) NavigationDestination(icon: Icon(t.$2), label: t.$1),
           ],
+        ),
         ),
       );
 }
@@ -82,6 +104,19 @@ class _AnalyzePageState extends State<AnalyzePage> {
   final _c = TextEditingController();
   String _text = '';
   DocumentType? _forced;
+  String? _imagePath;
+
+  Future<void> _scan() async {
+    final r = await Navigator.of(context)
+        .push<ScanResult>(MaterialPageRoute(builder: (_) => const ScanPage()));
+    if (r == null || !mounted) return;
+    setState(() {
+      _c.text = r.text;
+      _text = r.text;
+      _forced = null;
+      _imagePath = r.imagePath;
+    });
+  }
 
   @override
   void dispose() {
@@ -98,13 +133,24 @@ class _AnalyzePageState extends State<AnalyzePage> {
   @override
   Widget build(BuildContext context) {
     final children = <Widget>[
-      const Card(
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: Text('Kameran och textigenkänningen kommer i nästa faser. '
-              'Klistra tills vidare in texten från dokumentet.'),
-        ),
+      FilledButton.icon(
+        onPressed: _scan,
+        icon: const Icon(Icons.document_scanner_outlined),
+        label: const Text('Skanna dokument'),
       ),
+      const SizedBox(height: 8),
+      if (_imagePath != null)
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(children: [
+              Image.file(File(_imagePath!), height: 180, fit: BoxFit.contain),
+              const Text('Skannad bild'),
+            ]),
+          ),
+        ),
+      const Text('Texten från kameran kan innehålla fel. Du kan rätta texten nedan '
+          'och trycka på Analysera igen. Du kan också klistra in text.'),
       const SizedBox(height: 8),
       TextField(
         controller: _c,
@@ -195,6 +241,8 @@ class _AnalyzePageState extends State<AnalyzePage> {
         AccountingValidationEngine.checkInvoiceArithmetic(r.net!, r.vatTotal!, r.total!),
       if (r.vatLines.isNotEmpty && r.vatTotal != null)
         AccountingValidationEngine.checkVatBreakdown(r.vatLines.map((x) => x.vat), r.vatTotal!),
+      for (final v in r.vatLines)
+        if (v.net != null) AccountingValidationEngine.checkVatLine(v.ratePercent, v.net!, v.vat),
       if (r.vatTotal != null && r.total != null)
         AccountingValidationEngine.checkVatPlausible(r.vatTotal!, r.total!),
     ];
@@ -213,9 +261,12 @@ class _AnalyzePageState extends State<AnalyzePage> {
             _row('OCR/referens', r.ocrReference),
             _row('Summa', r.total?.format(), r.totalConfidence),
             _row('Moms', r.vatTotal?.format(), r.vatConfidence),
-            for (final v in r.vatLines) _row('  Moms ${v.ratePercent} %', v.vat.format()),
+            for (final v in r.vatLines)
+              _row('  Moms ${v.ratePercent} %${v.net == null ? '' : '\n  (underlag ${v.net!.format()})'}',
+                  v.vat.format()),
             if (r.candidates.length > 1)
-              _row('Övriga belopp', r.candidates.map((c) => c.value.format()).join(', ')),
+              _row('Andra möjliga summor',
+                  r.candidates.where((c) => c.value != r.total).map((c) => c.value.format()).join(', ')),
           ]),
         ),
       ),

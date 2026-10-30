@@ -108,9 +108,19 @@ void main() {
     });
     test('flera momssatser behåller fördelningen', () {
       final r = extractInvoice(sampleMultiVat);
-      expect(r.total, Money.kronor(8430));
+      expect(r.total, Money.kronor(3430));
       expect(r.vatLines.map((v) => v.ratePercent), [25, 12, 6]);
+      expect(r.vatLines.map((v) => v.net), everyElement(Money.kronor(1000)));
       expect(r.vatTotal, Money.kronor(430));
+      for (final l in r.vatLines) {
+        expect(AccountingValidationEngine.checkVatLine(l.ratePercent, l.net!, l.vat).status,
+            ValidationStatus.ok);
+      }
+      expect(r.candidates.where((c) => c.value != r.total), isEmpty);
+    });
+    test('moms som inte stämmer med underlaget varnar', () {
+      expect(AccountingValidationEngine.checkVatLine(25, Money.kronor(1000), Money.kronor(2000)).status,
+          ValidationStatus.warning);
     });
     test('datum i olika format', () {
       expect(datesIn('28/10/2026'), ['2026-10-28']);

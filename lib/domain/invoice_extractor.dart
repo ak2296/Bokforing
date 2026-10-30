@@ -3,9 +3,12 @@ import 'patterns.dart';
 import 'vat.dart';
 
 class InvoiceVatLine {
-  const InvoiceVatLine(this.ratePercent, this.vat);
+  const InvoiceVatLine(this.ratePercent, this.vat, {this.net});
   final int ratePercent;
   final Money vat;
+
+  /// Taxable amount for this rate, when the invoice prints it.
+  final Money? net;
 }
 
 class AmountCandidate {
@@ -157,18 +160,21 @@ InvoiceExtraction extractInvoice(String text) {
     if (rm != null && ln.a.isNotEmpty && RegExp(r'moms|mva|%').hasMatch(ln.l)) {
       final r = int.parse(rm.group(1)!);
       if (![0, 6, 12, 25].contains(r) || vats.any((x) => x.ratePercent == r)) continue;
-      Money? v;
+      Money? v, vNet;
       if (ln.a.length == 1 && ln.l.contains('moms')) {
         v = ln.a.first;
       } else if (ln.a.length >= 2) {
         for (final n in ln.a) {
           for (final x in ln.a) {
-            if (n != x && (x.ore - VatCalculator.divRound(n.ore * r, 100)).abs() <= 100) v = x;
+            if (n != x && (x.ore - VatCalculator.divRound(n.ore * r, 100)).abs() <= 100) {
+              v = x;
+              vNet = n;
+            }
           }
         }
         if (v == null && ln.l.contains('moms')) v = ln.a.last;
       }
-      if (v != null) vats.add(InvoiceVatLine(r, v));
+      if (v != null) vats.add(InvoiceVatLine(r, v, net: vNet));
     } else if (rm == null &&
         ln.l.contains('moms') &&
         ln.a.length == 1 &&
@@ -244,6 +250,6 @@ InvoiceExtraction extractInvoice(String text) {
     vatLines: vats,
     vatTotal: vat,
     vatConfidence: vconf,
-    candidates: [for (final c in cands.take(3)) AmountCandidate(c.v, c.score, c.line)],
+    candidates: [for (final c in cands.where((c) => c.score >= 5).take(3)) AmountCandidate(c.v, c.score, c.line)],
   );
 }

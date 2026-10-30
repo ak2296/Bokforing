@@ -6,13 +6,15 @@ version: 0.1.0+1
 environment:
   sdk: '>=3.3.0 <4.0.0'
 
-# Phase 1 uses only SDK packages. Camera, ML Kit, database and PDF packages are
-# added in later phases, with versions checked against pub.dev at that time.
+# Versions checked on pub.dev 2026-10-31. Database and PDF packages come later.
 dependencies:
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  camera: ^0.12.0
+  google_mlkit_text_recognition: ^0.15.0
+  image: ^4.2.0
 
 dev_dependencies:
   flutter_test:

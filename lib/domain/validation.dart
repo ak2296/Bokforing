@@ -52,6 +52,22 @@ class AccountingValidationEngine {
             'Momsfördelningen summerar inte till total moms (skillnad ${diff.format()}).', diff);
   }
 
+  /// VAT on a printed taxable amount must equal net × rate (within rounding).
+  static ValidationResult checkVatLine(int ratePercent, Money net, Money vat) {
+    final expected = Money(VatCalculator.divRound(net.ore * ratePercent, 100));
+    final diff = vat - expected;
+    if (diff.ore.abs() <= 100) {
+      return ValidationResult(
+          ValidationStatus.ok, 'vat', 'Moms $ratePercent % stämmer med underlaget.', diff);
+    }
+    return ValidationResult(
+        ValidationStatus.warning,
+        'vat',
+        'Moms $ratePercent %: ${vat.format()} på underlag ${net.format()} stämmer inte '
+        '(förväntat ${expected.format()}).',
+        diff);
+  }
+
   /// VAT can never exceed gross × 25/125 (the highest Swedish rate).
   static ValidationResult checkVatPlausible(Money vat, Money total) {
     final max = Money(VatCalculator.divRound(total.ore * 25, 125) + 100);

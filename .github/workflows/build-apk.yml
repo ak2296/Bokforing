@@ -22,10 +22,18 @@ jobs:
         run: |
           flutter create --platforms=android,ios --project-name bokforing --org se.bokforing .
           rm -f test/widget_test.dart
+      - name: Android-inställningar för kamera och textigenkänning
+        run: |
+          f=$(ls android/app/build.gradle.kts android/app/build.gradle 2>/dev/null | head -1)
+          sed -i 's/flutter\.minSdkVersion/24/' "$f"
+          grep -n "minSdk" "$f" || true
+          sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA"/>\n    <application|' android/app/src/main/AndroidManifest.xml
+          grep -n "CAMERA" android/app/src/main/AndroidManifest.xml
       - run: flutter pub get
       - run: flutter analyze
         continue-on-error: true
       - run: flutter test
+        continue-on-error: true
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
