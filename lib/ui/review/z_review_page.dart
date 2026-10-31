@@ -12,7 +12,6 @@ import '../record_details.dart';
 import '../scan/scan_context.dart';
 import '../scan/scan_flow.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
 import '../widgets/fields.dart';
 import 'ai_assist.dart';
 import 'review_common.dart';
