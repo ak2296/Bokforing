@@ -35,29 +35,21 @@ Rule-based extraction cannot understand arbitrary invoice/Z-report layouts (ever
 - Free limits are shown only inside the owner's AI Studio account, per project, not guaranteed.
 - No on-device LLM (too large). Do not add one unless asked.
 
-## 4. Current code layout (all under `lib/`)
-- `domain/money.dart` Money(öre), `Money.parse` (Swedish/OCR formats; returns null on ambiguous like "1.250"), `format`.
-- `domain/vat.dart` VatRate (basis points), VatCalculator (fromGross/fromNet, integer rounding), VatRuleSet guidance.
-- `domain/patterns.dart` date/amount regexes, `Confidence` enum.
-- `domain/classifier.dart` weighted keyword classifier -> invoice / zReport / unknown + confidence (below 0.7 -> user must choose).
-- `domain/invoice_extractor.dart` candidate ranking for total, VAT per rate (incl. "Moms% Moms Netto Brutto" table, "Momspliktigt belopp" = taxable base), dates, due date (also on the row below a "Förfallodatum" header), supplier (prefers a line with AB/HB/KB), invoice number, OCR ref.
-- `domain/z_extractor.dart` Z-report: uses only the "Försäljning per varugrupp" section when present; total from "Periodens försäljning"/"Total försäljning"/...; cautious fuzzy category matching (`suggestedId` vs auto `categoryId`); `sumWith(overrides)`.
-- `domain/validation.dart` AccountingValidationEngine (reconcileZReport, checkInvoiceArithmetic, checkVatBreakdown, checkVatLine, checkVatPlausible).
-- `domain/ocr_document.dart` rebuilds table rows from OCR lines, with page-tilt compensation (label and amount on the same row).
-- `domain/text_merge.dart` merges text from several photos of one long document (overlap detection).
-- `imaging/preprocess.dart` orientation fix, crop to guide frame, find the bright paper (Otsu) and crop to it, brightness/sharpness quality checks, deskew (<= ~7 deg), contrast stretch. No binarisation/sharpening (would erase decimal commas). No perspective correction / edge detection yet.
-- `ocr/mlkit_ocr.dart` ML Kit text recognition (Latin, bundled model).
-- `ui/scan_page.dart` camera with frame + "Långt dokument" multi-photo mode, quality screen ("Bildkvaliteten är för låg", "Skanna igen" / "Använd ändå"), SafeArea.
-- `main.dart` shell (5 tabs + settings icon) and a temporary analysis page: paste/scan text -> classify -> extract -> show review. **No save, no database, no settings, no reports yet** (tabs other than Skanna are placeholders). Z-report review has per-row category dropdown using the hard-coded restaurant suggestions.
-- `samples.dart` example texts. `test/` unit tests for all domain logic.
+## 4. Current code layout (rewritten from scratch 2026-10-31, branch `ny-start`; old code kept locally in `_gammal_kod/`, not committed)
+- `domain/` pure Dart: `money.dart` (öre, Swedish parse/format), `vat.dart` (VatRate in bp, VatCalculator, versioned `VatRuleSet.se2026` verified on skatteverket.se 2026-10-31: food 6 % 2026-04-01..2027-12-31, restaurant service 12 %), `dates.dart`, `models.dart`, `validation.dart` (AccountingValidationEngine), `reports.dart` (monthly/yearly, dynamic columns, derived totals), `category_templates.dart` (suggestions only, no VAT), `ocr_models.dart` (blocks/lines/words/boxes/confidence, row grouping), `text_patterns.dart` (amounts/dates/rates, Confidence, Extracted), `classifier.dart`, `document_parser.dart`, `invoice_parser.dart` (ranked total candidates, cash/change/card logic, VAT table/lines/net, dates incl. header-row layout), `z_report_parser.dart` (section detection, exact/remembered auto-match, possible-match suggestions, printed-rate mismatch warning), `text_merge.dart`.
+- `data/database.dart` (sqflite schema v1) and `data/repository.dart` (only writer; audit log; duplicates; aliases).
+- `imaging/preprocess.dart` (runs in isolate): orientation, paper crop (Otsu), quality (dark/bright/blur/skew/not found), deskew ±10° using text near paper, shadow reduction (background division), percentile contrast. No binarisation/sharpening, no perspective correction.
+- `ocr/ocr_service.dart` ML Kit Latin, keeps boxes and confidences.
+- `ai/` `gemini_client.dart` (generateContent REST, strict JSON schema, Swedish error messages, key in flutter_secure_storage, default model `gemini-3.8-flash`, editable in settings) and `ai_result.dart` (amounts parsed from printed text with Money.parse; Z rows matched with the same cautious matcher).
+- `export/monthly_pdf.dart` (pdf package, A4 landscape) and `export/backup.dart` (AES-256-GCM + PBKDF2 encrypted JSON of all tables; images and API key excluded; restore in one transaction).
+- `ui/`: setup wizard, shell (5 tabs + settings), dashboard, sales/expenses lists, reports (month table + PDF/print, year), record details (edit/delete with audit), history, scan (camera with frame + live "Dokument upptäckt" hint, long-document mode, processing states, quality screen), review pages for invoice and Z-report (confidence badges, alternatives, duplicates, "Kom ihåg" label mappings, AI offer card), settings (company, categories, keep images, backup, AI, privacy).
 
 ## 5. Status and honesty notes
-- The previous assistant had **no Flutter/Dart/Android SDK and could not compile or run anything**. Code was ported from a JavaScript prototype whose logic was run in Node. **Run `flutter pub get`, `flutter analyze`, `flutter test` first and fix whatever fails.** Treat all tests as unverified until run.
-- One real bug was found by the owner's CI build and fixed in the last zip: `z_extractor.dart` lacked `suggestedId`/`sectionFound`/`sumWith` (a lost edit). Make sure the current files compile.
-- Build results so far: the first debug/release builds worked after adding R8 rules. **The release (R8-shrunk) build crashed at runtime inside ML Kit** (NullPointerException with obfuscated names); the **debug build works**. Current workaround: Gradle `isMinifyEnabled=false` and `--no-shrink`. Verify the release APK now runs OCR, or keep shrinking off.
-- The CI workflow (`.github/workflows/build-apk.yml`) runs `flutter create --platforms=android,ios` in the repo (so `android/` and `ios/` are generated, not committed), sets `minSdk 24`, adds CAMERA permission, writes ProGuard keep/dontwarn rules for ML Kit, then builds release and debug APKs. Adjust if you commit the platform folders.
-- Package versions chosen (from pub.dev search): camera ^0.12.0, google_mlkit_text_recognition ^0.15.0, image ^4.2.0. Flutter stable 3.47.x was used by CI. Re-check versions.
-- Quality thresholds (`_minBrightness` 70, `_minSharpness` 60) are provisional; the owner's real photos measured brightness 123-158 and sharpness 334-1417.
+- No Flutter/Java is installed on the owner's PC and the owner does not want local installs. All builds/tests run on GitHub Actions (`.github/workflows/build-apk.yml`, Flutter 3.47.9, runs on every push to any branch; analyzer warnings/errors and test failures fail the build; errors are written as annotations readable on the public run page).
+- Verified on GitHub: analyze clean (infos only), unit + database (sqflite ffi) + parser + imaging + AI-mapping + backup/PDF tests, debug and release APK build. NOT verified on a phone yet: camera, ML Kit at runtime in the release APK (shrinking is off), printing, file picker, Gemini against the real API.
+- Release APK is built with `--no-shrink` and `isMinifyEnabled = false` because R8 broke ML Kit earlier.
+- Manifest edits in CI: minSdk 24, CAMERA, INTERNET (only for the optional AI step), `allowBackup="false"`.
+- Gemini facts checked 2026-10-31 on ai.google.dev: free tier exists for `gemini-3.8-flash` and `gemini-3.5-flash-lite` (both image input + structured output); free-tier content "used to improve our products"; limits only visible in AI Studio.
 
 ## 6. Owner's real documents (what OCR/extraction must cope with)
 - **Centrumgrossisten AB invoice (A4, FAKTURA)**: "Fakturanr", "Kundnr 999", due-date header with the dates on the next row, "Momspliktigt belopp 491,87", "Moms 6% 29,47", "Moms 25% 0,00", "Öresutj. -0,34", "Att betala SEK 521,00", stamp "BETALD", QR code, supplier line "CENTRUMGROSSISTEN AB". Extraction was close to right in the debug build (total and VAT correct).
@@ -67,17 +59,12 @@ Rule-based extraction cannot understand arbitrary invoice/Z-report layouts (ever
 - **Z-report, long thermal strip version**: vertical "EJ KVITTO PÅ KÖP" printed along both edges; photographed from far away the OCR was garbage (digits wrong, special characters lost). Needs close-ups (long-document mode) or the AI step. Some owner invoices are long with small print; A4 Z-reports also exist. **Layouts differ between cash registers and suppliers - do not hard-code one.**
 - Many supplier invoices also arrive as PDF by email: plan a "Välj fil" import for PDFs/images (check packages first).
 
-## 7. Remaining work, in suggested order
-1. Get the project compiling; `flutter test` green; confirm release APK runs OCR.
-2. **Settings + first-run wizard**: company name, user-defined categories with VAT rate (replace `restaurantSuggestions`), remembered label->category mappings (learn from user corrections, e.g. "Dryck avhämtning" -> chosen category), versioned VAT guidance hints (never auto-assign).
-3. **Gemini "Förbättrad analys"** as in section 3 (prompt returns strict JSON; validate with the engine; consent dialog in Swedish; key in secure storage; offline fallback; handle quota/network errors with clear Swedish messages).
-4. **Review/confirm screen** (editable fields, confidence badges, document preview, "Godkänn och spara / Redigera / Skanna igen / Avbryt"), manual entry (Faktura and Z-rapport), duplicate detection.
-5. **Local database** (money as öre; entities: BusinessProfile, Category, DailySales, DailySalesItem(with category name + VAT snapshot), Invoice, InvoiceVat(rate, vat, net, printed vs calculated), DocumentScan(OCR text, optional image), AuditLog). Totals are derived, never stored. Record created/modified time, source, OCR vs manual, confirmed, edits audit trail.
-6. **Reports**: dashboard, monthly table (dynamic columns, tap a day for its invoices), yearly dashboard, history screen; PDF export (pdf package) and Android print.
-7. Backup/import (SAF), optional biometric lock, "Behåll originalbilder" setting, privacy text in Swedish.
-8. Image quality: perspective correction/edge detection, shadow reduction, auto-capture suggestion (visible, never silent).
-9. iPhone build (needs Apple Developer account; verify iOS OCR options).
-10. UI tests for the main flows; README + architecture doc.
+## 7. Remaining work
+1. Owner tests the APK on the phone with real documents; tune thresholds and parsers from real OCR text (the review screen shows the OCR text).
+2. "Välj fil" import of PDFs/images from email.
+3. Optional biometric lock; perspective correction / edge detection.
+4. UI (widget) tests for the main flows; architecture doc.
+5. iPhone build (needs Apple Developer account).
 
 ## 8. Working rules
 - Never fake OCR, never hard-code sample accounting records, never use floating point for money, never save silently, never let AI or fuzzy logic silently resolve a discrepancy, never assume one layout or one business type.
