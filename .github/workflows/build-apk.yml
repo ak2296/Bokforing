@@ -29,12 +29,23 @@ jobs:
           grep -n "minSdk" "$f" || true
           sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA"/>\n    <application|' android/app/src/main/AndroidManifest.xml
           grep -n "CAMERA" android/app/src/main/AndroidManifest.xml
+      - name: R8-regler för ML Kit (valfria språkmodeller ingår inte)
+        run: |
+          cat > android/app/proguard-rules.pro <<'RULES'
+          -dontwarn com.google.mlkit.vision.text.chinese.**
+          -dontwarn com.google.mlkit.vision.text.devanagari.**
+          -dontwarn com.google.mlkit.vision.text.japanese.**
+          -dontwarn com.google.mlkit.vision.text.korean.**
+          RULES
+          sed -i 's/^ *//' android/app/proguard-rules.pro
+          cat android/app/proguard-rules.pro
       - run: flutter pub get
       - run: flutter analyze
         continue-on-error: true
       - run: flutter test
         continue-on-error: true
-      - run: flutter build apk --release
+      - name: Bygg APK (om R8 ändå klagar byggs den utan kodkrympning)
+        run: flutter build apk --release || flutter build apk --release --no-shrink
       - uses: actions/upload-artifact@v4
         with:
           name: bokforing-apk
