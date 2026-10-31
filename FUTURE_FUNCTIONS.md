@@ -21,7 +21,12 @@ Possible additions to the app. Nothing here is built yet. The owner picks what c
 
 ## 4. Paid / unpaid invoices and payment reminders (base for a balance view)
 - Mark invoices as paid or unpaid, with payment date ("Markera som betald").
-- Receipts and invoices stamped BETALD or paid by card/cash are suggested as already paid (the user confirms).
+- Kvitto (already paid) vs faktura (to pay), decided by several signals, never by the title alone:
+  - Kvitto signals: payment lines (Kontokort, Kort, Kontant, Swish, Mottaget, Växel, Betalt), card terminal text (Godkänd, Ref, Terminal, Kortnr ****), time of purchase, Kassa/Kassör, "Öppet köp", "Spara kvittot", and a narrow paper shape (thermal receipt) seen in the photo.
+  - Faktura signals: Fakturanummer, Förfallodatum, Bankgiro/Plusgiro, OCR number, Betalningsvillkor, Dröjsmålsränta, Kundnummer, A4 paper shape.
+  - A faktura stamped BETALD counts as paid.
+  - The review screen shows "Redan betald" pre-filled from the signals; the user confirms or changes it. When unsure, the user chooses with one tap.
+  - The choice is remembered per supplier (e.g. Willys is always a kvitto).
 - Reminder notification on the phone a chosen number of days before the due date (förfallodatum), and on the day. Works offline, no internet needed.
 - "Betala" view: amount, bankgiro/plusgiro and OCR number with copy buttons, to paste into the bank app.
 - List of unpaid invoices and amounts owed, sorted by due date.
