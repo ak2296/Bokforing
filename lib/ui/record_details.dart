@@ -7,6 +7,7 @@ import '../domain/validation.dart';
 import 'review/invoice_review_page.dart';
 import 'review/z_review_page.dart';
 import 'theme.dart';
+import 'unpaid_page.dart';
 import 'widgets/common.dart';
 
 Future<void> openRecord(BuildContext context, String kind, int id) =>
@@ -97,7 +98,13 @@ Widget _historyAndScan(BuildContext context, String entity, int id, int? scanId)
     builder: (context, snap) {
       if (!snap.hasData) return const SizedBox.shrink();
       final (audit, scan) = snap.data!;
-      const actions = {'create': 'Registrerad', 'update': 'Ändrad', 'delete': 'Borttagen'};
+      const actions = {
+        'create': 'Registrerad',
+        'update': 'Ändrad',
+        'delete': 'Borttagen',
+        'paid': 'Markerad som betald',
+        'unpaid': 'Markerad som obetald',
+      };
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -143,6 +150,28 @@ class InvoiceDetailsPage extends StatelessWidget {
                   if (inv.ocrReference.isNotEmpty) _Row('OCR-nummer', inv.ocrReference),
                   _Row('Summa', inv.total.format(), money: true),
                   _Row(inv.vatCalculated ? 'Moms (beräknad)' : 'Moms', inv.vatTotal.format(), money: true),
+                ]),
+                _section(context, 'Betalning', [
+                  _Row('Status', inv.paid ? 'Betald${inv.paidDate == null ? '' : ' ${inv.paidDate}'}' : 'Obetald'),
+                  if (!inv.paid) _Row('', dueText(inv.dueDate)),
+                  if (inv.bankgiro.isNotEmpty) _Row('Bankgiro', inv.bankgiro),
+                  if (inv.plusgiro.isNotEmpty) _Row('Plusgiro', inv.plusgiro),
+                  const SizedBox(height: 8),
+                  if (!inv.paid)
+                    FilledButton.tonalIcon(
+                      icon: const Icon(Icons.payments_outlined),
+                      label: const Text('Betala / Markera som betald'),
+                      onPressed: () => showPaySheet(context, inv),
+                    )
+                  else
+                    TextButton(
+                      onPressed: () async {
+                        final controller = AppScope.read(context);
+                        await controller.repo.setInvoicePaid(id, paid: false);
+                        controller.dataChanged();
+                      },
+                      child: const Text('Markera som obetald'),
+                    ),
                 ]),
                 if (inv.vatLines.isNotEmpty)
                   _section(context, 'Moms per momssats', [

@@ -6,7 +6,7 @@ import 'package:sqflite/sqflite.dart';
 /// except amounts printed on the document itself (e.g. reported Z total).
 class AppDatabase {
   static const fileName = 'bokforing.db';
-  static const version = 2;
+  static const version = 3;
 
   static Future<Database> open({DatabaseFactory? factory, String? path}) async {
     final f = factory ?? databaseFactory;
@@ -19,6 +19,7 @@ class AppDatabase {
         onCreate: (db, _) => _create(db),
         onUpgrade: (db, oldVersion, _) async {
           if (oldVersion < 2) await _createV2(db);
+          if (oldVersion < 3) await _upgradeToV3(db);
         },
       ),
     );
@@ -134,6 +135,7 @@ class AppDatabase {
         at TEXT NOT NULL
       )''');
     _v2Tables(batch);
+    _v3Changes(batch);
     for (final bp in const [0, 600, 1200, 2500]) {
       batch.insert('vat_rates', {'basis_points': bp, 'active': 1});
     }
@@ -152,6 +154,30 @@ class AppDatabase {
   static Future<void> _createV2(Database db) async {
     final batch = db.batch();
     _v2Tables(batch);
+    await batch.commit(noResult: true);
+  }
+
+  /// v3: payment status and payment details on invoices, and whether a
+  /// supplier's documents are receipts (paid) or invoices (to pay).
+  static void _v3Changes(Batch batch) {
+    batch.execute('ALTER TABLE invoices ADD COLUMN paid INTEGER NOT NULL DEFAULT 0');
+    batch.execute('ALTER TABLE invoices ADD COLUMN paid_date TEXT');
+    batch.execute("ALTER TABLE invoices ADD COLUMN bankgiro TEXT NOT NULL DEFAULT ''");
+    batch.execute("ALTER TABLE invoices ADD COLUMN plusgiro TEXT NOT NULL DEFAULT ''");
+    batch.execute('''
+      CREATE TABLE IF NOT EXISTS supplier_payment_kinds (
+        supplier TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )''');
+  }
+
+  static Future<void> _upgradeToV3(Database db) async {
+    final batch = db.batch();
+    _v3Changes(batch);
+    // Invoices saved before payment tracking existed are treated as paid so
+    // they do not suddenly trigger reminders.
+    batch.execute('UPDATE invoices SET paid = 1');
     await batch.commit(noResult: true);
   }
 }

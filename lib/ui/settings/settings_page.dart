@@ -4,6 +4,7 @@ import '../../app/app_controller.dart';
 import '../../app/settings_keys.dart';
 import '../../domain/models.dart';
 import '../../domain/vat.dart';
+import '../../notify/reminders.dart';
 import '../history_page.dart';
 import 'ai_settings_page.dart';
 import 'backup_page.dart';
@@ -20,6 +21,8 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _loading = true;
   bool _keepImages = false;
+  bool _reminders = true;
+  int _reminderDays = Reminders.defaultDays;
   BusinessProfile _profile = const BusinessProfile();
 
   @override
@@ -32,10 +35,14 @@ class _SettingsPageState extends State<SettingsPage> {
     final repo = AppScope.read(context).repo;
     final p = await repo.profile();
     final keep = await repo.boolSetting(SettingsKeys.keepImages);
+    final reminders = await Reminders.enabled(repo);
+    final days = await Reminders.days(repo);
     if (!mounted) return;
     setState(() {
       _profile = p;
       _keepImages = keep;
+      _reminders = reminders;
+      _reminderDays = days;
       _loading = false;
     });
   }
@@ -91,6 +98,38 @@ class _SettingsPageState extends State<SettingsPage> {
                     setState(() => _keepImages = v);
                   },
                 ),
+                header('Påminnelser'),
+                SwitchListTile(
+                  secondary: const Icon(Icons.notifications_outlined),
+                  title: const Text('Påminn om fakturor som ska betalas'),
+                  subtitle: const Text('En avisering i telefonen före förfallodagen och på förfallodagen.'),
+                  value: _reminders,
+                  onChanged: (v) async {
+                    final controller = AppScope.read(context);
+                    await controller.repo.setBoolSetting(Reminders.enabledKey, v);
+                    if (v) await controller.reminders?.requestPermission();
+                    controller.dataChanged();
+                    if (mounted) setState(() => _reminders = v);
+                  },
+                ),
+                if (_reminders)
+                  ListTile(
+                    leading: const SizedBox(width: 24),
+                    title: const Text('Påminn dagar före förfallodagen'),
+                    trailing: DropdownButton<int>(
+                      value: _reminderDays,
+                      items: [
+                        for (final d in const [1, 2, 3, 5, 7, 10]) DropdownMenuItem(value: d, child: Text('$d')),
+                      ],
+                      onChanged: (v) async {
+                        if (v == null) return;
+                        final controller = AppScope.read(context);
+                        await controller.repo.setSetting(Reminders.daysKey, '$v');
+                        controller.dataChanged();
+                        if (mounted) setState(() => _reminderDays = v);
+                      },
+                    ),
+                  ),
                 header('Data'),
                 ListTile(
                   leading: const Icon(Icons.backup_outlined),

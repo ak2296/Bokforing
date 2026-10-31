@@ -1,11 +1,13 @@
 import 'package:flutter/widgets.dart';
 
 import '../data/repository.dart';
+import '../notify/reminders.dart';
 
 /// Holds the repository and tells screens to reload after data changes.
 class AppController extends ChangeNotifier {
   final Repository repo;
-  AppController(this.repo);
+  final Reminders? reminders;
+  AppController(this.repo, {this.reminders});
 
   int _revision = 0;
   int get revision => _revision;
@@ -13,6 +15,8 @@ class AppController extends ChangeNotifier {
   void dataChanged() {
     _revision++;
     notifyListeners();
+    // Payment reminders follow the unpaid invoices.
+    reminders?.reschedule(repo);
   }
 }
 

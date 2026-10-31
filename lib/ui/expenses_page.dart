@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../domain/dates.dart';
 import 'record_details.dart';
+import 'unpaid_page.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
 
@@ -19,6 +20,14 @@ class _ExpensesPageState extends State<ExpensesPage> {
   Widget build(BuildContext context) => Column(
         children: [
           MonthSwitcher(value: _ym, onChanged: (v) => setState(() => _ym = v)),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              icon: const Icon(Icons.payments_outlined),
+              label: const Text('Obetalda fakturor'),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UnpaidPage())),
+            ),
+          ),
           Expanded(
             child: Reloading<MonthData>(
               deps: _ym.title,
@@ -41,6 +50,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           SwedishDates.mediumDay(inv.invoiceDate),
                           if (inv.invoiceNumber.isNotEmpty) 'Nr ${inv.invoiceNumber}',
                           'Moms ${inv.vatTotal.format(compact: true)}',
+                          if (!inv.paid) 'Obetald',
                         ].join(' · ')),
                         trailing: Text(inv.total.format(compact: true), style: moneyStyle),
                         onTap: () => openRecord(context, 'invoice', inv.id!),

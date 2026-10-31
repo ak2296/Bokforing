@@ -7,6 +7,7 @@ import '../../domain/dates.dart';
 import '../../domain/invoice_parser.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/payment_detector.dart';
 import '../../domain/text_patterns.dart';
 import '../../domain/validation.dart';
 import '../../domain/vat.dart';
@@ -52,6 +53,13 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   late bool _vatCalculated;
   List<VatRate> _rates = VatRuleSet.current.rates;
 
+  /// Null until known: the user must say whether the document is paid.
+  bool? _paid;
+  String? _paidReason;
+  late final TextEditingController _paidDate, _bankgiro, _plusgiro;
+  bool _rememberKind = true;
+  bool _kindLoaded = false;
+
   bool get _isCredit => Money.parse(_total.text)?.isNegative ?? false;
 
   /// Flips the sign of total, VAT and VAT lines. The amounts themselves are
@@ -94,14 +102,56 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       _vatRows.add(_VatRow(l.rate, l.vat.toInput(), net: l.net, gross: l.gross, calculated: l.calculated));
     }
     _editing = widget.scan == null;
+
+    final p = d?.payment;
+    if (e != null) {
+      _paid = e.paid;
+    } else if (p != null && p.kind != PaymentKind.unknown) {
+      _paid = p.paid;
+      _paidReason = p.kind == PaymentKind.kvitto
+          ? 'Ser ut som ett kvitto (redan betalt)'
+          : p.paid
+              ? 'Faktura märkt som betald'
+              : 'Ser ut som en faktura att betala';
+    }
+    _paidDate = TextEditingController(
+        text: e?.paidDate ?? (_paid == true ? (d?.date.value ?? SwedishDates.iso(DateTime.now())) : ''));
+    _bankgiro = TextEditingController(text: e?.bankgiro ?? d?.bankgiro.value ?? '');
+    _plusgiro = TextEditingController(text: e?.plusgiro ?? d?.plusgiro.value ?? '');
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    AppScope.read(context).repo.vatRates().then((r) {
+    final repo = AppScope.read(context).repo;
+    repo.vatRates().then((r) {
       if (mounted) setState(() => _rates = r);
     });
+    // The user's earlier choice for this supplier beats the printed signals,
+    // except a BETALD stamp.
+    if (!_kindLoaded && widget.existing == null && _supplier.text.trim().isNotEmpty) {
+      _kindLoaded = true;
+      repo.supplierPaymentKind(_supplier.text).then((kind) {
+        if (!mounted || kind == null) return;
+        final stamped = _d?.payment?.reasons.contains('stämpel BETALD') ?? false;
+        setState(() {
+          _setPaid(kind == 'kvitto' || stamped, edited: false);
+          _paidReason = kind == 'kvitto'
+              ? 'Kvitto enligt tidigare val för ${_supplier.text.trim()}'
+              : stamped
+                  ? 'Faktura märkt som betald'
+                  : 'Faktura enligt tidigare val för ${_supplier.text.trim()}';
+        });
+      });
+    }
+  }
+
+  void _setPaid(bool paid, {bool edited = true}) {
+    _paid = paid;
+    if (paid && _paidDate.text.isEmpty) {
+      _paidDate.text = SwedishDates.isValidIso(_date.text.trim()) ? _date.text.trim() : SwedishDates.iso(DateTime.now());
+    }
+    if (edited) _edited = true;
   }
 
   /// Why the offline reading is not good enough; empty when it is.
@@ -161,6 +211,10 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
         manuallyEdited: _edited || (widget.existing?.meta.manuallyEdited ?? false),
         scanId: widget.existing?.meta.scanId,
       ),
+      paid: _paid ?? false,
+      paidDate: _paid == true && SwedishDates.isValidIso(_paidDate.text.trim()) ? _paidDate.text.trim() : null,
+      bankgiro: _bankgiro.text.trim(),
+      plusgiro: _plusgiro.text.trim(),
     );
   }
 
@@ -171,8 +225,14 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     }
     final inv = _build();
     if (inv == null) return;
+    if (_paid == null) {
+      setState(() => _editing = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Välj om dokumentet redan är betalt (kvitto) eller ska betalas (faktura).')));
+      return;
+    }
     final controller = AppScope.read(context);
-    final checks = const AccountingValidationEngine().validateInvoice(inv, net: _d?.net);
+    final checks =const AccountingValidationEngine().validateInvoice(inv, net: _d?.net);
     final problems = checks.where((c) => !c.isOk).toList();
     if (problems.isNotEmpty) {
       final ok = await confirmDialog(context,
@@ -200,21 +260,14 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     setState(() => _saving = true);
     try {
       final scanId = await widget.scan?.persist(controller);
-      final toSave = scanId == null
-          ? inv
-          : Invoice(
-              invoiceDate: inv.invoiceDate,
-              supplier: inv.supplier,
-              invoiceNumber: inv.invoiceNumber,
-              total: inv.total,
-              vatTotal: inv.vatTotal,
-              vatCalculated: inv.vatCalculated,
-              dueDate: inv.dueDate,
-              ocrReference: inv.ocrReference,
-              vatLines: inv.vatLines,
-              meta: inv.meta.copyWith(scanId: scanId),
-            );
+      final toSave = scanId == null ? inv : inv.copyWith(meta: inv.meta.copyWith(scanId: scanId));
       await controller.repo.saveInvoice(toSave);
+      if (!toSave.paid && toSave.dueDate != null) await controller.reminders?.requestPermission();
+      if (_rememberKind && inv.supplier.isNotEmpty && !inv.total.isNegative) {
+        final stamped = _d?.payment?.reasons.contains('stämpel BETALD') ?? false;
+        // A stamped invoice is still an invoice; remember what the supplier sends.
+        await controller.repo.rememberSupplierPaymentKind(inv.supplier, inv.paid && !stamped ? 'kvitto' : 'faktura');
+      }
       controller.dataChanged();
       if (!mounted) return;
       showSaved(context);
@@ -308,11 +361,98 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
                 keyboardType: TextInputType.number,
                 onChanged: _changed),
             const SizedBox(height: 16),
+            _paymentSection(),
+            const SizedBox(height: 16),
             Text('Kontroll', style: Theme.of(context).textTheme.titleSmall),
             if (inv == null)
               const Text('Fyll i datum och summa för att kontrollera beloppen.')
             else
               ValidationList(checks),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Kvitto (already paid) or faktura (to pay). Pre-filled from the printed
+  /// signals or the supplier's earlier choice; the user always confirms.
+  Widget _paymentSection() {
+    final t = Theme.of(context).textTheme;
+    final paid = _paid;
+    final supplier = _supplier.text.trim();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Betalning', style: t.titleSmall),
+            if (paid == null) ...[
+              const SizedBox(height: 6),
+              const Text('Är dokumentet redan betalt?', style: TextStyle(color: AppTheme.warning)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.tonal(
+                      onPressed: () => setState(() => _setPaid(true)),
+                      child: const Text('Betald (kvitto)'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.tonal(
+                      onPressed: () => setState(() => _setPaid(false)),
+                      child: const Text('Obetald (faktura)'),
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Redan betald'),
+                subtitle: _paidReason == null ? null : Text(_paidReason!),
+                value: paid,
+                onChanged: !_editing ? null : (v) => setState(() => _setPaid(v)),
+              ),
+              if (paid)
+                DateField(
+                    controller: _paidDate,
+                    label: 'Betalningsdatum',
+                    enabled: _editing,
+                    required: false,
+                    onChanged: _changed)
+              else ...[
+                if (!SwedishDates.isValidIso(_due.text.trim()))
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 8),
+                    child: Text('Fyll i förfallodatum ovan för att få en påminnelse.',
+                        style: TextStyle(color: AppTheme.warning)),
+                  ),
+                PlainField(
+                    controller: _bankgiro,
+                    label: 'Bankgiro',
+                    enabled: _editing,
+                    keyboardType: TextInputType.number,
+                    onChanged: _changed),
+                const SizedBox(height: 8),
+                PlainField(
+                    controller: _plusgiro,
+                    label: 'Plusgiro',
+                    enabled: _editing,
+                    keyboardType: TextInputType.number,
+                    onChanged: _changed),
+              ],
+            ],
+            if (widget.existing == null && supplier.isNotEmpty && paid != null)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                value: _rememberKind,
+                title: Text('Kom ihåg: $supplier skickar ${paid ? 'kvitton' : 'fakturor'}'),
+                onChanged: (v) => setState(() => _rememberKind = v ?? false),
+              ),
           ],
         ),
       ),

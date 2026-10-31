@@ -38,6 +38,17 @@ jobs:
           grep -q 'android.permission.INTERNET' $m || sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' $m
           # Keep the encrypted API key and the database out of Android cloud backup.
           grep -q 'allowBackup' $m || sed -i 's|<application|<application android:allowBackup="false"|' $m
+          # Payment reminders (flutter_local_notifications): survive reboots,
+          # receivers for scheduled notifications, core library desugaring.
+          grep -q 'RECEIVE_BOOT_COMPLETED' $m || sed -i 's|<application|<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <application|' $m
+          if ! grep -q 'ScheduledNotificationReceiver' $m; then
+            perl -0pi -e 's#</application>#    <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />\n        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">\n            <intent-filter>\n                <action android:name="android.intent.action.BOOT_COMPLETED"/>\n                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>\n                <action android:name="android.intent.action.QUICKBOOT_POWERON" />\n                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>\n            </intent-filter>\n        </receiver>\n    </application>#' $m
+          fi
+          grep -q 'isCoreLibraryDesugaringEnabled' "$f" || perl -0pi -e 's/compileOptions \{/compileOptions {\n        isCoreLibraryDesugaringEnabled = true/' "$f"
+          grep -q 'desugar_jdk_libs' "$f" || printf '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n' >> "$f"
+          echo "----- $f"; cat "$f"
+          echo "----- settings.gradle"; cat android/settings.gradle.kts 2>/dev/null || cat android/settings.gradle
+          echo "----- manifest"; cat $m
           grep -n "minSdk\|Minify\|Shrink" "$f" || true
           grep -n "permission" $m || true
 

@@ -60,6 +60,7 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
   String? _error;
   final List<String> _processed = [];
   final List<QualityReport> _quality = [];
+  final List<double> _aspects = [];
   OcrResult? _ocr;
   Classification? _classification;
   bool _aiUsable = false;
@@ -106,6 +107,7 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
         await File(out).writeAsBytes(result.jpeg);
         _processed.add(out);
         _quality.add(result.quality);
+        if (result.quality.paperAspect != null) _aspects.add(result.quality.paperAspect!);
         try {
           await File(path).delete();
         } on FileSystemException {
@@ -186,7 +188,8 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
     setState(() => _state = type == DocumentType.invoice ? ScanState.invoiceDetected : ScanState.zReportDetected);
     Widget page;
     if (type == DocumentType.invoice) {
-      page = InvoiceReviewPage(draft: const InvoiceParser().parse(ocr), scan: ctx);
+      final aspect = widget.photoPaths.length == 1 && _aspects.length == 1 ? _aspects.single : null;
+      page = InvoiceReviewPage(draft: const InvoiceParser().parse(ocr, paperAspect: aspect), scan: ctx);
     } else {
       final cats = await controller.repo.categories();
       final aliases = await controller.repo.categoryAliases();

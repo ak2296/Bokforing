@@ -156,7 +156,18 @@ class Invoice {
   final List<InvoiceVatLine> vatLines;
   final RecordMeta meta;
 
+  /// A receipt (kvitto) or an invoice stamped BETALD is paid; an invoice to
+  /// pay is unpaid until the user marks it as paid.
+  final bool paid;
+  final String? paidDate;
+  final String bankgiro;
+  final String plusgiro;
+
   const Invoice({
+    this.paid = false,
+    this.paidDate,
+    this.bankgiro = '',
+    this.plusgiro = '',
     this.id,
     required this.invoiceDate,
     this.supplier = '',
@@ -194,4 +205,26 @@ class RegistrationSummary {
   });
 
   String get typeLabel => kind == 'invoice' ? 'Faktura' : 'Z-rapport';
+}
+
+extension InvoiceCopy on Invoice {
+  /// A copy with other payment details or a new scan link; everything else
+  /// is kept as it is.
+  Invoice copyWith({bool? paid, String? paidDate, bool clearPaidDate = false, RecordMeta? meta, int? id}) => Invoice(
+        id: id ?? this.id,
+        invoiceDate: invoiceDate,
+        supplier: supplier,
+        invoiceNumber: invoiceNumber,
+        total: total,
+        vatTotal: vatTotal,
+        vatCalculated: vatCalculated,
+        dueDate: dueDate,
+        ocrReference: ocrReference,
+        vatLines: vatLines,
+        meta: meta ?? this.meta,
+        paid: paid ?? this.paid,
+        paidDate: clearPaidDate ? null : (paidDate ?? this.paidDate),
+        bankgiro: bankgiro,
+        plusgiro: plusgiro,
+      );
 }

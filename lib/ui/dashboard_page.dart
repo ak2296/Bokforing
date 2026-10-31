@@ -4,6 +4,7 @@ import '../domain/dates.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
 import 'history_page.dart';
+import 'unpaid_page.dart';
 import 'record_details.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -15,15 +16,16 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ym = YearMonth.now();
-    return Reloading<(MonthData, List<RegistrationSummary>, int)>(
+    return Reloading<(MonthData, List<RegistrationSummary>, int, List<Invoice>)>(
       deps: ym.title,
       loader: (c) async => (
         await MonthData.load(c, ym),
         await c.repo.recentRegistrations(limit: 8),
         await c.repo.documentCount(fromIso: ym.firstDay, toIso: ym.lastDay),
+        await c.repo.unpaidInvoices(),
       ),
       builder: (context, data) {
-        final (month, recent, count) = data;
+        final (month, recent, count, unpaid) = data;
         final r = month.report;
         final diff = r.vatDifference;
         return ListView(
@@ -39,6 +41,7 @@ class DashboardPage extends StatelessWidget {
               icon: const Icon(Icons.document_scanner_outlined),
               label: const Text('Skanna dokument'),
             ),
+            if (unpaid.isNotEmpty) _UnpaidCard(unpaid),
             const SizedBox(height: 16),
             GridView.count(
               crossAxisCount: 2,
@@ -147,6 +150,40 @@ class RegistrationTile extends StatelessWidget {
       subtitle: Text(sub),
       trailing: Text(e.amount.format(compact: true), style: moneyStyle),
       onTap: () => openRecord(context, e.kind, e.id),
+    );
+  }
+}
+
+/// "Att betala": unpaid invoices, highlighted when one is due soon or late.
+class _UnpaidCard extends StatelessWidget {
+  final List<Invoice> unpaid;
+  const _UnpaidCard(this.unpaid);
+
+  @override
+  Widget build(BuildContext context) {
+    final total = Money.sum(unpaid.map((i) => i.total));
+    final days = unpaid.map((i) => daysUntil(i.dueDate)).whereType<int>().toList()..sort();
+    final first = days.isEmpty ? null : days.first;
+    final urgent = first != null && first <= 3;
+    final color = first != null && first < 0 ? Theme.of(context).colorScheme.error : AppTheme.warning;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Card(
+        color: urgent ? color.withValues(alpha: 0.1) : null,
+        child: ListTile(
+          leading: Icon(Icons.payments_outlined, color: urgent ? color : null),
+          title: Text('Att betala: ${unpaid.length} ${unpaid.length == 1 ? 'faktura' : 'fakturor'}'),
+          subtitle: Text(first == null
+              ? 'Inget förfallodatum angivet'
+              : first < 0
+                  ? 'Minst en faktura har förfallit'
+                  : first == 0
+                      ? 'En faktura förfaller i dag'
+                      : 'Nästa förfaller om $first ${first == 1 ? 'dag' : 'dagar'}'),
+          trailing: Text(total.format(compact: true), style: moneyStyle),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UnpaidPage())),
+        ),
+      ),
     );
   }
 }

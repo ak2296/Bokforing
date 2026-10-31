@@ -5,6 +5,7 @@ import 'app/app_controller.dart';
 import 'app/settings_keys.dart';
 import 'data/database.dart';
 import 'data/repository.dart';
+import 'notify/reminders.dart';
 import 'ui/setup_wizard.dart';
 import 'ui/shell.dart';
 import 'ui/theme.dart';
@@ -14,7 +15,10 @@ Future<void> main() async {
   final db = await AppDatabase.open();
   final repo = Repository(db);
   final setupDone = await repo.boolSetting(SettingsKeys.setupDone);
-  runApp(BokforingApp(controller: AppController(repo), setupDone: setupDone));
+  final reminders = Reminders();
+  await reminders.init();
+  reminders.reschedule(repo);
+  runApp(BokforingApp(controller: AppController(repo, reminders: reminders), setupDone: setupDone));
 }
 
 class BokforingApp extends StatefulWidget {

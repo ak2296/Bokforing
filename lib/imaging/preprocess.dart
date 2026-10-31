@@ -30,7 +30,12 @@ class QualityReport {
   final double skewDegrees;
   final bool paperFound;
   final List<QualityIssue> issues;
-  const QualityReport(this.brightness, this.sharpness, this.skewDegrees, this.paperFound, this.issues);
+
+  /// Height / width of the paper when its edges were found inside the photo
+  /// (null when the paper filled the frame, so its shape is unknown).
+  final double? paperAspect;
+  const QualityReport(this.brightness, this.sharpness, this.skewDegrees, this.paperFound, this.issues,
+      {this.paperAspect});
 
   bool get acceptable => issues.isEmpty;
 }
@@ -93,6 +98,7 @@ PreprocessResult preprocessDocument(PreprocessRequest req) {
   final threshold = _otsu(small.data);
   final paper = _paperBox(small, threshold);
   var paperFound = paper != null;
+  double? paperAspect;
   if (paper != null) {
     final sx = image.width / small.width;
     final sy = image.height / small.height;
@@ -106,6 +112,7 @@ PreprocessResult preprocessDocument(PreprocessRequest req) {
     final cw = (x1.clamp(cx + 1, image.width) - cx);
     final ch = (y1.clamp(cy + 1, image.height) - cy);
     if (cw * ch < image.width * image.height * 0.97) {
+      paperAspect = ch / cw;
       image = img.copyCrop(image, x: cx, y: cy, width: cw, height: ch);
       gray = _luminance(image);
     }
@@ -146,7 +153,7 @@ PreprocessResult preprocessDocument(PreprocessRequest req) {
   }
   final jpeg = img.encodeJpg(out, quality: 92);
   return PreprocessResult(jpeg, image.width, image.height,
-      QualityReport(brightness, sharpness, skew, paperFound, issues));
+      QualityReport(brightness, sharpness, skew, paperFound, issues, paperAspect: paperAspect));
 }
 
 class _Gray {

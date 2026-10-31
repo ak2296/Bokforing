@@ -339,6 +339,10 @@ class Repository {
         'manually_edited': inv.meta.manuallyEdited ? 1 : 0,
         'confirmed': 1,
         'scan_id': inv.meta.scanId,
+        'paid': inv.paid ? 1 : 0,
+        'paid_date': inv.paid ? inv.paidDate : null,
+        'bankgiro': inv.bankgiro.trim(),
+        'plusgiro': inv.plusgiro.trim(),
         'updated_at': _now(),
       };
       int id;
@@ -406,6 +410,39 @@ class Repository {
     });
   }
 
+  /// "Markera som betald" / "Markera som obetald", with an audit entry.
+  Future<void> setInvoicePaid(int id, {required bool paid, String? paidDate}) async {
+    await db.transaction((txn) async {
+      await txn.update(
+          'invoices', {'paid': paid ? 1 : 0, 'paid_date': paid ? paidDate : null, 'updated_at': _now()},
+          where: 'id = ?', whereArgs: [id]);
+      await _audit(txn, 'invoice', id, paid ? 'paid' : 'unpaid', paid ? (paidDate ?? '') : '');
+    });
+  }
+
+  /// Unpaid invoices, earliest due date first (no due date last).
+  Future<List<Invoice>> unpaidInvoices() async {
+    final rows = await db.query('invoices',
+        where: 'paid = 0', orderBy: 'due_date IS NULL, due_date, invoice_date, id');
+    return [for (final r in rows) await _invoiceFromRow(db, r)];
+  }
+
+  /// Whether a supplier's documents are receipts ('kvitto', paid) or
+  /// invoices to pay ('faktura'), as chosen by the user earlier.
+  Future<String?> supplierPaymentKind(String supplier) async {
+    final s = normalizeLabel(supplier);
+    if (s.isEmpty) return null;
+    final rows = await db.query('supplier_payment_kinds', where: 'supplier = ?', whereArgs: [s]);
+    return rows.isEmpty ? null : rows.first['kind'] as String;
+  }
+
+  Future<void> rememberSupplierPaymentKind(String supplier, String kind) async {
+    final s = normalizeLabel(supplier);
+    if (s.isEmpty) return;
+    await db.insert('supplier_payment_kinds', {'supplier': s, 'kind': kind, 'created_at': _now()},
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
   Future<Invoice?> _loadInvoice(DatabaseExecutor ex, int id) async {
     final rows = await ex.query('invoices', where: 'id = ?', whereArgs: [id]);
     return rows.isEmpty ? null : _invoiceFromRow(ex, rows.first);
@@ -425,6 +462,10 @@ class Repository {
       vatCalculated: (r['vat_calculated'] as int) == 1,
       dueDate: r['due_date'] as String?,
       ocrReference: r['ocr_reference'] as String,
+      paid: (r['paid'] as int? ?? 0) == 1,
+      paidDate: r['paid_date'] as String?,
+      bankgiro: r['bankgiro'] as String? ?? '',
+      plusgiro: r['plusgiro'] as String? ?? '',
       vatLines: [
         for (final v in vat)
           InvoiceVatLine(
@@ -443,6 +484,8 @@ class Repository {
         'datum': i.invoiceDate,
         'leverantor': i.supplier,
         'fakturanr': i.invoiceNumber,
+        'betald': i.paid,
+        'betaldatum': i.paidDate,
         'summa_ore': i.total.ore,
         'moms_ore': i.vatTotal.ore,
         'moms': [

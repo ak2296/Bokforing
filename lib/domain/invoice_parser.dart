@@ -1,4 +1,5 @@
 import 'document_parser.dart';
+import 'payment_detector.dart';
 import 'models.dart';
 import 'money.dart';
 import 'ocr_models.dart';
@@ -36,7 +37,16 @@ class InvoiceDraft {
   /// Every labelled date found, so the user can pick another one.
   final List<({String label, String date})> dateOptions;
 
+  final Extracted<String> bankgiro;
+  final Extracted<String> plusgiro;
+
+  /// Kvitto (paid) or faktura (to pay), from the printed signals.
+  final PaymentDetection? payment;
+
   const InvoiceDraft({
+    this.bankgiro = const Extracted.none(),
+    this.plusgiro = const Extracted.none(),
+    this.payment,
     this.isCredit = false,
     this.dateOptions = const [],
     required this.date,
@@ -149,8 +159,9 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       n.contains('vat reg') ||
       n.contains('vat number');
 
+  /// [paperAspect] is height / width of the paper in the photo, when known.
   @override
-  InvoiceDraft parse(OcrResult ocr) {
+  InvoiceDraft parse(OcrResult ocr, {double? paperAspect}) {
     final rows = ocr.rows();
     final norm = [for (final r in rows) TextPatterns.normalize(r.text)];
     final notes = <String>[];
@@ -219,6 +230,9 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
 
     final dates = _dates(rows, norm);
     return InvoiceDraft(
+      bankgiro: _giro(rows, _bankgiro),
+      plusgiro: _giro(rows, _plusgiro),
+      payment: const PaymentDetector().detect([for (final r in rows) r.text], paperAspect: paperAspect),
       isCredit: isCredit,
       dateOptions: dates.options,
       date: dates.invoice,
@@ -550,6 +564,29 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       if (i >= 0 && (best == null || i < best)) best = i;
     }
     return best;
+  }
+
+  // ---------- Payment details ----------
+
+  static final _bankgiro = RegExp(r'\b(bankgiro|bankgironr|bg)\b\.?\s*(nr|nummer)?\s*[:.]?\s*(\d{3,4}-\d{4})\b',
+      caseSensitive: false);
+  static final _plusgiro = RegExp(r'\b(plusgiro|postgiro|pg)\b\.?\s*(nr|nummer)?\s*[:.]?\s*((?:\d ?){1,7}-\d)\b',
+      caseSensitive: false);
+
+  /// Bankgiro "123-4567"/"1234-5678", plusgiro "12 34 56-7"; label required.
+  Extracted<String> _giro(List<TextRow> rows, RegExp re) {
+    for (var i = 0; i < rows.length; i++) {
+      final m = re.firstMatch(rows[i].text);
+      if (m != null) return Extracted(m.group(3)!.replaceAll(' ', ''), Confidence.medium, source: rows[i].text);
+      // Label alone, number on the next row.
+      if (i + 1 < rows.length && re.firstMatch(rows[i + 1].text) == null) {
+        final m2 = re.firstMatch('${rows[i].text} ${rows[i + 1].text}');
+        if (m2 != null) {
+          return Extracted(m2.group(3)!.replaceAll(' ', ''), Confidence.low, source: '${rows[i].text} / ${rows[i + 1].text}');
+        }
+      }
+    }
+    return const Extracted.none();
   }
 
   // ---------- Supplier, numbers ----------
