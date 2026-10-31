@@ -1,15 +1,15 @@
+import 'package:bokforing/domain/classifier.dart';
 import 'package:bokforing/domain/invoice_parser.dart';
-import 'package:bokforing/domain/invoice_prefs.dart';
 import 'package:bokforing/domain/models.dart';
 import 'package:bokforing/domain/money.dart';
 import 'package:bokforing/domain/ocr_models.dart';
+import 'package:bokforing/domain/text_patterns.dart';
 import 'package:bokforing/domain/validation.dart';
 import 'package:bokforing/domain/vat.dart';
 import 'package:bokforing/domain/z_report_parser.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-InvoiceDraft _inv(String text, [InvoicePrefs prefs = const InvoicePrefs()]) =>
-    InvoiceParser(prefs: prefs).parse(OcrResult.fromPlainText(text));
+InvoiceDraft _inv(String text) => const InvoiceParser().parse(OcrResult.fromPlainText(text));
 
 const _cats = [
   Category(id: 1, name: 'Mat', vat: VatRate.six),
@@ -49,27 +49,70 @@ void main() {
     });
   });
 
-  group('Field choices', () {
+  group('Amount paid and VAT under different names', () {
     const text = 'Faktura\nFakturadatum 2026-10-01\nFörfallodatum 2026-10-31\nBetalningsdatum 2026-10-20\n'
         'Summa 999,00\nBetalt belopp 1 250,00\nMoms 25% 250,00';
 
-    test('the chosen date becomes the record date, others are offered', () {
-      expect(_inv(text).date.value, '2026-10-01');
-      expect(_inv(text, const InvoicePrefs(dateChoice: InvoiceDateChoice.dueDate)).date.value, '2026-10-31');
-      final d = _inv(text, const InvoicePrefs(dateChoice: InvoiceDateChoice.paymentDate));
-      expect(d.date.value, '2026-10-20');
+    test('invoice date is used, every labelled date is offered', () {
+      final d = _inv(text);
+      expect(d.date.value, '2026-10-01');
+      expect(d.dueDate.value, '2026-10-31');
       expect(d.dateOptions.map((o) => o.date), containsAll(['2026-10-01', '2026-10-31', '2026-10-20']));
     });
 
-    test('switched-off labels are never used for the total', () {
+    test('Betalt belopp ranks above Summa', () {
       expect(_inv(text).total.value, Money.kr(1250));
-      final onlySumma = _inv(text, const InvoicePrefs(totalLabels: {'summa'}));
-      expect(onlySumma.total.value, Money.kr(999));
     });
 
-    test('VAT labels can be switched off', () {
-      final d = _inv('Faktura\nMomsbelopp 250,00\nAtt betala 1 250,00', const InvoicePrefs(vatLabels: {'moms'}));
+    test('Brutto and Momsbelopp', () {
+      final d = _inv('Kvitto\nBrutto 125,00\nMomsbelopp 25,00');
+      expect(d.total.value, Money.kr(125));
+      expect(d.vatTotal.value, Money.kr(25));
+    });
+
+    test('Mervärdesskatt', () {
+      final d = _inv('Faktura\nMervärdesskatt 50,00\nAtt betala 250,00');
+      expect(d.vatTotal.value, Money.kr(50));
+    });
+  });
+
+  group('English invoices and receipts', () {
+    test('Amount due, VAT line, net excluded, English dates', () {
+      final d = _inv('INVOICE\nInvoice number: INV-2041\nInvoice date: 28 Oct 2026\nDue date: Nov 27, 2026\n'
+          'Subtotal (excl. VAT) 1,000.00\nVAT 25% 250.00\nAmount due 1,250.00');
+      expect(d.total.value, Money.kr(1250));
+      expect(d.total.confidence, Confidence.high);
+      expect(d.vatTotal.value, Money.kr(250));
+      expect(d.net, Money.kr(1000));
+      expect(d.date.value, '2026-10-28');
+      expect(d.dueDate.value, '2026-11-27');
+      expect(d.invoiceNumber.value, 'INV-2041');
+    });
+
+    test('receipt: cash and change are not the total', () {
+      final d = _inv('RECEIPT\nTotal 80.00\nCash 100.00\nChange 20.00\nTotal VAT 16.00');
+      expect(d.total.value, Money.kr(80));
+      expect(d.vatTotal.value, Money.kr(16));
+    });
+
+    test('Total incl. VAT and Amount paid', () {
+      expect(_inv('Receipt\nTotal incl. VAT 125.00\nVAT amount 25.00').total.value, Money.kr(125));
+      expect(_inv('Receipt\nAmount paid 640.00\nPaid by card 640.00').total.value, Money.kr(640));
+    });
+
+    test('a VAT registration number is not VAT', () {
+      final d = _inv('Invoice\nVAT reg. no SE556677889901\nTotal 200.00');
       expect(d.vatTotal.value, isNull);
+    });
+  });
+
+  group('Document type', () {
+    test('a receipt titled Kvitto is an invoice, an English invoice too', () {
+      const c = DocumentClassifier();
+      expect(c.classify('ICA Nära\nKvitto\nTotalt 120,00\nKontokort 120,00\nMoms 25% 24,00 Netto 96,00').type,
+          DocumentType.invoice);
+      expect(c.classify('INVOICE\nInvoice number 12\nDue date 2026-11-27\nAmount due 1,250.00\nVAT 250.00').isCertain,
+          isTrue);
     });
   });
 

@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
-import '../domain/invoice_prefs.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
 import '../domain/vat.dart';
@@ -33,18 +32,6 @@ class Repository {
   }
 
   Future<void> setBoolSetting(String key, bool value) => setSetting(key, value ? '1' : '0');
-
-  Future<InvoicePrefs> invoicePrefs() async => InvoicePrefs.decode(
-        date: await setting(InvoicePrefs.dateKey),
-        totals: await setting(InvoicePrefs.totalKey),
-        vats: await setting(InvoicePrefs.vatKey),
-      );
-
-  Future<void> saveInvoicePrefs(InvoicePrefs p) async {
-    await setSetting(InvoicePrefs.dateKey, p.dateChoice.name);
-    await setSetting(InvoicePrefs.totalKey, p.encodedTotals);
-    await setSetting(InvoicePrefs.vatKey, p.encodedVats);
-  }
 
   // ---------- Business profile ----------
 

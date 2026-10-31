@@ -54,6 +54,15 @@ class DocumentClassifier {
     'kontokort': 1,
     'mottaget': 1,
     'växel': 1,
+    'kvittokopia': 2,
+    'invoice': 3,
+    'receipt': 3,
+    'amount due': 3,
+    'due date': 3,
+    'bill to': 2,
+    'payment terms': 3,
+    'subtotal': 1,
+    'vat': 1,
   };
 
   static const _z = <String, double>{
@@ -82,6 +91,11 @@ class DocumentClassifier {
     'returer': 2,
     'x-rapport': 3,
     'kassarapport': 4,
+    'z-report': 6,
+    'z report': 5,
+    'daily report': 4,
+    'end of day': 4,
+    'total sales': 3,
   };
 
   Classification classify(String text) {

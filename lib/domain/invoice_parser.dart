@@ -1,5 +1,4 @@
 import 'document_parser.dart';
-import 'invoice_prefs.dart';
 import 'models.dart';
 import 'money.dart';
 import 'ocr_models.dart';
@@ -60,52 +59,94 @@ class InvoiceDraft {
 /// taking the largest number, and separates totals from cash tendered,
 /// change, net amounts, subtotals and discounts.
 class InvoiceParser implements DocumentParser<InvoiceDraft> {
-  final InvoicePrefs prefs;
-  const InvoiceParser({this.prefs = const InvoicePrefs()});
+  const InvoiceParser();
 
-  /// Printed label -> (score, group in [InvoicePrefs.totalLabelOptions]).
-  static const _totalLabels = <String, (double, String)>{
-    'summa att betala': (100, 'att betala'),
-    'belopp att betala': (100, 'att betala'),
-    'totalt att betala': (100, 'att betala'),
-    'att betala': (95, 'att betala'),
-    'att erhålla': (40, 'att betala'),
-    'fakturabelopp': (90, 'fakturabelopp'),
-    'betalt belopp': (85, 'betalt belopp'),
-    'belopp betalt': (85, 'betalt belopp'),
-    'totalbelopp': (85, 'totalt'),
-    'totalt inkl': (90, 'totalt'),
-    'totalt': (80, 'totalt'),
-    'total': (70, 'totalt'),
-    'bruttobelopp': (80, 'brutto'),
-    'brutto': (75, 'brutto'),
-    'summa inkl': (90, 'summa'),
-    'summa': (60, 'summa'),
+  /// Printed labels for the amount paid, Swedish and English, with a score.
+  static const _totalLabels = <String, double>{
+    'summa att betala': 100,
+    'belopp att betala': 100,
+    'totalt att betala': 100,
+    'att betala': 95,
+    'amount due': 95,
+    'total due': 95,
+    'balance due': 90,
+    'amount payable': 95,
+    'fakturabelopp': 90,
+    'invoice total': 90,
+    'invoice amount': 90,
+    'betalt belopp': 85,
+    'belopp betalt': 85,
+    'amount paid': 85,
+    'total paid': 85,
+    'totalbelopp': 85,
+    'total amount': 85,
+    'totalt inkl': 90,
+    'total incl': 90,
+    'total including': 90,
+    'grand total': 85,
+    'totalt': 80,
+    'total': 70,
+    'bruttobelopp': 80,
+    'brutto': 75,
+    'gross amount': 80,
+    'summa inkl': 90,
+    'summa': 60,
+    'att erhålla': 40,
   };
 
-  static const _creditWords = ['kreditnota', 'kreditfaktura', 'kredit faktura', 'credit note', 'kreditering'];
+  static const _creditWords = ['kreditnota', 'kreditfaktura', 'kredit faktura', 'credit note', 'credit memo', 'kreditering'];
 
   /// Rows with these words are never the invoice total.
   static const _neverTotal = [
-    'kvar att betala', 'tidigare betalt', 'redan betalt', 'delsumma', 'subtotal', 'mellansumma',
-    'rabatt', 'öresavrundning', 'öresutj', 'avrundning', 'växel', 'tillbaka', 'saldo', 'bonus', 'poäng', 'antal',
+    'kvar att betala', 'tidigare betalt', 'redan betalt', 'delsumma', 'subtotal', 'sub total', 'mellansumma',
+    'rabatt', 'discount', 'öresavrundning', 'öresutj', 'avrundning', 'rounding', 'växel', 'tillbaka', 'change',
+    'tendered', 'saldo', 'previous balance', 'bonus', 'poäng', 'points', 'antal', 'quantity', 'qty',
   ];
 
   /// Net amounts and VAT rows, unless the row also says the amount includes
   /// VAT or is the amount to pay.
   static const _notTotalUnlessInclusive = [
-    'exkl', 'exklusive', 'netto', 'momspl', 'varav moms', 'momsbelopp', 'moms',
+    'exkl', 'exklusive', 'netto', 'momspl', 'varav moms', 'momsbelopp', 'moms', 'mervärdesskatt',
+    'excl', 'excluding', 'net ', 'before tax', 'taxable', 'vat', 'tax',
   ];
 
   static bool _excludedFromTotal(String n) {
     if (_neverTotal.any((w) => n.contains(w))) return true;
-    final inclusive = n.contains('att betala') || n.contains('inkl');
+    final inclusive = n.contains('att betala') || n.contains('inkl') || n.contains('incl') ||
+        n.contains('including') || n.contains('amount due') || n.contains('total due');
     return !inclusive && _notTotalUnlessInclusive.any((w) => n.contains(w));
   }
 
-  static const _cashReceived = ['kontant', 'mottaget', 'erhållet', 'erhållit', 'betalt kontant', 'lämnat'];
-  static const _change = ['växel', 'tillbaka', 'åter'];
-  static const _cardPaid = ['kontokort', 'kort', 'betalt med', 'swish', 'kortbetalning', 'bankkort'];
+  static const _cashReceived = [
+    'kontant', 'mottaget', 'erhållet', 'erhållit', 'betalt kontant', 'lämnat', 'cash', 'tendered', 'received',
+  ];
+  static const _change = ['växel', 'tillbaka', 'åter', 'change'];
+  static const _cardPaid = [
+    'kontokort', 'kort', 'betalt med', 'swish', 'kortbetalning', 'bankkort', 'card', 'visa', 'mastercard', 'paid by',
+  ];
+
+  /// VAT words in Swedish and English.
+  static const _vatWords = ['moms', 'mervärdesskatt', 'vat', 'tax', 'mva'];
+  static bool _hasVatWord(String n) => _vatWords.any((w) => RegExp(r'\b' + w).hasMatch(n));
+
+  /// Net/taxable-base rows ("Momspliktigt belopp", "Netto", "Excl. VAT") and
+  /// VAT registration numbers. Never a VAT amount, never recorded.
+  static bool _isNetOrRegistration(String n) =>
+      n.contains('momspl') ||
+      n.contains('exkl') ||
+      n.contains('netto') ||
+      n.contains('summa före moms') ||
+      n.contains('underlag') ||
+      n.contains('momsreg') ||
+      n.contains('excl') ||
+      n.contains('excluding') ||
+      n.contains('net amount') ||
+      n.contains('net total') ||
+      n.contains('before tax') ||
+      n.contains('taxable') ||
+      n.contains('vat no') ||
+      n.contains('vat reg') ||
+      n.contains('vat number');
 
   @override
   InvoiceDraft parse(OcrResult ocr) {
@@ -176,25 +217,15 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     }
 
     final dates = _dates(rows, norm);
-    final chosen = switch (prefs.dateChoice) {
-      InvoiceDateChoice.invoiceDate => dates.invoice,
-      InvoiceDateChoice.dueDate => dates.due,
-      InvoiceDateChoice.paymentDate => dates.payment,
-    };
-    final date = chosen.hasValue
-        ? chosen
-        : (prefs.dateChoice == InvoiceDateChoice.invoiceDate
-            ? chosen
-            : Extracted(dates.invoice.value, Confidence.low,
-                note: '${prefs.dateChoice.label} hittades inte. Datumet nedan är ett annat datum på dokumentet.'));
     return InvoiceDraft(
       isCredit: isCredit,
       dateOptions: dates.options,
-      date: date.value == null ? const Extracted<String>.none() : Extracted(date.value!, date.confidence, source: date.source, note: date.note),
+      date: dates.invoice,
       dueDate: dates.due,
       supplier: _supplier(rows, norm),
       invoiceNumber: _labelledValue(rows, norm,
-          ['fakturanummer', 'fakturanr', 'faktura nr', 'fakturanr.', 'invoice no', 'kvittonr', 'kvitto nr', 'kvittonummer', 'löpnr'],
+          ['fakturanummer', 'fakturanr', 'faktura nr', 'fakturanr.', 'kvittonr', 'kvitto nr', 'kvittonummer', 'löpnr',
+           'invoice number', 'invoice no', 'invoice nr', 'invoice #', 'receipt number', 'receipt no', 'receipt #'],
           RegExp(r'[A-Za-z]{0,4}-?\d[\d\-/]{0,19}')),
       ocrReference: _labelledValue(rows, norm, ['ocr-nummer', 'ocr nr', 'ocrnr', 'ocr'], RegExp(r'\d{2,25}')),
       total: total,
@@ -219,10 +250,9 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       String? label;
       double base = 0;
       for (final e in _totalLabels.entries) {
-        if (!prefs.totalLabels.contains(e.value.$2)) continue;
-        if (n.contains(e.key) && e.value.$1 > base) {
+        if (n.contains(e.key) && e.value > base) {
           label = e.key;
-          base = e.value.$1;
+          base = e.value;
         }
       }
       if (label == null) continue;
@@ -307,8 +337,14 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     //    numbers below it. Column order is found from the arithmetic.
     for (var i = 0; i < rows.length; i++) {
       final n = norm[i];
-      final isHeader = n.contains('moms') &&
-          (n.contains('netto') || n.contains('brutto') || n.contains('exkl') || n.contains('underlag')) &&
+      final isHeader = _hasVatWord(n) &&
+          (n.contains('netto') ||
+              n.contains('brutto') ||
+              n.contains('exkl') ||
+              n.contains('underlag') ||
+              n.contains('net') ||
+              n.contains('gross') ||
+              n.contains('excl')) &&
           TextPatterns.amounts(rows[i].text).isEmpty;
       if (!isHeader) continue;
       final tableLines = <InvoiceVatLine>[];
@@ -330,10 +366,10 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     }
 
     // 2. Rows like "Moms 25% 250,00", "25% moms 250,00", "Moms 6% på 491,87 29,47".
-    if (lines.isEmpty && prefs.vatLabels.contains('moms')) {
+    if (lines.isEmpty) {
       for (var i = 0; i < rows.length; i++) {
         final n = norm[i];
-        if (!n.contains('moms') || n.contains('momspl') || n.contains('exkl') || n.contains('momsreg')) continue;
+        if (!_hasVatWord(n) || _isNetOrRegistration(n)) continue;
         final rate = TextPatterns.rate(rows[i].text);
         if (rate == null) continue;
         final a = TextPatterns.amounts(rows[i].text);
@@ -350,24 +386,28 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       if (a.isEmpty) continue;
       // "Momspliktigt belopp"/"Momspl." is the taxable base: used only to
       // check the arithmetic, never recorded as an amount.
-      final isNetRow = n.contains('momspl') ||
-          n.contains('exkl') ||
-          n.contains('netto') ||
-          n.contains('summa före moms') ||
-          n.contains('underlag');
-      if (isNetRow && !n.contains('brutto') && !fromTable) {
+      final isNetRow = _isNetOrRegistration(n) && !n.contains('momsreg') && !n.contains('vat no') && !n.contains('vat reg');
+      if (isNetRow && !n.contains('brutto') && !n.contains('gross') && !fromTable) {
         net ??= a.last.value;
         continue;
       }
-      final v = prefs.vatLabels;
-      final isVatTotal = ((v.contains('total moms') &&
-                  (n.contains('total moms') || n.contains('moms totalt') || n.contains('summa moms'))) ||
-              (v.contains('varav moms') && n.contains('varav moms')) ||
-              (v.contains('momsbelopp') && n.contains('momsbelopp')) ||
-              (v.contains('moms') && RegExp(r'^moms\b[^%]*$').hasMatch(n))) &&
+      // Total VAT: "Moms", "Momsbelopp", "Varav moms", "Total moms",
+      // "Mervärdesskatt", "VAT", "VAT amount", "Total VAT", "Tax".
+      final isVatTotal = (n.contains('total moms') ||
+              n.contains('moms totalt') ||
+              n.contains('summa moms') ||
+              n.contains('varav moms') ||
+              n.contains('momsbelopp') ||
+              n.contains('mervärdesskatt') ||
+              n.contains('total vat') ||
+              n.contains('vat total') ||
+              n.contains('vat amount') ||
+              n.contains('total tax') ||
+              n.contains('tax amount') ||
+              n.contains('of which vat') ||
+              RegExp(r'^(moms|vat|tax|mva)\b[^%]*$').hasMatch(n)) &&
           TextPatterns.rate(rows[i].text) == null &&
-          !n.contains('momspl') &&
-          !n.contains('exkl');
+          !_isNetOrRegistration(n);
       if (isVatTotal && a.length == 1) explicitTotal ??= (a.single.value, rows[i].text);
     }
     return _VatInfo(lines, explicitTotal, net, grossSum, fromTable);
@@ -421,9 +461,23 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
 
   // ---------- Dates ----------
 
-  static const _invoiceDateLabels = ['fakturadatum', 'köpdatum', 'datum', 'date', 'utfärdad', 'kvittodatum'];
-  static const _dueDateLabels = ['förfallodatum', 'förfallodag', 'förfaller', 'betalas senast', 'sista betalningsdag', 'oss tillhanda'];
-  static const _paymentDateLabels = ['betalningsdatum', 'betaldatum', 'betalt den', 'betald den', 'inbetalningsdatum'];
+  static const _invoiceDateLabels = [
+    'fakturadatum', 'köpdatum', 'kvittodatum', 'utfärdad', 'invoice date', 'date of issue', 'issue date',
+    'receipt date', 'datum', 'date',
+  ];
+  static const _dueDateLabels = [
+    'förfallodatum', 'förfallodag', 'förfaller', 'betalas senast', 'sista betalningsdag', 'oss tillhanda',
+    'due date', 'payment due', 'due by', 'pay by',
+  ];
+  static const _paymentDateLabels = [
+    'betalningsdatum', 'betaldatum', 'betalt den', 'betald den', 'inbetalningsdatum', 'payment date', 'paid on',
+    'date paid',
+  ];
+
+  /// True when a row names a due or payment date, so a bare "datum"/"date"
+  /// in it is not the invoice date.
+  static bool _otherDateLabel(String n) =>
+      _dueDateLabels.any(n.contains) || _paymentDateLabels.any(n.contains);
 
   ({Extracted<String> invoice, Extracted<String> due, Extracted<String> payment, List<({String label, String date})> options})
       _dates(List<TextRow> rows, List<String> norm) {
@@ -442,7 +496,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       final invIdx = _firstIndex(
           n,
           _invoiceDateLabels.where(
-              (l) => l != 'datum' || !(n.contains('förfallodatum') || n.contains('betalningsdatum') || n.contains('betaldatum'))));
+              (l) => (l != 'datum' && l != 'date') || !_otherDateLabel(n)));
       final groups = <(String, int)>[
         if (invIdx != null) ('invoice', invIdx),
         if (dueIdx != null) ('due', dueIdx),

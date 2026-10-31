@@ -42,7 +42,7 @@ class TextPatterns {
 
   // Grouped thousands with decimals, plain decimals, `125:-`, plain integers.
   static final _amount = RegExp(
-      r'(?<![\d.,])-?(?:\d{1,3}(?:[  .]\d{3})+(?:[,.]\d{1,2})?|\d+[,.]\d{1,2}|\d+:-|\d+)(?:-)?(?![\d%])');
+      r'(?<![\d.,])-?(?:\d{1,3}(?:[  .,]\d{3})+(?:[,.]\d{1,2})?|\d+[,.]\d{1,2}|\d+:-|\d+)(?:-)?(?![\d%])');
 
   /// Amounts in a row, skipping dates, percentages and long digit runs
   /// (invoice numbers, OCR numbers, phone numbers).
@@ -72,6 +72,10 @@ class TextPatterns {
     String blank(Match m) => ' ' * m.group(0)!.length;
     s = s.replaceAllMapped(RegExp(r'\d{4}[-./]\d{1,2}[-./]\d{1,2}'), blank);
     s = s.replaceAllMapped(RegExp(r'\b\d{1,2}[-./]\d{1,2}[-./]\d{2,4}\b'), blank);
+    s = s.replaceAllMapped(RegExp(r'(\d{1,2})\.?\s+([A-Za-zåäÅÄ]{3,9})\.?,?\s+\d{4}'),
+        (m) => _month(m.group(2)!) == null ? m.group(0)! : blank(m));
+    s = s.replaceAllMapped(RegExp(r'\b([A-Za-zåäÅÄ]{3,9})\.?\s+\d{1,2},?\s+\d{4}'),
+        (m) => _month(m.group(1)!) == null ? m.group(0)! : blank(m));
     s = s.replaceAllMapped(RegExp(r'\b\d{1,2}:\d{2}(:\d{2})?\b'), blank);
     s = s.replaceAllMapped(RegExp(r'\d{1,2}(?:[,.]\d{1,2})?\s?%'), blank);
     s = s.replaceAllMapped(RegExp(r'\d{9,}'), blank);
@@ -98,6 +102,18 @@ class TextPatterns {
       final iso = _iso(y, m.group(2)!, m.group(1)!);
       if (iso != null) found.add((m.start, iso));
     }
+    // Month names, Swedish and English: "28 okt 2026", "28 October 2026",
+    // "Oct 28, 2026".
+    for (final m in RegExp(r'(?<!\d)(\d{1,2})\.?\s+([A-Za-zåäÅÄ]{3,9})\.?,?\s+(\d{4})(?!\d)').allMatches(row)) {
+      final mo = _month(m.group(2)!);
+      final iso = mo == null ? null : _iso(m.group(3)!, '$mo', m.group(1)!);
+      if (iso != null) found.add((m.start, iso));
+    }
+    for (final m in RegExp(r'\b([A-Za-zåäÅÄ]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})(?!\d)').allMatches(row)) {
+      final mo = _month(m.group(1)!);
+      final iso = mo == null ? null : _iso(m.group(3)!, '$mo', m.group(2)!);
+      if (iso != null) found.add((m.start, iso));
+    }
     for (final m in RegExp(r'(?<!\d)(20\d{2})(\d{2})(\d{2})(?!\d)').allMatches(row)) {
       final iso = _iso(m.group(1)!, m.group(2)!, m.group(3)!);
       if (iso != null) found.add((m.start, iso));
@@ -108,6 +124,25 @@ class TextPatterns {
       if (!out.contains(f.$2)) out.add(f.$2);
     }
     return out;
+  }
+
+  static const _months = {
+    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'maj': 5, 'may': 5, 'jun': 6,
+    'jul': 7, 'aug': 8, 'sep': 9, 'okt': 10, 'oct': 10, 'nov': 11, 'dec': 12,
+  };
+
+  /// Month number from a Swedish or English month name or abbreviation.
+  static int? _month(String word) {
+    final w = word.toLowerCase();
+    if (w.length < 3) return null;
+    final m = _months[w.substring(0, 3)];
+    if (m == null) return null;
+    const full = [
+      'januari', 'january', 'februari', 'february', 'mars', 'march', 'april', 'maj', 'may', 'juni', 'june',
+      'juli', 'july', 'augusti', 'august', 'september', 'oktober', 'october', 'november', 'december', 'sept',
+    ];
+    // Accept a 3-letter abbreviation or a full month name, nothing else.
+    return w.length == 3 || full.contains(w) ? m : null;
   }
 
   static String? _iso(String y, String m, String d) {

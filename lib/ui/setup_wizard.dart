@@ -25,8 +25,9 @@ class _SetupWizardState extends State<SetupWizard> {
   final List<VatRate> _addedRates = [];
   CategoryTemplate? _template;
   bool _saving = false;
+  final List<_ZRuleDraft> _zRules = [];
 
-  static const _stepCount = 5;
+  static const _stepCount = 6;
 
   bool get _canContinue => switch (_step) {
         1 => _name.text.trim().isNotEmpty,
@@ -59,9 +60,60 @@ class _SetupWizardState extends State<SetupWizard> {
     }
     await repo.saveProfile(BusinessProfile(name: _name.text));
     await repo.saveCategories([for (var i = 0; i < _drafts.length; i++) _drafts[i].toCategory(i)]);
+    // Categories now have ids; they are saved in the same order as drafts.
+    final saved = await repo.categories();
+    for (final r in _zRules) {
+      if (r.label.text.trim().isEmpty) continue;
+      final idx = r.target == null ? -1 : _drafts.indexOf(r.target!);
+      await repo.setZLabelRule(r.label.text, idx < 0 || idx >= saved.length ? null : saved[idx].id);
+    }
     await repo.setBoolSetting(SettingsKeys.setupDone, true);
     widget.onDone();
   }
+
+  Widget _zRuleRow(_ZRuleDraft r) => Card(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: r.label,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(labelText: 'Text på Z-rapporten', isDense: true),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Ta bort raden',
+                    icon: const Icon(Icons.close),
+                    onPressed: () => setState(() => _zRules.remove(r)),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Text('Registreras som: '),
+                  Expanded(
+                    child: DropdownButton<int>(
+                      isExpanded: true,
+                      value: r.target == null ? -1 : _drafts.indexOf(r.target!),
+                      items: [
+                        for (var i = 0; i < _drafts.length; i++)
+                          DropdownMenuItem(value: i, child: Text(_drafts[i].name)),
+                        const DropdownMenuItem(value: -1, child: Text('Räknas inte med')),
+                      ],
+                      onChanged: (v) => setState(() => r.target = v == null || v < 0 ? null : _drafts[v]),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -148,6 +200,30 @@ class _SetupWizardState extends State<SetupWizard> {
             ),
           ],
         ),
+      4 => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Raderna på Z-rapporten', style: t.headlineSmall),
+            const SizedBox(height: 8),
+            const Text(
+              'Står det andra namn på din Z-rapport än dina kategorier? Skriv raden som den står på rapporten och välj '
+              'vad den ska registreras som. Flera rader kan läggas ihop i samma kategori, t.ex. "Mat avhämtning" och '
+              '"Drycka avhämtning" till "Avhämtning".',
+            ),
+            const SizedBox(height: 8),
+            Text('Rader med samma namn som en kategori behöver du inte lägga till. Du kan hoppa över steget och ändra '
+                'senare under Inställningar → Fält på Z-rapport.', style: t.bodySmall),
+            const SizedBox(height: 12),
+            for (final r in _zRules) _zRuleRow(r),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('Lägg till rad'),
+              onPressed: _drafts.isEmpty
+                  ? null
+                  : () => setState(() => _zRules.add(_ZRuleDraft(_drafts.first))),
+            ),
+          ],
+        ),
       _ => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -206,4 +282,12 @@ class _SetupWizardState extends State<SetupWizard> {
       ),
     );
   }
+}
+
+/// A Z-report line typed in the wizard and the category it counts towards
+/// (null: not counted). Saved when the wizard finishes.
+class _ZRuleDraft {
+  final TextEditingController label = TextEditingController();
+  CategoryDraft? target;
+  _ZRuleDraft(this.target);
 }
