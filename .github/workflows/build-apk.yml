@@ -34,6 +34,10 @@ jobs:
           sed -i 's/\(signingConfig = signingConfigs.getByName("debug")\)/\1\n            isMinifyEnabled = false\n            isShrinkResources = false/' "$f"
           m=android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.CAMERA' $m || sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA"/>\n    <application|' $m
+          # INTERNET is used only by the optional "Förbättrad analys", after consent.
+          grep -q 'android.permission.INTERNET' $m || sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' $m
+          # Keep the encrypted API key and the database out of Android cloud backup.
+          grep -q 'allowBackup' $m || sed -i 's|<application|<application android:allowBackup="false"|' $m
           grep -n "minSdk\|Minify\|Shrink" "$f" || true
           grep -n "permission" $m || true
 

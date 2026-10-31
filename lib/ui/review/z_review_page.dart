@@ -14,6 +14,7 @@ import '../scan/scan_flow.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/fields.dart';
+import 'ai_assist.dart';
 import 'review_common.dart';
 
 /// One editable row: a line from the report (or a category for manual entry)
@@ -47,7 +48,8 @@ class ZReviewPage extends StatefulWidget {
   final ZReportDraft? draft;
   final ScanContext? scan;
   final DailySales? existing;
-  const ZReviewPage({super.key, this.draft, this.scan, this.existing});
+  final bool fromAi;
+  const ZReviewPage({super.key, this.draft, this.scan, this.existing, this.fromAi = false});
 
   @override
   State<ZReviewPage> createState() => _ZReviewPageState();
@@ -118,6 +120,23 @@ class _ZReviewPageState extends State<ZReviewPage> {
     });
   }
 
+  /// Why the offline reading is not good enough; empty when it is.
+  late final List<String> _aiReasons = _computeAiReasons();
+
+  List<String> _computeAiReasons() {
+    final d = _d;
+    if (d == null) return const [];
+    final unmatched = d.lines.where((l) => l.categoryId == null).length;
+    final total = d.total.value;
+    return [
+      if (total == null) 'Dagsförsäljningen hittades inte',
+      if (!d.date.hasValue) 'Datum hittades inte' else if (d.date.confidence == Confidence.low) 'Datumet är osäkert',
+      if (d.lines.isEmpty) 'Inga försäljningsrader hittades',
+      if (unmatched > 0) ' rader kunde inte kopplas till en kategori',
+      if (total != null && d.lines.isNotEmpty && d.sumWith(const {}) != total) 'Raderna stämmer inte med dagsförsäljningen',
+    ];
+  }
+
   void _changed([String? _]) => setState(() => _edited = true);
 
   Category? _cat(int? id) => _categories?.where((c) => c.id == id).firstOrNull;
@@ -167,7 +186,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
       items: items,
       note: _note.text.trim(),
       meta: RecordMeta(
-        source: widget.existing?.meta.source ?? (widget.scan == null ? RecordSource.manual : RecordSource.ocr),
+        source: widget.existing?.meta.source ?? (widget.fromAi ? RecordSource.ai : widget.scan == null ? RecordSource.manual : RecordSource.ocr),
         manuallyEdited: _edited || (widget.existing?.meta.manuallyEdited ?? false),
         scanId: widget.existing?.meta.scanId,
       ),
@@ -257,6 +276,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const DocTypeHeader(label: 'Z-rapport'),
+                  if (widget.scan != null && !widget.fromAi) AiOfferCard(scan: widget.scan!, reasons: _aiReasons),
                   if (cats.isEmpty)
                     const NoteCard('Du har inga försäljningskategorier. Lägg till dem under Inställningar → Försäljningskategorier.'),
                   if (d != null)

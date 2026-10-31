@@ -4,6 +4,7 @@ import '../../app/app_controller.dart';
 import '../../app/settings_keys.dart';
 import '../../domain/models.dart';
 import '../../domain/vat.dart';
+import 'ai_settings_page.dart';
 import 'category_editor.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -80,6 +81,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     await AppScope.read(context).repo.setBoolSetting(SettingsKeys.keepImages, v);
                     setState(() => _keepImages = v);
                   },
+                ),
+                header('Förbättrad analys (valfritt)'),
+                ListTile(
+                  leading: const Icon(Icons.auto_awesome_outlined),
+                  title: const Text('Förbättrad analys online'),
+                  subtitle: const Text('Av som standard. Skickar en bild till Google bara när du godkänner det.'),
+                  onTap: () => Navigator.of(context)
+                      .push(MaterialPageRoute(builder: (_) => const AiSettingsPage())),
                 ),
                 header('App'),
                 const ListTile(
@@ -285,8 +294,8 @@ class PrivacyPage extends StatelessWidget {
             '• Texten i dokumenten läses av direkt i telefonen. Inga bilder eller uppgifter skickas till någon server.\n'
             '• Appen innehåller ingen reklam, ingen statistikinsamling och inga spårningsverktyg.\n'
             '• Säkerhetskopior skapas bara när du själv väljer det, och du väljer var filen sparas.\n\n'
-            'Om en valfri onlinefunktion läggs till senare kommer den att vara avstängd tills du själv aktiverar den, '
-            'och appen frågar varje gång innan något skickas.',
+            'Undantag som du själv väljer: "Förbättrad analys online" är avstängd tills du aktiverar den och klistrar in en egen API-nyckel. '
+            'Även då frågar appen varje gång innan en bild skickas till Google, och bara den bilden skickas.',
           ),
         ),
       );

@@ -16,6 +16,7 @@ import '../scan/scan_flow.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/fields.dart';
+import 'ai_assist.dart';
 import 'review_common.dart';
 
 class _VatRow {
@@ -34,7 +35,8 @@ class InvoiceReviewPage extends StatefulWidget {
   final InvoiceDraft? draft;
   final ScanContext? scan;
   final Invoice? existing;
-  const InvoiceReviewPage({super.key, this.draft, this.scan, this.existing});
+  final bool fromAi;
+  const InvoiceReviewPage({super.key, this.draft, this.scan, this.existing, this.fromAi = false});
 
   @override
   State<InvoiceReviewPage> createState() => _InvoiceReviewPageState();
@@ -81,6 +83,33 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     });
   }
 
+  /// Why the offline reading is not good enough; empty when it is.
+  late final List<String> _aiReasons = _computeAiReasons();
+
+  List<String> _computeAiReasons() {
+    final d = _d;
+    if (d == null) return const [];
+    final out = <String>[
+      if (!d.total.hasValue) 'Summan hittades inte' else if (d.total.confidence == Confidence.low) 'Summan är osäker',
+      if (!d.date.hasValue) 'Datum hittades inte',
+      if (!d.vatTotal.hasValue) 'Momsen hittades inte',
+    ];
+    if (d.total.hasValue) {
+      final draftInvoice = Invoice(
+        invoiceDate: d.date.value ?? '2000-01-01',
+        total: d.total.value!,
+        vatTotal: d.vatTotal.value ?? Money.zero,
+        vatLines: d.vatLines,
+        meta: const RecordMeta(source: RecordSource.ocr),
+      );
+      out.addAll(const AccountingValidationEngine()
+          .validateInvoice(draftInvoice, net: d.net)
+          .where((r) => !r.isOk)
+          .map((r) => r.message));
+    }
+    return out;
+  }
+
   void _changed([String? _]) => setState(() => _edited = true);
 
   Invoice? _build() {
@@ -94,7 +123,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       if (v == null) return null;
       lines.add(InvoiceVatLine(rate: r.rate, vat: v, net: r.net, gross: r.gross, calculated: r.calculated));
     }
-    final source = widget.existing?.meta.source ?? (widget.scan == null ? RecordSource.manual : RecordSource.ocr);
+    final source = widget.existing?.meta.source ?? (widget.fromAi ? RecordSource.ai : widget.scan == null ? RecordSource.manual : RecordSource.ocr);
     return Invoice(
       id: widget.existing?.id,
       invoiceDate: _date.text.trim(),
@@ -198,6 +227,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const DocTypeHeader(label: 'Faktura'),
+            if (widget.scan != null && !widget.fromAi) AiOfferCard(scan: widget.scan!, reasons: _aiReasons),
             if (d != null)
               for (final n in d.notes) NoteCard(n),
             DateField(controller: _date, label: 'Datum', confidence: conf(d?.date), enabled: _editing, onChanged: _changed),

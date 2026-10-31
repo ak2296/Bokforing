@@ -13,6 +13,8 @@ import '../../domain/text_merge.dart';
 import '../../domain/z_report_parser.dart';
 import '../../imaging/preprocess.dart';
 import '../../ocr/ocr_service.dart';
+import '../../ai/gemini_client.dart';
+import '../review/ai_assist.dart';
 import '../review/invoice_review_page.dart';
 import '../review/z_review_page.dart';
 import 'camera_page.dart';
@@ -60,12 +62,40 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
   final List<QualityReport> _quality = [];
   OcrResult? _ocr;
   Classification? _classification;
+  bool _aiUsable = false;
 
   @override
   void initState() {
     super.initState();
     _process();
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    AiSettings.load(AppScope.read(context).repo).then((s) {
+      if (mounted) setState(() => _aiUsable = s.usable);
+    });
+  }
+
+  ScanContext _context(DocumentType type) => ScanContext(
+        imagePaths: List.of(_processed),
+        ocrText: _ocr?.rows().map((r) => r.text).join('
+') ?? '',
+        type: type,
+        classification: _classification,
+      );
+
+  Widget _aiButton() => !_aiUsable || _processed.isEmpty
+      ? const SizedBox.shrink()
+      : Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.auto_awesome_outlined),
+            label: const Text('Förbättrad analys online'),
+            onPressed: () => runAiAnalysis(context, _context(DocumentType.unknown)),
+          ),
+        );
 
   Future<void> _process() async {
     try {
@@ -230,8 +260,9 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
         body = _Panel(
           icon: Icons.text_snippet_outlined,
           title: 'Ingen text kunde läsas',
-          children: const [
-            Text('Prova att ta bilden närmare och med bättre ljus. För långa kvitton: använd "Långt dokument".'),
+          children: [
+            const Text('Prova att ta bilden närmare och med bättre ljus. För långa kvitton: använd "Långt dokument".'),
+            _aiButton(),
           ],
           primary: FilledButton(onPressed: _rescan, child: const Text('Skanna igen')),
           secondary: _ManualButtons(onPick: _manual),
@@ -240,7 +271,10 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
         body = _Panel(
           icon: Icons.help_outline,
           title: 'Dokumentet känns inte igen',
-          children: const [Text('Det ser inte ut som en faktura, ett kvitto eller en Z-rapport.')],
+          children: [
+            const Text('Det ser inte ut som en faktura, ett kvitto eller en Z-rapport.'),
+            _aiButton(),
+          ],
           primary: FilledButton(onPressed: _rescan, child: const Text('Skanna igen')),
           secondary: Column(children: [
             OutlinedButton(onPressed: () => _openReview(DocumentType.invoice), child: const Text('Det är en faktura')),
@@ -254,6 +288,7 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
           title: 'Vi är osäkra på dokumenttypen.',
           children: [
             Text('Bästa gissning: ${c.type.label} (${(c.confidence * 100).round()} % säkerhet). Välj vad det är:'),
+            _aiButton(),
           ],
           primary: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
