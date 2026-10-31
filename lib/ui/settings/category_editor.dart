@@ -50,8 +50,7 @@ class CategoryListEditor extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           buildDefaultDragHandles: false,
           itemCount: drafts.length,
-          onReorder: (from, to) {
-            if (to > from) to -= 1;
+          onReorderItem: (from, to) {
             final d = drafts.removeAt(from);
             drafts.insert(to, d);
             onChanged();

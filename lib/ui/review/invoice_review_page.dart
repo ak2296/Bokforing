@@ -363,9 +363,8 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   }
 
   Future<void> _rescan(BuildContext context) async {
-    await widget.scan?.discardImages();
-    if (!context.mounted) return;
     final navigator = Navigator.of(context);
+    await widget.scan?.discardImages();
     navigator.pop();
     await startScan(navigator.context);
   }

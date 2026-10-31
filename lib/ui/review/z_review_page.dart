@@ -385,7 +385,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
                   ),
               ],
             ),
-            if (needsConfirm && suggested != null) ...[
+            if (needsConfirm) ...[
               Text('Vi hittade en möjlig matchning: ${suggested.name}', style: const TextStyle(fontWeight: FontWeight.w600)),
               if (r.warning != null) Text(r.warning!, style: const TextStyle(color: AppTheme.warning)),
               Align(
@@ -470,9 +470,8 @@ class _ZReviewPageState extends State<ZReviewPage> {
       );
 
   Future<void> _rescan(BuildContext context) async {
-    await widget.scan?.discardImages();
-    if (!context.mounted) return;
     final navigator = Navigator.of(context);
+    await widget.scan?.discardImages();
     navigator.pop();
     await startScan(navigator.context);
   }

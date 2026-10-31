@@ -127,9 +127,9 @@ PreprocessResult preprocessDocument(PreprocessRequest req) {
     if (skew.abs() > maxCorrectableSkew) QualityIssue.skewed,
     if (!paperFound) QualityIssue.notFound,
   ];
-  if (paperFound && small.width > 0) {
+  if (paper != null) {
     // A paper region that is tiny means the document is far away.
-    final area = (paper![2] - paper[0]) * (paper[3] - paper[1]);
+    final area = (paper[2] - paper[0]) * (paper[3] - paper[1]);
     if (area < small.width * small.height * 0.12) {
       paperFound = false;
       issues.add(QualityIssue.notFound);
@@ -289,12 +289,20 @@ double _laplacianVariance(_Gray g) {
 
 /// Text lines give sharp peaks in the row profile when the page is level.
 /// Tries angles in ±12° and returns the one with the sharpest profile.
+/// Only dark pixels next to bright paper count, so a dark table or the
+/// corners around a tilted page do not dominate.
 double _estimateSkew(_Gray g, int threshold) {
   final w = g.width, h = g.height;
   final dark = <(int, int)>[];
+  const d = 3;
+  bool bright(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && g.data[y * w + x] > threshold;
   for (var y = 0; y < h; y += 2) {
     for (var x = 0; x < w; x += 2) {
-      if (g.data[y * w + x] < threshold - 30) dark.add((x, y));
+      if (g.data[y * w + x] >= threshold - 30) continue;
+      final nearPaper = bright(x - d, y) || bright(x + d, y) || bright(x, y - d) || bright(x, y + d);
+      final insidePaper =
+          (bright(x - 4 * d, y) && bright(x + 4 * d, y)) || (bright(x, y - 4 * d) && bright(x, y + 4 * d));
+      if (nearPaper && insidePaper) dark.add((x, y));
     }
   }
   if (dark.length < 200) return 0;

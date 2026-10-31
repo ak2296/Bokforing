@@ -221,7 +221,7 @@ class Repository {
 
   Future<List<DailySales>> findDuplicateDailySales(DailySales d) async {
     final rows = await db.query('daily_sales',
-        where: 'business_date = ? AND id IS NOT ?', whereArgs: [d.businessDate, d.id]);
+        where: 'business_date = ? AND id != ?', whereArgs: [d.businessDate, d.id ?? -1]);
     final out = <DailySales>[];
     for (final r in rows) {
       final z = r['z_number'] as String?;
@@ -341,7 +341,7 @@ class Repository {
   /// Likely duplicates: same supplier + invoice number, or same date and
   /// amount (with matching supplier when both have one).
   Future<List<Invoice>> findDuplicateInvoices(Invoice inv) async {
-    final rows = await db.query('invoices', where: 'id IS NOT ?', whereArgs: [inv.id]);
+    final rows = await db.query('invoices', where: 'id != ?', whereArgs: [inv.id ?? -1]);
     final out = <Invoice>[];
     final number = inv.invoiceNumber.trim().toLowerCase();
     final supplier = inv.supplier.trim().toLowerCase();
