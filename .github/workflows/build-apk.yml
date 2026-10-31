@@ -29,13 +29,25 @@ jobs:
           grep -n "minSdk" "$f" || true
           sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA"/>\n    <application|' android/app/src/main/AndroidManifest.xml
           grep -n "CAMERA" android/app/src/main/AndroidManifest.xml
-      - name: R8-regler för ML Kit (valfria språkmodeller ingår inte)
+      - name: Stäng av kodkrympning direkt i Gradle-filen
+        run: |
+          f=$(ls android/app/build.gradle.kts android/app/build.gradle 2>/dev/null | head -1)
+          sed -i 's/\(signingConfig = signingConfigs.getByName("debug")\)/\1\n            isMinifyEnabled = false\n            isShrinkResources = false/' "$f"
+          sed -i 's/\(signingConfig signingConfigs.debug\)/\1\n            minifyEnabled false\n            shrinkResources false/' "$f"
+          grep -n -i "minify\|shrink" "$f" || echo "OBS: ingen minify-rad hittades"
+      - name: R8-regler för ML Kit (reservskydd om krympning ändå körs)
         run: |
           cat > android/app/proguard-rules.pro <<'RULES'
           -dontwarn com.google.mlkit.vision.text.chinese.**
           -dontwarn com.google.mlkit.vision.text.devanagari.**
           -dontwarn com.google.mlkit.vision.text.japanese.**
           -dontwarn com.google.mlkit.vision.text.korean.**
+          -keep class com.google.mlkit.** { *; }
+          -keep class com.google.android.gms.** { *; }
+          -keep class com.google.android.odml.** { *; }
+          -keep class com.google_mlkit_commons.** { *; }
+          -keep class com.google_mlkit_text_recognition.** { *; }
+          -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
           RULES
           sed -i 's/^ *//' android/app/proguard-rules.pro
           cat android/app/proguard-rules.pro
@@ -44,9 +56,25 @@ jobs:
         continue-on-error: true
       - run: flutter test
         continue-on-error: true
-      - name: Bygg APK utan kodkrympning (R8 förstörde ML Kit i den krympta appen)
+      - name: Bygg APK för användning (release)
         run: flutter build apk --release --no-shrink || flutter build apk --release
+      - name: Kontroll av kodkrympning
+        run: |
+          if [ -d build/app/outputs/mapping/release ]; then
+            echo "VARNING: R8 kördes, release-appen är krympt"
+          else
+            echo "OK: ingen R8-krympning i release-appen"
+          fi
+      - name: Bygg APK för felsökning (debug, aldrig krympt)
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk /tmp/app-release.apk
+          flutter build apk --debug
+          cp /tmp/app-release.apk build/app/outputs/flutter-apk/app-release.apk
       - uses: actions/upload-artifact@v4
         with:
           name: bokforing-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bokforing-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
