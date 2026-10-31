@@ -124,12 +124,20 @@ CategoryMatch matchCategory(List<SalesCategory> cats, String label) {
 }
 
 final _totalRe = RegExp(
-    r'total(?:t)? försäljning|dagsförsäljning|dagens försäljning|summa försäljning',
+    r'total(?:t)? försäljning|dagsförsäljning|dagens försäljning|summa försäljning|periodens försäljning',
     caseSensitive: false);
 final _skipRe = RegExp(
-    r'kontant|kort|swish|växel|moms|total|summa|antal|kvitto|netto|brutto|z-?(nr|nummer)|datum|kassa|retur|rabatt|faktura',
+    r'kontant|kort|swish|växel|moms|total|summa|antal|kvitto|netto|brutto|z-?(nr|nummer)|datum|kassa|retur|rabatt|faktura|öresutjämning|betalningar|skulder|tjänster|varor\b',
+    caseSensitive: false);
+final _sectionStart = RegExp(r'försäljning\s+per\s+varugrupp', caseSensitive: false);
+final _sectionEnd = RegExp(
+    r'försäljning\s+per\s+(?!varugrupp)|per\s+momsgrupp|^(kvitto|grand\s*total|bokföring|betalningsmedel|betalsätt|kassa\s+och|kontanter)',
     caseSensitive: false);
 
+/// Reads a Z-report. If the report has a "Försäljning per varugrupp" section,
+/// only that section's rows are used as sales per category; everything else
+/// (payments, cash drawer, VAT groups) is ignored. Otherwise all rows with an
+/// amount are listed and the user assigns them.
 ZExtraction extractZReport(String text, List<SalesCategory> cats) {
   final lines = cleanLines(text);
 
@@ -158,18 +166,41 @@ ZExtraction extractZReport(String text, List<SalesCategory> cats) {
   var tconf = Confidence.low;
   for (final s in lines) {
     final a = amountsIn(s);
-    if (a.isNotEmpty &&
-        RegExp(r'total(?:t)? försäljning|dagsförsäljning|dagens försäljning|summa försäljning|^total\b|^summa\b',
-                caseSensitive: false)
-            .hasMatch(s)) {
+    if (a.isNotEmpty && _totalRe.hasMatch(s)) {
       total = a.last;
       tconf = Confidence.high;
       break;
     }
   }
+  if (total == null) {
+    for (final s in lines) {
+      final a = amountsIn(s);
+      if (a.isNotEmpty && RegExp(r'^total\b|^summa\b', caseSensitive: false).hasMatch(s)) {
+        total = a.last;
+        tconf = Confidence.medium;
+        break;
+      }
+    }
+  }
+
+  var start = lines.indexWhere(_sectionStart.hasMatch);
+  var end = lines.length;
+  final sectionFound = start >= 0;
+  if (sectionFound) {
+    start += 1;
+    for (var i = start; i < lines.length; i++) {
+      if (_sectionEnd.hasMatch(lines[i])) {
+        end = i;
+        break;
+      }
+    }
+  } else {
+    start = 0;
+  }
 
   final out = <ZLine>[];
-  for (final s in lines) {
+  for (var i = start; i < end; i++) {
+    final s = lines[i];
     final a = amountsIn(s);
     if (a.isEmpty) continue;
     if (_skipRe.hasMatch(s) && !RegExp(r'försäljning', caseSensitive: false).hasMatch(s.replaceAll(_totalRe, ''))) {
@@ -180,15 +211,19 @@ ZExtraction extractZReport(String text, List<SalesCategory> cats) {
         .replaceAll(amountRe, '')
         .replaceAll(RegExp(r'[\d%:]'), '')
         .replaceAll(RegExp(r'[.,]'), '')
+        .replaceAll(RegExp(r'\bkr\b', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
     if (label.isEmpty) continue;
     final m = matchCategory(cats, label);
+    final exact = m.score >= .99 && m.category != null;
     out.add(ZLine(
       label: label,
       amount: a.last,
-      categoryId: m.score >= .6 && m.category != null ? m.category!.id : '',
+      categoryId: exact ? m.category!.id : '',
+      suggestedId: !exact && m.score >= .6 && m.category != null ? m.category!.id : '',
       similarity: m.score,
-      confidence: m.score >= .9
+      confidence: exact
           ? Confidence.high
           : m.score >= .6
               ? Confidence.medium
@@ -203,5 +238,6 @@ ZExtraction extractZReport(String text, List<SalesCategory> cats) {
     total: total,
     totalConfidence: tconf,
     lines: out,
+    sectionFound: sectionFound,
   );
 }

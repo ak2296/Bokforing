@@ -220,7 +220,19 @@ InvoiceExtraction extractInvoice(String text) {
 
   String? date, due;
   var dconf = Confidence.low;
+  // Column layouts: the header "Förfallodatum ..." is on one row, the dates on the next.
+  final consumed = <int>{};
+  for (var k = 0; k < lines.length - 1; k++) {
+    if (lines[k].l.contains('förfall') && datesIn(lines[k].s).isEmpty) {
+      final d = datesIn(lines[k + 1].s);
+      if (d.isNotEmpty) {
+        due ??= d.first;
+        consumed.add(k + 1);
+      }
+    }
+  }
   for (final ln in lines) {
+    if (consumed.contains(ln.i)) continue;
     final d = datesIn(ln.s);
     if (d.isEmpty) continue;
     if (ln.l.contains('förfall')) {
@@ -247,11 +259,21 @@ InvoiceExtraction extractInvoice(String text) {
   final ocr =
       RegExp(r'\bOCR\b[^\d\n]*(\d{6,})', caseSensitive: false).firstMatch(text)?.group(1);
   String? supplier;
+  final notName = RegExp(r'faktura|kvitto|datum|org|bankgiro|ocr|kundnr|nr\b|sida|ordernr|referens',
+      caseSensitive: false);
   for (final s in raw) {
-    if (RegExp(r'[A-Za-zÅÄÖåäö]{3}').hasMatch(s) &&
-        !RegExp(r'faktura|kvitto|datum|org|bankgiro|ocr', caseSensitive: false).hasMatch(s)) {
+    if (RegExp(r'\b(AB|HB|KB|Aktiebolag)\b').hasMatch(s) && !notName.hasMatch(s)) {
       supplier = s;
       break;
+    }
+  }
+  if (supplier == null) {
+    for (final s in raw) {
+      final letters = RegExp(r'[A-Za-zÅÄÖåäö]').allMatches(s).length;
+      if (letters >= 3 && letters / s.length > 0.6 && !notName.hasMatch(s)) {
+        supplier = s;
+        break;
+      }
     }
   }
 

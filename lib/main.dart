@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'domain/classifier.dart';
 import 'domain/invoice_extractor.dart';
+import 'domain/money.dart';
 import 'domain/patterns.dart';
 import 'domain/validation.dart';
 import 'domain/z_extractor.dart';
@@ -104,6 +105,7 @@ class _AnalyzePageState extends State<AnalyzePage> {
   String _text = '';
   DocumentType? _forced;
   String? _imagePath;
+  final Map<int, String> _assign = {};
 
   Future<void> _scan() async {
     final r = await Navigator.of(context)
@@ -113,6 +115,7 @@ class _AnalyzePageState extends State<AnalyzePage> {
       _c.text = r.text;
       _text = r.text;
       _forced = null;
+      _assign.clear();
       _imagePath = r.imagePath;
     });
   }
@@ -127,6 +130,7 @@ class _AnalyzePageState extends State<AnalyzePage> {
         _c.text = s;
         _text = s;
         _forced = null;
+        _assign.clear();
       });
 
   @override
@@ -165,6 +169,7 @@ class _AnalyzePageState extends State<AnalyzePage> {
             onPressed: () => setState(() {
                   _text = _c.text;
                   _forced = null;
+                  _assign.clear();
                 }),
             child: const Text('Analysera')),
         OutlinedButton(onPressed: () => _example(sampleInvoice), child: const Text('Exempel: faktura')),
@@ -282,11 +287,19 @@ class _AnalyzePageState extends State<AnalyzePage> {
       for (final c in restaurantSuggestions) {
         if (c.id == id) return c.name;
       }
-      return 'Ej tilldelad';
+      return '';
     }
 
-    final v = AccountingValidationEngine.reconcileZReport(
-        r.lines.where((l) => l.categoryId.isNotEmpty).map((l) => l.amount), r.total);
+    String eff(int i) => _assign[i] ?? r.lines[i].categoryId;
+    final assigned = <Money>[
+      for (var i = 0; i < r.lines.length; i++)
+        if (eff(i).isNotEmpty && eff(i) != 'x') r.lines[i].amount
+    ];
+    final open = [
+      for (var i = 0; i < r.lines.length; i++)
+        if (eff(i).isEmpty) i
+    ];
+    final v = AccountingValidationEngine.reconcileZReport(assigned, r.total);
     return [
       Text('Kontrollera uppgifterna', style: Theme.of(context).textTheme.titleLarge),
       const SizedBox(height: 8),
@@ -297,23 +310,60 @@ class _AnalyzePageState extends State<AnalyzePage> {
             _row('Dokumenttyp', 'Z-rapport${_forced == null ? ' (${(cls.confidence * 100).round()} %)' : ''}'),
             _row('Datum', r.date, r.dateConfidence),
             _row('Z-nummer', r.zNumber),
-            for (final l in r.lines)
-              _row(
-                  l.confidence == Confidence.medium
-                      ? '${l.label}\n(möjlig matchning: ${catName(l.categoryId)})'
-                      : '${l.label}\n(${catName(l.categoryId)})',
-                  l.amount.format(),
-                  l.confidence),
-            _row('Beräknad detaljerad summa', r.detailedSum.format()),
             _row('Dagsförsäljning', r.total?.format(), r.totalConfidence),
-            _row('Skillnad', r.total == null ? null : (r.detailedSum - r.total!).format()),
+          ]),
+        ),
+      ),
+      const SizedBox(height: 8),
+      Text(
+          r.sectionFound
+              ? 'Rader från "Försäljning per varugrupp". Välj kategori för varje rad.'
+              : 'Hittade ingen sektion "Försäljning per varugrupp". Alla rader med belopp visas, '
+                  'välj kategori eller Ignorera.',
+          style: Theme.of(context).textTheme.bodySmall),
+      for (var i = 0; i < r.lines.length; i++)
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Text(r.lines[i].label, style: const TextStyle(fontWeight: FontWeight.w600))),
+                Text(r.lines[i].amount.format(), style: const TextStyle(fontWeight: FontWeight.w600)),
+              ]),
+              if (r.lines[i].suggestedId.isNotEmpty && eff(i).isEmpty)
+                Text('Vi hittade en möjlig matchning: ${catName(r.lines[i].suggestedId)}',
+                    style: TextStyle(color: Colors.orange.shade900)),
+              DropdownButton<String>(
+                isExpanded: true,
+                value: eff(i),
+                items: [
+                  const DropdownMenuItem(value: '', child: Text('Välj kategori')),
+                  for (final c in restaurantSuggestions)
+                    DropdownMenuItem(value: c.id, child: Text('${c.name} (${c.vatRatePercent} %)')),
+                  const DropdownMenuItem(value: 'x', child: Text('Ignorera raden')),
+                ],
+                onChanged: (x) => setState(() => _assign[i] = x ?? ''),
+              ),
+            ]),
+          ),
+        ),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(children: [
+            _row('Beräknad detaljerad summa', Money.sum(assigned).format()),
+            _row('Dagsförsäljning', r.total?.format()),
+            _row('Skillnad', r.total == null ? null : (Money.sum(assigned) - r.total!).format()),
           ]),
         ),
       ),
       _msg(v),
+      if (open.isNotEmpty)
+        _msg(ValidationResult(ValidationStatus.warning, 'lines',
+            '${open.length} rader har ingen kategori. De räknas inte med i summan.')),
       const SizedBox(height: 8),
-      const Text('Kategorier och momssatser kommer att kunna ställas in i fas 1b. '
-          'Förslagen ovan är endast ett restaurangexempel.'),
+      const Text('Kategorier och momssatser kommer att kunna ställas in i nästa fas. '
+          'Förslagen är endast ett restaurangexempel. Sparande kommer i fas 7.'),
     ];
   }
 }

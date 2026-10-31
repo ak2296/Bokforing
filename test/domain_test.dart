@@ -73,7 +73,48 @@ void main() {
       expect(z.detailedSum, Money.kronor(10800));
       final wine = z.lines.firstWhere((l) => l.label == 'Wine');
       expect(wine.confidence, Confidence.medium);
-      expect(wine.categoryId, 'c5');
+      expect(wine.categoryId, '');
+      expect(wine.suggestedId, 'c5');
+      expect(z.detailedSum, Money.kronor(9100));
+      expect(z.sumWith({z.lines.indexOf(wine): 'c5'}), Money.kronor(10800));
+    });
+  });
+
+  group('Z-rapport med sektioner', () {
+    const a4 = '''Z-RAPPORT
+Datum 2026-10-31
+Periodens försäljning kr 12 955,00
+Öresutjämning kr 0,00
+Betalningar kr 619,00
+Tjänster x kr 0,00
+Varor x kr 12 955,00
+Försäljning per varugrupp exkl returer
+Dryck kr 163,00
+Dryck avhämtning kr 70,00
+Mat kr 1 912,00
+Mat avhämtning kr 1 507,00
+Sprit kr 880,00
+Tobak kr 2 512,00
+Vin kr 89,00
+Öl kr 5 822,00
+Försäljning per momsgrupp exkl returer
+Moms 12% 1 000,00
+Kassalåda och växelkassa
+Ingående växelkassa 500,00 kr''';
+    test('bara varugruppssektionen används och totalen hittas', () {
+      final z = extractZReport(a4, restaurantSuggestions);
+      expect(z.sectionFound, isTrue);
+      expect(z.total, Money.kronor(12955));
+      expect(z.date, '2026-10-31');
+      expect(z.lines.length, 8);
+      expect(Money.sum(z.lines.map((l) => l.amount)), Money.kronor(12955));
+    });
+    test('Mat avhämtning tilldelas aldrig automatiskt till Mat', () {
+      final z = extractZReport(a4, restaurantSuggestions);
+      final mat = z.lines.firstWhere((l) => l.label == 'Mat avhämtning');
+      expect(mat.categoryId, '');
+      expect(mat.suggestedId, 'c0');
+      expect(z.lines.firstWhere((l) => l.label == 'Mat').categoryId, 'c0');
     });
   });
 
@@ -144,6 +185,18 @@ receipt.elementarypos.com''';
       expect(r.vatLines.map((v) => v.net!.ore), [51795, 3992]);
       expect(r.vatTotal!.ore, 4103);
       expect(r.vatConfidence, Confidence.high);
+    });
+    test('Centrumgrossisten: leverantör och förfallodatum', () {
+      const t = '''FAKTURA
+Fakturanr 138956
+Kundnr 999 1
+CENTRUMGROSSISTEN AB
+Förfallodatum Leveranstid Ordernr
+2026-10-30 20261030 60719
+Att betala SEK 521,00''';
+      final r = extractInvoice(t);
+      expect(r.supplier, 'CENTRUMGROSSISTEN AB');
+      expect(r.dueDate, '2026-10-30');
     });
     test('kortkvitto utan moms känns igen som utgift', () {
       expect(classify(lunds).type, DocumentType.invoice);

@@ -43,6 +43,18 @@ void main() {
     });
   });
 
+  test('lutande sida: belopp längre ned till höger hamnar ändå på samma rad', () {
+    final lines = <OcrLine>[];
+    for (var i = 0; i < 6; i++) {
+      final y = 100.0 + i * 40;
+      lines.add(l('Rad $i', 10, y, 80, y + 20));
+      lines.add(l('${i + 1},00', 300, y + 15, 380, y + 35));
+    }
+    final rows = OcrDocument('', lines).toText().split('\n');
+    expect(rows.length, 6);
+    expect(rows[2], 'Rad 2  3,00');
+  });
+
   group('Bildkvalitet', () {
     test('mörk bild flaggas', () {
       final dark = Uint8List.fromList(img.encodeJpg(img.Image(width: 800, height: 1000)));
