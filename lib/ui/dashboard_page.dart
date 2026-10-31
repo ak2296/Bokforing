@@ -52,7 +52,7 @@ class DashboardPage extends StatelessWidget {
                 _StatCard('Utgifter denna månad', r.totalExpenses),
                 _StatCard('Utgående moms', r.totalOutputVat),
                 _StatCard('Ingående moms', r.totalInputVat),
-                _StatCard(diff.isNegative ? 'Momsdifferens (att få tillbaka)' : 'Momsdifferens (att betala)', diff),
+                _StatCard(diff.isNegative ? 'Momsskillnad (att få tillbaka)' : 'Momsskillnad (att betala)', diff),
                 _CountCard('Antal skannade dokument', count),
               ],
             ),

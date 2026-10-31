@@ -8,6 +8,7 @@ import '../history_page.dart';
 import 'ai_settings_page.dart';
 import 'backup_page.dart';
 import 'category_editor.dart';
+import 'invoice_fields_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -74,6 +75,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       .push(MaterialPageRoute(builder: (_) => const CategoriesPage())),
                 ),
                 header('Dokument'),
+                ListTile(
+                  leading: const Icon(Icons.rule_outlined),
+                  title: const Text('Fält på fakturor'),
+                  subtitle: const Text('Vilket datum, vilken summa och vilken moms som används'),
+                  onTap: () =>
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const InvoiceFieldsPage())),
+                ),
                 SwitchListTile(
                   secondary: const Icon(Icons.image_outlined),
                   title: const Text('Behåll originalbilder'),

@@ -108,10 +108,20 @@ class OcrResult {
     return c.reduce((a, b) => a + b) / c.length;
   }
 
+  /// Text printed sideways along the paper edge ("EJ KVITTO PÅ KÖP", print
+  /// timestamps) shows up as tall, narrow lines. It is never accounting data.
+  bool isMarginText(OcrLine l) {
+    final t = l.text.trim();
+    if (t.length < 3) return false;
+    final w = l.box.right - l.box.left;
+    return l.box.height > 2.5 * w;
+  }
+
   /// Groups lines into visual rows. Tolerates a slight page tilt by
   /// comparing each line with the row's latest member.
   List<TextRow> rows() {
-    final sorted = [...lines]..sort((a, b) => a.box.centerY.compareTo(b.box.centerY));
+    final sorted = lines.where((l) => !isMarginText(l)).toList()
+      ..sort((a, b) => a.box.centerY.compareTo(b.box.centerY));
     final groups = <List<OcrLine>>[];
     for (final line in sorted) {
       final h = line.box.height <= 0 ? 10.0 : line.box.height;

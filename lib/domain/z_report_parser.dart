@@ -92,6 +92,14 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     'totalt': 50,
     'summa': 40,
   };
+  /// Company details and footer text that may sit next to amounts.
+  static const _notSales = [
+    'org nr', 'org.nr', 'orgnr', 'org. nr', 'organisationsnr', 'organisationsnummer', 'http', 'www', 'tel ',
+    'telefon', 'momsreg', 'kvitto på köp', 'kvitto pa kop', 'kassa nr', 'kassanr', 'kassör', 'ej kvitto',
+  ];
+
+  static const _printStamp = ['utskri', 'skriven', 'printed', 'kopia skapad'];
+
   static const _notTotal = ['grand total', 'ackumulerad', 'exkl', 'netto', 'moms', 'retur', 'rabatt', 'kontant', 'kort', 'swish', 'antal'];
 
   @override
@@ -127,7 +135,8 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       if (amounts.isEmpty) continue;
       final amount = amounts.last;
       final label = _label(rows[i].text, amount.start);
-      if (label.isEmpty) continue;
+      if (label.isEmpty || !RegExp(r'[A-Za-zÅÄÖåäö]{2,}').hasMatch(label)) continue;
+      if (_notSales.any((w) => norm[i].contains(w))) continue;
       final m = _match(label, TextPatterns.rate(rows[i].text));
       // Outside a category section only keep rows that look like a category.
       if (start < 0 && m.match == MatchKind.none) continue;
@@ -177,12 +186,31 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     if (!total.hasValue) notes.add('Dagsförsäljningen hittades inte. Fyll i den från rapporten.');
 
     // Business date: labelled dates first, never the phone's clock.
+    // A period "Från … Till …": the business date is the "Från" date.
+    // Print timestamps ("Utskriven …") are never the business date.
     final dates = <String>[];
     String? labelled;
     String? labelledSrc;
+    String? from;
+    String? fromSrc;
     for (var i = 0; i < rows.length; i++) {
+      if (_printStamp.any((w) => norm[i].contains(w))) continue;
       final d = TextPatterns.dates(rows[i].text);
       dates.addAll(d);
+      final fromIdx = RegExp(r'\b(från|fr\.?o\.?m\.?|from)\b').firstMatch(norm[i]);
+      if (from == null && fromIdx != null) {
+        final after = TextPatterns.dates(rows[i].text.substring(fromIdx.start.clamp(0, rows[i].text.length)));
+        if (after.isNotEmpty) {
+          from = after.first;
+          fromSrc = rows[i].text;
+        } else if (d.isEmpty && i + 1 < rows.length) {
+          final next = TextPatterns.dates(rows[i + 1].text);
+          if (next.isNotEmpty) {
+            from = next.first;
+            fromSrc = '${rows[i].text} / ${rows[i + 1].text}';
+          }
+        }
+      }
       if (d.isNotEmpty &&
           labelled == null &&
           TextPatterns.containsAny(norm[i], ['affärsdag', 'bokföringsdag', 'försäljningsdag', 'datum', 'period', 'rapportdatum'])) {
@@ -192,7 +220,9 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     }
     final unique = dates.toSet().toList();
     Extracted<String> date;
-    if (labelled != null) {
+    if (from != null) {
+      date = Extracted(from, Confidence.high, source: fromSrc, note: 'Från-datum i rapportens period');
+    } else if (labelled != null) {
       date = Extracted(labelled, unique.length == 1 ? Confidence.high : Confidence.medium, source: labelledSrc);
     } else if (unique.length == 1) {
       date = Extracted(unique.single, Confidence.medium);

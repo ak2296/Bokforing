@@ -33,7 +33,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     for (final inv in m.invoices.reversed)
                       ListTile(
                         leading: const Icon(Icons.receipt_long_outlined),
-                        title: Text(inv.supplier.isEmpty ? 'Faktura' : inv.supplier),
+                        title: Text([
+                          if (inv.total.isNegative) 'Kreditnota',
+                          if (inv.supplier.isNotEmpty) inv.supplier else if (!inv.total.isNegative) 'Faktura',
+                        ].join(' · ')),
                         subtitle: Text([
                           SwedishDates.mediumDay(inv.invoiceDate),
                           if (inv.invoiceNumber.isNotEmpty) 'Nr ${inv.invoiceNumber}',

@@ -186,7 +186,8 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
     setState(() => _state = type == DocumentType.invoice ? ScanState.invoiceDetected : ScanState.zReportDetected);
     Widget page;
     if (type == DocumentType.invoice) {
-      page = InvoiceReviewPage(draft: const InvoiceParser().parse(ocr), scan: ctx);
+      final prefs = await controller.repo.invoicePrefs();
+      page = InvoiceReviewPage(draft: InvoiceParser(prefs: prefs).parse(ocr), scan: ctx);
     } else {
       final cats = await controller.repo.categories();
       final aliases = await controller.repo.categoryAliases();

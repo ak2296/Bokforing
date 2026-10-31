@@ -52,6 +52,27 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   late bool _vatCalculated;
   List<VatRate> _rates = VatRuleSet.current.rates;
 
+  bool get _isCredit => Money.parse(_total.text)?.isNegative ?? false;
+
+  /// Flips the sign of total, VAT and VAT lines. The amounts themselves are
+  /// unchanged; only whether they are added or subtracted.
+  void _setCredit(bool credit) {
+    void sign(TextEditingController c) {
+      final v = Money.parse(c.text);
+      if (v == null || v.isZero) return;
+      c.text = (credit ? -v.abs() : v.abs()).toInput();
+    }
+
+    setState(() {
+      sign(_total);
+      sign(_vat);
+      for (final r in _vatRows) {
+        sign(r.amount);
+      }
+      _edited = true;
+    });
+  }
+
   InvoiceDraft? get _d => widget.draft;
   bool get _manual => widget.draft == null && widget.existing == null;
 
@@ -232,7 +253,30 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
               for (final n in d.notes) NoteCard(n),
             DateField(controller: _date, label: 'Datum', confidence: conf(d?.date), enabled: _editing, onChanged: _changed),
             if (d?.date.note != null) Text(d!.date.note!, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 12),
+            if (d != null && d.dateOptions.length > 1)
+              Wrap(
+                spacing: 6,
+                children: [
+                  for (final o in d.dateOptions)
+                    ActionChip(
+                      label: Text('${o.label}: ${o.date}'),
+                      onPressed: !_editing
+                          ? null
+                          : () => setState(() {
+                                _date.text = o.date;
+                                _edited = true;
+                              }),
+                    ),
+                ],
+              ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Kreditnota'),
+              subtitle: const Text('Beloppen blir minus och dras av från utgifterna'),
+              value: _isCredit,
+              onChanged: !_editing ? null : _setCredit,
+            ),
+            const SizedBox(height: 4),
             PlainField(controller: _supplier, label: 'Leverantör', confidence: conf(d?.supplier), enabled: _editing, onChanged: _changed),
             const SizedBox(height: 12),
             MoneyField(controller: _total, label: 'Summa (att betala)', confidence: conf(d?.total), enabled: _editing, onChanged: _changed),

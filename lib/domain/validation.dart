@@ -52,9 +52,11 @@ class AccountingValidationEngine {
 
   List<ValidationResult> validateInvoice(Invoice inv, {Money? net}) {
     final results = <ValidationResult>[];
-    if (inv.total.isZero || inv.total.isNegative) {
+    if (inv.total.isZero) {
+      results.add(const ValidationResult(ValidationStatus.error, 'total', 'Summan saknas.'));
+    } else if (inv.total.isNegative) {
       results.add(const ValidationResult(
-          ValidationStatus.error, 'total', 'Summan saknas eller är inte positiv.'));
+          ValidationStatus.ok, 'total', 'Kreditnota: beloppet är minus och dras av från utgifterna.'));
     }
     if (inv.vatLines.isNotEmpty) {
       results.add(checkVatBreakdown(inv.vatLines, inv.vatTotal));
@@ -119,12 +121,14 @@ class AccountingValidationEngine {
   }
 
   /// VAT can never exceed what the highest standard rate gives on the total.
+  /// On a kreditnota (negative total) the VAT must be negative too.
   ValidationResult? checkVatPlausible(Money vat, Money total) {
-    if (vat.isNegative) {
-      return const ValidationResult(ValidationStatus.warning, 'vat', 'Momsen är negativ.');
+    if (!vat.isZero && vat.isNegative != total.isNegative) {
+      return ValidationResult(ValidationStatus.warning, 'vat',
+          total.isNegative ? 'Kreditnota: momsen ska också vara minus.' : 'Momsen är negativ men summan är positiv.');
     }
     final max = VatCalculator.vatFromGross(total.abs(), VatRate.twentyFive);
-    if (vat > max + const Money(1)) {
+    if (vat.abs() > max + const Money(1)) {
       return ValidationResult(ValidationStatus.warning, 'vat',
           'Momsen (${vat.format()}) är högre än 25 % av summan kan ge (${max.format()}).');
     }

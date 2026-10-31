@@ -287,7 +287,7 @@ class _YearView extends StatelessWidget {
                           DataColumn(label: Text('Utgifter'), numeric: true),
                           DataColumn(label: Text('Utgående moms'), numeric: true),
                           DataColumn(label: Text('Ingående moms'), numeric: true),
-                          DataColumn(label: Text('Momsdifferens'), numeric: true),
+                          DataColumn(label: Text('Momsskillnad'), numeric: true),
                         ],
                         rows: [
                           for (final r in y.rows)
@@ -317,7 +317,7 @@ class _YearView extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text('Momsdifferens = utgående moms − ingående moms. Tryck på en månad för att öppna den.',
+                    Text('Momsskillnad = utgående moms − ingående moms. Tryck på en månad för att öppna den.',
                         style: Theme.of(context).textTheme.bodySmall),
                   ],
                 );
