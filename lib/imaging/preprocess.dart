@@ -12,7 +12,7 @@ const kFrameInsetY = 0.08;
 // brightness 123-158 and sharpness 334-1417 (so these limits are conservative).
 const _minBrightness = 70.0;
 const _minSharpness = 60.0;
-const _maxOcrWidth = 2200;
+const _maxOcrWidth = 2600;
 
 class QualityIssue {
   const QualityIssue(this.code, this.message, this.hint, {this.blocking = false});

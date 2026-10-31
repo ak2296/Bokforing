@@ -4,16 +4,26 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../domain/text_merge.dart';
 import '../imaging/preprocess.dart';
 import '../ocr/mlkit_ocr.dart';
 
 class ScanResult {
-  const ScanResult(this.text, this.imagePath, this.rowCount);
+  const ScanResult(this.text, this.imagePath, this.rowCount, {this.parts = 1});
   final String text, imagePath;
-  final int rowCount;
+  final int rowCount, parts;
 }
 
-enum ScanStage { initializing, permissionRequired, ready, processing, lowQuality, ocrFailed, failed }
+enum ScanStage {
+  initializing,
+  permissionRequired,
+  ready,
+  processing,
+  lowQuality,
+  ocrFailed,
+  partDone,
+  failed
+}
 
 /// Camera → preprocessing → quality check → OCR. Pops a [ScanResult].
 /// Nothing is saved here; the review step decides what is recorded.
@@ -29,6 +39,11 @@ class _ScanPageState extends State<ScanPage> {
   String? _error, _processedPath;
   PreprocessResult? _pre;
   bool _torch = false;
+
+  /// Long documents: each photo is read separately and the texts are merged.
+  bool _multi = false;
+  final _parts = <String>[];
+  String? _firstImage;
 
   @override
   void initState() {
@@ -113,7 +128,13 @@ class _ScanPageState extends State<ScanPage> {
         setState(() => _stage = ScanStage.ocrFailed);
         return;
       }
-      Navigator.of(context).pop(ScanResult(doc.toText(), _processedPath!, doc.rows().length));
+      _parts.add(doc.toText());
+      _firstImage ??= _processedPath;
+      if (_multi) {
+        setState(() => _stage = ScanStage.partDone);
+      } else {
+        _finish();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -121,6 +142,12 @@ class _ScanPageState extends State<ScanPage> {
         _error = '$e';
       });
     }
+  }
+
+  void _finish() {
+    final text = mergeParts(_parts);
+    Navigator.of(context)
+        .pop(ScanResult(text, _firstImage!, text.split('\n').length, parts: _parts.length));
   }
 
   Future<void> _again() async {
@@ -172,6 +199,7 @@ class _ScanPageState extends State<ScanPage> {
         ScanStage.failed => _message('Något gick fel', _error ?? 'Okänt fel.',
             [FilledButton(onPressed: _init, child: const Text('Försök igen'))]),
         ScanStage.lowQuality => _quality(),
+        ScanStage.partDone => _partDone(),
     };
   }
 
@@ -206,15 +234,21 @@ class _ScanPageState extends State<ScanPage> {
           left: 16,
           right: 16,
           top: 12,
-          child: Center(
-            child: Container(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                   color: Colors.black54, borderRadius: BorderRadius.circular(8)),
               child: const Text('Placera fakturan eller Z-rapporten inom ramen',
                   textAlign: TextAlign.center, style: TextStyle(color: Colors.white)),
             ),
-          ),
+            const SizedBox(height: 8),
+            FilterChip(
+              label: Text(_multi ? 'Långt dokument: flera bilder' : 'Långt dokument? Ta flera bilder'),
+              selected: _multi,
+              onSelected: (v) => setState(() => _multi = v),
+            ),
+          ]),
         ),
         Positioned(
           left: 0,
@@ -234,6 +268,30 @@ class _ScanPageState extends State<ScanPage> {
             const SizedBox(width: 48),
           ]),
         ),
+      ]),
+    );
+  }
+
+  Widget _partDone() {
+    final rows = _parts.last.split('\n');
+    final tail = rows.skip(rows.length > 3 ? rows.length - 3 : 0).join('\n');
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Del ${_parts.length} är inläst', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 8),
+        const Text('Ta nästa bild så att de sista raderna nedan syns överst i bilden. '
+            'Då slås de ihop automatiskt. Nästa sida på en faktura kan tas utan överlappning.'),
+        const SizedBox(height: 8),
+        Card(child: Padding(padding: const EdgeInsets.all(12), child: SelectableText(tail))),
+        const Spacer(),
+        const Text('Kontrollera texten innan du analyserar, så att inga rader dubbleras.'),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: FilledButton(onPressed: _again, child: const Text('Ta nästa bild'))),
+          const SizedBox(width: 8),
+          Expanded(child: OutlinedButton(onPressed: _finish, child: const Text('Klar, analysera'))),
+        ]),
       ]),
     );
   }

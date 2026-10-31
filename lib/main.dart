@@ -148,7 +148,8 @@ class _AnalyzePageState extends State<AnalyzePage> {
             ]),
           ),
         ),
-      const Text('Texten från kameran kan innehålla fel. Du kan rätta texten nedan '
+      const Text('Långa dokument: tryck på "Långt dokument" i kameran och ta en bild i taget. '
+          'Texten från kameran kan innehålla fel. Du kan rätta texten nedan '
           'och trycka på Analysera igen. Du kan också klistra in text.'),
       const SizedBox(height: 8),
       TextField(
