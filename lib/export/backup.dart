@@ -32,6 +32,7 @@ class Backup {
     'vat_rates',
     'categories',
     'category_aliases',
+    'z_ignored_labels',
     'document_scans',
     'daily_sales',
     'daily_sales_items',

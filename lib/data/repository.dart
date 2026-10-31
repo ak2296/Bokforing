@@ -157,6 +157,46 @@ class Repository {
   Future<void> forgetAlias(String label) =>
       db.delete('category_aliases', where: 'label = ?', whereArgs: [normalizeLabel(label)]);
 
+  /// Z-report lines that are never counted ("Räknas inte med").
+  Future<Set<String>> ignoredZLabels() async {
+    final rows = await db.query('z_ignored_labels');
+    return {for (final r in rows) r['label'] as String};
+  }
+
+  /// "Fält på Z-rapport": what a printed line is recorded as. A null
+  /// category means the line is not counted. Several lines may point to the
+  /// same category; their amounts are then added together.
+  Future<void> setZLabelRule(String label, int? categoryId) async {
+    final l = normalizeLabel(label);
+    if (l.isEmpty) return;
+    await db.transaction((txn) async {
+      await txn.delete('category_aliases', where: 'label = ?', whereArgs: [l]);
+      await txn.delete('z_ignored_labels', where: 'label = ?', whereArgs: [l]);
+      if (categoryId == null) {
+        await txn.insert('z_ignored_labels', {'label': l, 'created_at': _now()});
+      } else {
+        await txn.insert('category_aliases', {'label': l, 'category_id': categoryId, 'created_at': _now()});
+      }
+    });
+  }
+
+  Future<void> deleteZLabelRule(String label) async {
+    final l = normalizeLabel(label);
+    await db.delete('category_aliases', where: 'label = ?', whereArgs: [l]);
+    await db.delete('z_ignored_labels', where: 'label = ?', whereArgs: [l]);
+  }
+
+  /// All rules, sorted by label: (label, category id or null = not counted).
+  Future<List<({String label, int? categoryId})>> zLabelRules() async {
+    final aliases = await categoryAliases();
+    final ignored = await ignoredZLabels();
+    final out = <({String label, int? categoryId})>[
+      for (final e in aliases.entries) (label: e.key, categoryId: e.value),
+      for (final l in ignored) (label: l, categoryId: null),
+    ]..sort((a, b) => a.label.compareTo(b.label));
+    return out;
+  }
+
   // ---------- Scans ----------
 
   Future<int> saveScan({

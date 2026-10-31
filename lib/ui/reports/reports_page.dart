@@ -172,8 +172,8 @@ class MonthlyTable extends StatelessWidget {
             child: Column(
               children: [
                 _total('Total försäljning', r.totalSales),
-                _total('Total utgifter', r.totalExpenses),
-                _total('Total moms på försäljning (utgående)', r.totalOutputVat),
+                _total('Totala utgifter', r.totalExpenses),
+                _total('Total utgående moms (försäljning)', r.totalOutputVat),
                 _total('Total ingående moms', r.totalInputVat),
                 const Divider(),
                 _total(diff.isNegative ? 'Beräknad moms att få tillbaka' : 'Beräknad moms att betala', diff.abs(),

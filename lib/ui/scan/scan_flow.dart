@@ -191,7 +191,8 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
     } else {
       final cats = await controller.repo.categories();
       final aliases = await controller.repo.categoryAliases();
-      page = ZReviewPage(draft: ZReportParser(cats, aliases: aliases).parse(ocr), scan: ctx);
+      final ignored = await controller.repo.ignoredZLabels();
+      page = ZReviewPage(draft: ZReportParser(cats, aliases: aliases, ignored: ignored).parse(ocr), scan: ctx);
     }
     if (!mounted) return;
     // The review page handles saving and leaving.

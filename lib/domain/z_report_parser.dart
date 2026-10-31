@@ -5,7 +5,7 @@ import 'ocr_models.dart';
 import 'text_patterns.dart';
 import 'vat.dart';
 
-enum MatchKind { exact, remembered, possible, none }
+enum MatchKind { exact, remembered, possible, ignored, none }
 
 /// One sales row found on the Z-report and how it relates to the user's
 /// categories. Only [exact] and [remembered] matches are assigned
@@ -67,7 +67,8 @@ class ZReportDraft {
 class ZReportParser implements DocumentParser<ZReportDraft> {
   final List<Category> categories;
   final Map<String, int> aliases;
-  const ZReportParser(this.categories, {this.aliases = const {}});
+  final Set<String> ignored;
+  const ZReportParser(this.categories, {this.aliases = const {}, this.ignored = const {}});
 
   static const _sectionStart = [
     'försäljning per varugrupp', 'per varugrupp', 'varugrupper', 'varugrupp', 'artikelgrupper',
@@ -139,7 +140,7 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       if (_notSales.any((w) => norm[i].contains(w))) continue;
       final m = _match(label, TextPatterns.rate(rows[i].text));
       // Outside a category section only keep rows that look like a category.
-      if (start < 0 && m.match == MatchKind.none) continue;
+      if (start < 0 && (m.match == MatchKind.none || m.match == MatchKind.ignored)) continue;
       if (start < 0 && _notTotal.any((w) => norm[i].contains(w))) continue;
       lines.add(ZLine(
         label: label,
@@ -264,13 +265,9 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         ? 'Rapporten visar ${printed.label} men ${c.name} har ${c.vat.label}.'
         : null;
 
-    for (final c in active) {
-      if (normalizeLabel(c.name) == n) {
-        final w = rateWarning(c);
-        return w == null
-            ? (categoryId: c.id, suggested: null, match: MatchKind.exact, warning: null)
-            : (categoryId: null, suggested: c.id, match: MatchKind.possible, warning: w);
-      }
+    // The owner's own rules ("Fält på Z-rapport") come first.
+    if (ignored.contains(n)) {
+      return (categoryId: null, suggested: null, match: MatchKind.ignored, warning: null);
     }
     final alias = aliases[n];
     if (alias != null && active.any((c) => c.id == alias)) {
@@ -279,6 +276,32 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       return w == null
           ? (categoryId: alias, suggested: null, match: MatchKind.remembered, warning: null)
           : (categoryId: null, suggested: alias, match: MatchKind.possible, warning: w);
+    }
+    for (final c in active) {
+      if (normalizeLabel(c.name) == n) {
+        final w = rateWarning(c);
+        return w == null
+            ? (categoryId: c.id, suggested: null, match: MatchKind.exact, warning: null)
+            : (categoryId: null, suggested: c.id, match: MatchKind.possible, warning: w);
+      }
+    }
+    // A printed line close to one of the owner's rules (OCR often misreads a
+    // letter or two) is suggested, never assigned automatically.
+    String? closest;
+    var closestScore = 0.0;
+    for (final key in aliases.keys) {
+      final s = TextPatterns.similarity(n, key);
+      if (s > closestScore) {
+        closestScore = s;
+        closest = key;
+      }
+    }
+    if (closest != null && closestScore >= 0.8) {
+      final id = aliases[closest]!;
+      final c = active.where((c) => c.id == id).firstOrNull;
+      if (c != null) {
+        return (categoryId: null, suggested: id, match: MatchKind.possible, warning: 'Liknar "$closest" som räknas som ${c.name}.');
+      }
     }
     // Possible matches: a category name as a whole word, or close spelling.
     Category? best;

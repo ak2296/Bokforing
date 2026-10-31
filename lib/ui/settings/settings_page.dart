@@ -9,6 +9,7 @@ import 'ai_settings_page.dart';
 import 'backup_page.dart';
 import 'category_editor.dart';
 import 'invoice_fields_page.dart';
+import 'z_fields_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -73,6 +74,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   subtitle: const Text('Namn och momssats per kategori'),
                   onTap: () => Navigator.of(context)
                       .push(MaterialPageRoute(builder: (_) => const CategoriesPage())),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.receipt_outlined),
+                  title: const Text('Fält på Z-rapport'),
+                  subtitle: const Text('Vad varje rad på Z-rapporten registreras som'),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ZFieldsPage())),
                 ),
                 header('Dokument'),
                 ListTile(

@@ -120,14 +120,14 @@ class AiResult {
 
   /// Z-rows are matched to the user's categories with the same cautious
   /// rules as the offline reader (exact or remembered names only).
-  ZReportDraft toZReportDraft(List<Category> categories, Map<String, int> aliases) {
+  ZReportDraft toZReportDraft(List<Category> categories, Map<String, int> aliases, {Set<String> ignored = const {}}) {
     final buf = StringBuffer('Z-rapport\n');
     if (totalText != null) buf.writeln('Total försäljning $totalText');
     buf.writeln('Försäljning per varugrupp');
     for (final r in zRows) {
       buf.writeln('${r.label}   ${r.amount}');
     }
-    final parsed = ZReportParser(categories, aliases: aliases).parse(OcrResult.fromPlainText(buf.toString()));
+    final parsed = ZReportParser(categories, aliases: aliases, ignored: ignored).parse(OcrResult.fromPlainText(buf.toString()));
     final d = _date(date);
     return ZReportDraft(
       date: d == null ? const Extracted.none() : Extracted(d, Confidence.medium, note: 'Förbättrad analys'),

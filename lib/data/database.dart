@@ -6,7 +6,7 @@ import 'package:sqflite/sqflite.dart';
 /// except amounts printed on the document itself (e.g. reported Z total).
 class AppDatabase {
   static const fileName = 'bokforing.db';
-  static const version = 1;
+  static const version = 2;
 
   static Future<Database> open({DatabaseFactory? factory, String? path}) async {
     final f = factory ?? databaseFactory;
@@ -17,6 +17,9 @@ class AppDatabase {
         version: version,
         onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
         onCreate: (db, _) => _create(db),
+        onUpgrade: (db, oldVersion, _) async {
+          if (oldVersion < 2) await _createV2(db);
+        },
       ),
     );
   }
@@ -130,9 +133,25 @@ class AppDatabase {
         details TEXT NOT NULL DEFAULT '',
         at TEXT NOT NULL
       )''');
+    _v2Tables(batch);
     for (final bp in const [0, 600, 1200, 2500]) {
       batch.insert('vat_rates', {'basis_points': bp, 'active': 1});
     }
+    await batch.commit(noResult: true);
+  }
+
+  /// v2: Z-report lines the owner chose not to count ("Räknas inte med").
+  static void _v2Tables(Batch batch) {
+    batch.execute('''
+      CREATE TABLE IF NOT EXISTS z_ignored_labels (
+        label TEXT PRIMARY KEY,
+        created_at TEXT NOT NULL
+      )''');
+  }
+
+  static Future<void> _createV2(Database db) async {
+    final batch = db.batch();
+    _v2Tables(batch);
     await batch.commit(noResult: true);
   }
 }

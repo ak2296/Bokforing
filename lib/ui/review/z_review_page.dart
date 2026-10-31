@@ -126,13 +126,13 @@ class _ZReviewPageState extends State<ZReviewPage> {
   List<String> _computeAiReasons() {
     final d = _d;
     if (d == null) return const [];
-    final unmatched = d.lines.where((l) => l.categoryId == null).length;
+    final unmatched = d.lines.where((l) => l.categoryId == null && l.match != MatchKind.ignored).length;
     final total = d.total.value;
     return [
       if (total == null) 'Dagsförsäljningen hittades inte',
       if (!d.date.hasValue) 'Datum hittades inte' else if (d.date.confidence == Confidence.low) 'Datumet är osäkert',
       if (d.lines.isEmpty) 'Inga försäljningsrader hittades',
-      if (unmatched > 0) ' rader kunde inte kopplas till en kategori',
+      if (unmatched > 0) '$unmatched rader kunde inte kopplas till en kategori',
       if (total != null && d.lines.isNotEmpty && d.sumWith(const {}) != total) 'Raderna stämmer inte med dagsförsäljningen',
     ];
   }
@@ -220,9 +220,12 @@ class _ZReviewPageState extends State<ZReviewPage> {
     try {
       for (final r in _rows) {
         final c = _cat(r.categoryId);
-        if (r.fromReport && r.userAssigned && r.remember && c != null &&
-            Repository.normalizeLabel(r.label) != Repository.normalizeLabel(c.name)) {
-          await controller.repo.rememberAlias(r.label, c.id!);
+        if (r.fromReport && r.userAssigned && r.remember) {
+          if (c == null) {
+            await controller.repo.setZLabelRule(r.label, null);
+          } else if (Repository.normalizeLabel(r.label) != Repository.normalizeLabel(c.name)) {
+            await controller.repo.setZLabelRule(r.label, c.id);
+          }
         }
       }
       final scanId = await widget.scan?.persist(controller);
@@ -352,8 +355,13 @@ class _ZReviewPageState extends State<ZReviewPage> {
                     children: [
                       Text(r.fromReport ? 'På rapporten: ${r.label}' : (assigned?.name ?? r.label),
                           style: Theme.of(context).textTheme.bodyMedium),
-                      if (r.match == MatchKind.exact || r.match == MatchKind.remembered)
-                        Text(r.match == MatchKind.exact ? 'Samma namn som kategorin' : 'Kopplingen är sparad sedan tidigare',
+                      if (r.match == MatchKind.exact || r.match == MatchKind.remembered || r.match == MatchKind.ignored)
+                        Text(
+                            switch (r.match) {
+                              MatchKind.exact => 'Samma namn som kategorin',
+                              MatchKind.ignored => 'Räknas inte med enligt Fält på Z-rapport',
+                              _ => 'Enligt Fält på Z-rapport',
+                            },
                             style: Theme.of(context).textTheme.bodySmall),
                     ],
                   ),
@@ -421,13 +429,15 @@ class _ZReviewPageState extends State<ZReviewPage> {
               ),
             ] else if (r.warning != null)
               Text(r.warning!, style: const TextStyle(color: AppTheme.warning)),
-            if (r.fromReport && r.userAssigned && assigned != null &&
-                Repository.normalizeLabel(r.label) != Repository.normalizeLabel(assigned.name))
+            if (r.fromReport && r.userAssigned &&
+                (assigned == null || Repository.normalizeLabel(r.label) != Repository.normalizeLabel(assigned.name)))
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 dense: true,
                 value: r.remember,
-                title: Text('Kom ihåg: "${r.label}" räknas som ${assigned.name}'),
+                title: Text(assigned == null
+                    ? 'Kom ihåg: "${r.label}" räknas aldrig med'
+                    : 'Kom ihåg: "${r.label}" räknas som ${assigned.name}'),
                 onChanged: (v) => setState(() => r.remember = v ?? false),
               ),
           ],

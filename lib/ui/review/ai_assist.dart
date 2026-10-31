@@ -103,7 +103,8 @@ Future<bool> runAiAnalysis(BuildContext context, ScanContext scan) async {
     case DocumentType.zReport:
       final cats = await controller.repo.categories();
       final aliases = await controller.repo.categoryAliases();
-      page = ZReviewPage(draft: r.toZReportDraft(cats, aliases), scan: aiScan, fromAi: true);
+      final ignored = await controller.repo.ignoredZLabels();
+      page = ZReviewPage(draft: r.toZReportDraft(cats, aliases, ignored: ignored), scan: aiScan, fromAi: true);
     case DocumentType.unknown:
       if (context.mounted) {
         await _message(context, 'Dokumentet kändes inte igen',
