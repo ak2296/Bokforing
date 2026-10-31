@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../scan/scan_context.dart';
 import '../theme.dart';
@@ -205,6 +206,18 @@ class _Preview extends StatelessWidget {
             ExpansionTile(
               title: const Text('Avläst text'),
               children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.copy),
+                    label: const Text('Kopiera avläst text'),
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      await Clipboard.setData(ClipboardData(text: scan.ocrText));
+                      messenger.showSnackBar(const SnackBar(content: Text('Texten är kopierad.')));
+                    },
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: SelectableText(scan.ocrText, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),

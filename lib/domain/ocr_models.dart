@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 /// Rectangle in image pixels.
 class OcrBox {
@@ -29,18 +30,23 @@ class OcrLine {
   final OcrBox box;
   final List<OcrElement> words;
   final double? confidence;
-  const OcrLine(this.text, this.box, {this.words = const [], this.confidence});
+
+  /// Rotation of the line in degrees as reported by ML Kit.
+  final double? angle;
+  const OcrLine(this.text, this.box, {this.words = const [], this.confidence, this.angle});
 
   Map<String, dynamic> toJson() => {
         't': text,
         'b': box.toJson(),
         if (confidence != null) 'c': confidence,
+        if (angle != null) 'a': angle,
         'w': [for (final w in words) w.toJson()],
       };
   factory OcrLine.fromJson(Map<String, dynamic> j) => OcrLine(
         j['t'] as String,
         OcrBox.fromJson(j['b'] as List),
         confidence: (j['c'] as num?)?.toDouble(),
+        angle: (j['a'] as num?)?.toDouble(),
         words: [for (final w in (j['w'] as List? ?? const [])) OcrElement.fromJson(w as Map<String, dynamic>)],
       );
 }
@@ -117,31 +123,23 @@ class OcrResult {
     return l.box.height > 2.5 * w;
   }
 
-  /// Groups lines into visual rows. Tolerates a slight page tilt by
-  /// comparing each line with the row's latest member.
+  /// Groups lines into visual rows. On a slightly tilted photo a label at
+  /// the left and its amount at the right end up at different heights, so
+  /// the heights are corrected for the page tilt first. The tilt comes from
+  /// ML Kit's line angles; since its sign convention is not documented, both
+  /// directions (and no correction) are tried and the one that pairs the
+  /// most lines wins.
   List<TextRow> rows() {
-    final sorted = lines.where((l) => !isMarginText(l)).toList()
-      ..sort((a, b) => a.box.centerY.compareTo(b.box.centerY));
-    final groups = <List<OcrLine>>[];
-    for (final line in sorted) {
-      final h = line.box.height <= 0 ? 10.0 : line.box.height;
-      List<OcrLine>? target;
-      for (final g in groups.reversed.take(3)) {
-        final last = g.last;
-        final lh = last.box.height <= 0 ? 10.0 : last.box.height;
-        final overlap = (line.box.centerY - last.box.centerY).abs() < 0.5 * (h < lh ? h : lh);
-        final sideBySide = line.box.left >= last.box.right - 2 || line.box.right <= g.first.box.left + 2;
-        if (overlap && sideBySide) {
-          target = g;
-          break;
-        }
-      }
-      if (target != null) {
-        target.add(line);
-      } else {
-        groups.add([line]);
-      }
+    final kept = lines.where((l) => !isMarginText(l)).toList();
+    final angles = kept.map((l) => l.angle).whereType<double>().where((a) => a.abs() < 15).toList()..sort();
+    final median = angles.isEmpty ? 0.0 : angles[angles.length ~/ 2];
+    final candidates = median.abs() < 0.2 ? [0.0] : [0.0, median, -median];
+    List<List<OcrLine>>? best;
+    for (final deg in candidates) {
+      final g = _group(kept, math.tan(deg * math.pi / 180));
+      if (best == null || g.length < best.length) best = g;
     }
+    final groups = best ?? const <List<OcrLine>>[];
     final rows = <TextRow>[];
     for (final g in groups) {
       g.sort((a, b) => a.box.left.compareTo(b.box.left));
@@ -154,6 +152,33 @@ class OcrResult {
       rows.add(TextRow(g.map((l) => l.text.trim()).join('   '), box, rows.length));
     }
     return rows;
+  }
+
+  List<List<OcrLine>> _group(List<OcrLine> kept, double slope) {
+    final midX = kept.isEmpty ? 0.0 : kept.map((l) => (l.box.left + l.box.right) / 2).reduce((a, b) => a + b) / kept.length;
+    double y(OcrLine l) => l.box.centerY - slope * ((l.box.left + l.box.right) / 2 - midX);
+    final sorted = [...kept]..sort((a, b) => y(a).compareTo(y(b)));
+    final groups = <List<OcrLine>>[];
+    for (final line in sorted) {
+      final h = line.box.height <= 0 ? 10.0 : line.box.height;
+      List<OcrLine>? target;
+      for (final g in groups.reversed.take(3)) {
+        final last = g.last;
+        final lh = last.box.height <= 0 ? 10.0 : last.box.height;
+        final overlap = (y(line) - y(last)).abs() < 0.55 * (h < lh ? h : lh);
+        final sideBySide = g.every((m) => line.box.left >= m.box.right - 2 || line.box.right <= m.box.left + 2);
+        if (overlap && sideBySide) {
+          target = g;
+          break;
+        }
+      }
+      if (target != null) {
+        target.add(line);
+      } else {
+        groups.add([line]);
+      }
+    }
+    return groups;
   }
 
   String toJsonString() => jsonEncode({

@@ -1,3 +1,4 @@
+import 'dates.dart';
 import 'document_parser.dart';
 import 'models.dart';
 import 'money.dart';
@@ -68,7 +69,10 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
   final List<Category> categories;
   final Map<String, int> aliases;
   final Set<String> ignored;
-  const ZReportParser(this.categories, {this.aliases = const {}, this.ignored = const {}});
+
+  /// Used only to reject impossible future dates; defaults to now.
+  final DateTime? today;
+  const ZReportParser(this.categories, {this.aliases = const {}, this.ignored = const {}, this.today});
 
   static const _sectionStart = [
     'försäljning per varugrupp', 'per varugrupp', 'varugrupper', 'varugrupp', 'artikelgrupper',
@@ -105,7 +109,7 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
 
   @override
   ZReportDraft parse(OcrResult ocr) {
-    final rows = ocr.rows();
+    final rows = _pairLabelsWithAmounts(ocr.rows());
     final norm = [for (final r in rows) TextPatterns.normalize(r.text)];
     final notes = <String>[];
 
@@ -189,6 +193,12 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     // Business date: labelled dates first, never the phone's clock.
     // A period "Från … Till …": the business date is the "Från" date.
     // Print timestamps ("Utskriven …") are never the business date.
+    final latest = (today ?? DateTime.now()).add(const Duration(days: 31));
+    bool plausible(String iso) {
+      final dt = SwedishDates.parseIso(iso);
+      return dt != null && !dt.isAfter(latest) && dt.year >= 2000;
+    }
+
     final dates = <String>[];
     String? labelled;
     String? labelledSrc;
@@ -196,11 +206,21 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     String? fromSrc;
     for (var i = 0; i < rows.length; i++) {
       if (_printStamp.any((w) => norm[i].contains(w))) continue;
-      final d = TextPatterns.dates(rows[i].text);
+      // A date far in the future is a misread, never a business date.
+      final d = TextPatterns.dates(rows[i].text).where(plausible).toList();
       dates.addAll(d);
+      // A period "2026-10-30 06:00 – 2026-10-31 05:59": the first is Från.
+      if (from == null &&
+          d.length >= 2 &&
+          RegExp(r'(period|\s[-–]\s|\btill\b|\bto\b|\btom\b|t\.o\.m)').hasMatch(norm[i])) {
+        from = d.first;
+        fromSrc = rows[i].text;
+      }
       final fromIdx = RegExp(r'\b(från|fr\.?o\.?m\.?|from)\b').firstMatch(norm[i]);
       if (from == null && fromIdx != null) {
-        final after = TextPatterns.dates(rows[i].text.substring(fromIdx.start.clamp(0, rows[i].text.length)));
+        final after = TextPatterns.dates(rows[i].text.substring(fromIdx.start.clamp(0, rows[i].text.length)))
+            .where(plausible)
+            .toList();
         if (after.isNotEmpty) {
           from = after.first;
           fromSrc = rows[i].text;
@@ -243,6 +263,35 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       sectionFound: start >= 0,
       notes: notes,
     );
+  }
+
+  /// When OCR reads the name column and the amount column separately, a name
+  /// row ("Mat avhämtning") is followed by a row that is only an amount
+  /// ("1 507,00"). Such pairs are joined. Headings are never joined.
+  static List<TextRow> _pairLabelsWithAmounts(List<TextRow> rows) {
+    bool hasLetters(String s) => RegExp(r'[A-Za-zÅÄÖåäö]{2,}').hasMatch(s.replaceAll(RegExp(r'\b(kr|sek)\b', caseSensitive: false), ''));
+    bool isHeading(String s) {
+      final n = TextPatterns.normalize(s);
+      return _sectionStart.any(n.contains) || _sectionEnd.any((w) => n.startsWith(w));
+    }
+
+    final out = <TextRow>[];
+    for (var i = 0; i < rows.length; i++) {
+      final r = rows[i];
+      final next = i + 1 < rows.length ? rows[i + 1] : null;
+      if (next != null &&
+          hasLetters(r.text) &&
+          TextPatterns.amounts(r.text).isEmpty &&
+          !isHeading(r.text) &&
+          !hasLetters(next.text) &&
+          TextPatterns.amounts(next.text).isNotEmpty) {
+        out.add(TextRow('${r.text}   ${next.text}', r.box, out.length));
+        i++;
+      } else {
+        out.add(TextRow(r.text, r.box, out.length));
+      }
+    }
+    return out;
   }
 
   /// Text before the amount, without quantities, percentages and codes.

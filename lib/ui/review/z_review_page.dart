@@ -112,6 +112,14 @@ class _ZReviewPageState extends State<ZReviewPage> {
             warning: l.warning,
           ));
         }
+        // Categories the reader did not find get an empty row so the amount
+        // can be typed in from the report.
+        final covered = {for (final l in d.lines) ...[?l.categoryId, ?l.suggestedCategoryId]};
+        for (final c in cats) {
+          if (!covered.contains(c.id)) {
+            _rows.add(_Row(label: c.name, fromReport: false, amount: '', categoryId: c.id));
+          }
+        }
       } else {
         for (final c in cats) {
           _rows.add(_Row(label: c.name, fromReport: false, amount: '', categoryId: c.id));
@@ -191,15 +199,35 @@ class _ZReviewPageState extends State<ZReviewPage> {
         scanId: widget.existing?.meta.scanId,
       ),
     );
+    // The category rows are what gets recorded; the printed daily total is
+    // only a check. A difference is shown, never corrected by the app.
     if (!day.difference.isZero) {
-      final ok = await confirmDialog(context,
-          title: 'Försäljningsbeloppen stämmer inte',
-          message: 'Detaljerade poster: ${day.detailedTotal.format()}\n'
-              'Rapporterad dagsförsäljning: ${day.reportedTotal.format()}\n'
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Summan av raderna stämmer inte'),
+          content: Text('Summa av raderna: ${day.detailedTotal.format()}\n'
+              'Dagsförsäljning på rapporten: ${day.reportedTotal.format()}\n'
               'Skillnad: ${day.difference.format()}\n\n'
-              'Kontrollera beloppen. Vill du spara ändå? Skillnaden markeras i rapporterna.',
-          confirm: 'Spara ändå');
-      if (!ok || !mounted) return;
+              'Om du sparar registreras summan av raderna (${day.detailedTotal.format()}). '
+              'Dagsförsäljningen på rapporten används bara som kontroll.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, 'edit'), child: const Text('Ändra belopp')),
+            if (widget.scan != null)
+              TextButton(onPressed: () => Navigator.pop(c, 'rescan'), child: const Text('Skanna igen')),
+            FilledButton(onPressed: () => Navigator.pop(c, 'save'), child: const Text('Spara ändå')),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (choice == 'rescan') {
+        await _rescan(context);
+        return;
+      }
+      if (choice != 'save') {
+        setState(() => _editing = true);
+        return;
+      }
     }
     final dupes = await controller.repo.findDuplicateDailySales(day);
     if (dupes.isNotEmpty && mounted) {
@@ -455,8 +483,8 @@ class _ZReviewPageState extends State<ZReviewPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _line('Dagsförsäljning', reported?.format() ?? '–'),
-            _line('Beräknad detaljerad summa', detailed.format()),
+            _line('Dagsförsäljning på rapporten (kontroll)', reported?.format() ?? '–'),
+            _line('Summa av raderna (registreras)', detailed.format()),
             _line('Skillnad', reported == null ? '–' : (detailed - reported).format()),
             const SizedBox(height: 6),
             if (check != null)

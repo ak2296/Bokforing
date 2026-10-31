@@ -23,6 +23,7 @@ class OcrService {
                 l.text,
                 box(l.boundingBox),
                 confidence: l.confidence,
+                angle: l.angle,
                 words: [
                   for (final e in l.elements) OcrElement(e.text, box(e.boundingBox), confidence: e.confidence),
                 ],
