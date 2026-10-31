@@ -4,6 +4,7 @@ import '../../app/app_controller.dart';
 import '../../domain/dates.dart';
 import '../../domain/money.dart';
 import '../../domain/reports.dart';
+import '../export_actions.dart';
 import '../record_details.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -130,6 +131,26 @@ class MonthlyTable extends StatelessWidget {
       children: [
         Text(data.profile.name.toUpperCase(), style: t.titleMedium),
         Text(r.title.toUpperCase(), style: t.titleSmall),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('Exportera PDF'),
+                onPressed: () => exportMonthlyPdf(context, data),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.print_outlined),
+                label: const Text('Skriv ut'),
+                onPressed: () => printMonthly(context, data),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 12),
         if (r.rows.isEmpty)
           const EmptyState(icon: Icons.table_chart_outlined, text: 'Inga registreringar den här månaden.')

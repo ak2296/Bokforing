@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../domain/dates.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
+import 'history_page.dart';
 import 'record_details.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -59,7 +60,16 @@ class DashboardPage extends StatelessWidget {
             Text('Beräknad moms. Ersätter inte momsdeklarationen.',
                 style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 20),
-            Text('Senaste registreringar', style: Theme.of(context).textTheme.titleMedium),
+            Row(
+              children: [
+                Expanded(child: Text('Senaste registreringar', style: Theme.of(context).textTheme.titleMedium)),
+                TextButton(
+                  onPressed: () =>
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryPage())),
+                  child: const Text('Visa historik'),
+                ),
+              ],
+            ),
             if (recent.isEmpty)
               const EmptyState(icon: Icons.inbox_outlined, text: 'Inga registreringar ännu.')
             else
@@ -118,7 +128,8 @@ class _CountCard extends StatelessWidget {
 
 class RegistrationTile extends StatelessWidget {
   final RegistrationSummary entry;
-  const RegistrationTile({super.key, required this.entry});
+  final bool showStatus;
+  const RegistrationTile({super.key, required this.entry, this.showStatus = false});
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +138,7 @@ class RegistrationTile extends StatelessWidget {
       e.typeLabel,
       if (e.title.isNotEmpty) e.kind == 'z' ? 'Z-nr ${e.title}' : e.title,
       if (e.kind == 'invoice') 'Moms ${e.vat.format(compact: true)}',
+      if (showStatus) e.confirmed ? 'Godkänd' : 'Ej godkänd',
     ].join(' · ');
     return ListTile(
       contentPadding: EdgeInsets.zero,

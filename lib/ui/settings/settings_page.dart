@@ -4,7 +4,9 @@ import '../../app/app_controller.dart';
 import '../../app/settings_keys.dart';
 import '../../domain/models.dart';
 import '../../domain/vat.dart';
+import '../history_page.dart';
 import 'ai_settings_page.dart';
+import 'backup_page.dart';
 import 'category_editor.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -81,6 +83,19 @@ class _SettingsPageState extends State<SettingsPage> {
                     await AppScope.read(context).repo.setBoolSetting(SettingsKeys.keepImages, v);
                     setState(() => _keepImages = v);
                   },
+                ),
+                header('Data'),
+                ListTile(
+                  leading: const Icon(Icons.backup_outlined),
+                  title: const Text('Säkerhetskopiering'),
+                  subtitle: const Text('Exportera eller importera säkerhetskopia'),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupPage())),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.history),
+                  title: const Text('Historik'),
+                  subtitle: const Text('Alla registreringar med status'),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryPage())),
                 ),
                 header('Förbättrad analys (valfritt)'),
                 ListTile(

@@ -80,8 +80,7 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
 
   ScanContext _context(DocumentType type) => ScanContext(
         imagePaths: List.of(_processed),
-        ocrText: _ocr?.rows().map((r) => r.text).join('
-') ?? '',
+        ocrText: _ocr?.rows().map((r) => r.text).join('\n') ?? '',
         type: type,
         classification: _classification,
       );
