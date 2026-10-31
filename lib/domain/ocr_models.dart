@@ -149,10 +149,17 @@ class OcrResult {
         g.map((l) => l.box.right).reduce((a, b) => a > b ? a : b),
         g.map((l) => l.box.bottom).reduce((a, b) => a > b ? a : b),
       );
-      rows.add(TextRow(g.map((l) => l.text.trim()).join('   '), box, rows.length));
+      rows.add(TextRow(cleanOcrText(g.map((l) => l.text.trim()).join('   ')), box, rows.length));
     }
     return rows;
   }
+
+  /// Repairs a common OCR slip on receipts: a space next to the decimal
+  /// comma ("598, 90" or "598 ,90" for 598,90), which would otherwise be read
+  /// as two numbers.
+  static String cleanOcrText(String s) =>
+      s.replaceAllMapped(RegExp(r'(\d)\s?([,.])\s(\d{2})(?![\d,.])'), (m) => '${m[1]}${m[2]}${m[3]}').replaceAllMapped(
+          RegExp(r'(\d)\s([,.])(\d{2})(?![\d,.])'), (m) => '${m[1]}${m[2]}${m[3]}');
 
   List<List<OcrLine>> _group(List<OcrLine> kept, double slope) {
     final midX = kept.isEmpty ? 0.0 : kept.map((l) => (l.box.left + l.box.right) / 2).reduce((a, b) => a + b) / kept.length;

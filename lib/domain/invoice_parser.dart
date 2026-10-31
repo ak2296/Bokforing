@@ -101,6 +101,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     'kvar att betala', 'tidigare betalt', 'redan betalt', 'delsumma', 'subtotal', 'sub total', 'mellansumma',
     'rabatt', 'discount', 'öresavrundning', 'öresutj', 'avrundning', 'rounding', 'växel', 'tillbaka', 'change',
     'tendered', 'saldo', 'previous balance', 'bonus', 'poäng', 'points', 'antal', 'quantity', 'qty',
+    'varor', 'vara ', 'artiklar', 'artikel', 'items', 'pcs', 'st varor',
   ];
 
   /// Net amounts and VAT rows, unless the row also says the amount includes
@@ -533,7 +534,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       final unique = all.toSet().where((d) => !labelled.contains(d)).toList();
       inv = unique.isEmpty
           ? const Extracted.none()
-          : Extracted(unique.first, unique.length == 1 ? Confidence.medium : Confidence.low,
+          : Extracted(unique.first, unique.length == 1 ? Confidence.high : Confidence.low,
               note: unique.length == 1 ? null : 'Flera datum hittades');
     }
     for (final d in all.toSet()) {
