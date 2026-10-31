@@ -5,7 +5,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'domain/classifier.dart';
 import 'domain/invoice_extractor.dart';
-import 'domain/money.dart';
 import 'domain/patterns.dart';
 import 'domain/validation.dart';
 import 'domain/z_extractor.dart';

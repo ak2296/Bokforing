@@ -89,6 +89,71 @@ void main() {
     });
   });
 
+  group('Riktiga dokument', () {
+    const centrum = '''CENTRUMGROSSISTEN AB
+FAKTURA
+Fakturanr 138956
+Kundnr 999
+2026-10-30
+Förfallodatum Leveranstid Ordernr
+2026-10-30 20261030 60719
+Momspliktigt belopp 491,87
+Moms 6% 29,47
+Moms 25% 0,00
+Öresutj. -0,34
+Att betala SEK 521,00''';
+    const willys = '''WILLYS
+Katrinelund Malmö
+Totalt 29 varor
+Totalt 598,90 SEK
+Mottaget Kontokort 598,90
+DEBIT MASTERCARD
+KÖP 598.9 SEK
+Ref: 200229765603
+2026-10-28 16:43:42
+Moms% Moms Netto Brutto
+6,00 31,05 517,95 549,00
+25,00 9,98 39,92 49,90
+SPARA KVITTOT''';
+    const lunds = '''Lunds Universitet
+Box 117
+221 00 Lund
+Datum: 28 okt. 2026 14:19
+Nummer: YB1L-218
+1x200,00kr 200,00kr
+Totalt
+200,00kr
+Kortbetalning.
+Kvittot finns tillgängligt på
+receipt.elementarypos.com''';
+
+    test('faktura med momspliktigt belopp och öresavrundning', () {
+      expect(classify(centrum).type, DocumentType.invoice);
+      final r = extractInvoice(centrum);
+      expect(r.total, Money.kronor(521));
+      expect(r.net!.ore, 49187);
+      expect(r.vatTotal!.ore, 2947);
+      expect(r.vatLines.map((v) => v.ratePercent), [6, 25]);
+      expect(r.vatConfidence, Confidence.high);
+    });
+    test('kvitto med momstabell', () {
+      expect(classify(willys).type, DocumentType.invoice);
+      final r = extractInvoice(willys);
+      expect(r.total!.ore, 59890);
+      expect(r.vatLines.map((v) => v.vat.ore), [3105, 998]);
+      expect(r.vatLines.map((v) => v.net!.ore), [51795, 3992]);
+      expect(r.vatTotal!.ore, 4103);
+      expect(r.vatConfidence, Confidence.high);
+    });
+    test('kortkvitto utan moms känns igen som utgift', () {
+      expect(classify(lunds).type, DocumentType.invoice);
+      final r = extractInvoice(lunds);
+      expect(r.total, Money.kronor(200));
+      expect(r.date, '2026-10-28');
+      expect(r.vatTotal, isNull);
+    });
+  });
+
   group('Fakturautläsning', () {
     test('summa, moms, datum', () {
       final r = extractInvoice(sampleInvoice);

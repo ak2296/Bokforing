@@ -11,9 +11,10 @@ class Classification {
 }
 
 const _invoiceSignals = <List<Object>>[
-  ['faktura', 3], ['fakturanummer', 3], ['ocr', 2], ['bankgiro', 2], ['plusgiro', 2],
+  ['faktura', 3], ['fakturanummer|fakturanr', 3], ['ocr', 2], ['bankgiro', 2], ['plusgiro', 2],
   ['förfallodatum', 3], ['fakturadatum', 3], ['att betala', 3], ['betalningsvillkor', 2],
   ['org.?nr|organisationsnummer', 1], ['moms', 1], ['netto', 1],
+  ['kvitto', 2], ['kortbetalning|kontokort|debit|mottaget', 2], ['totalt', 1],
 ];
 const _zSignals = <List<Object>>[
   ['z-?rapport', 5], ['z-?nummer|z-?nr', 3], ['dagsrapport', 4],

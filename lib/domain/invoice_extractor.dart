@@ -146,7 +146,7 @@ InvoiceExtraction extractInvoice(String text) {
 
   Money? net;
   for (final x in lines) {
-    if (x.a.isNotEmpty && RegExp(r'netto|exkl|före moms|utan moms').hasMatch(x.l)) {
+    if (x.a.isNotEmpty && RegExp(r'netto|exkl|före moms|utan moms|momspliktig').hasMatch(x.l)) {
       net = x.a.last;
       break;
     }
@@ -178,10 +178,28 @@ InvoiceExtraction extractInvoice(String text) {
     } else if (rm == null &&
         ln.l.contains('moms') &&
         ln.a.length == 1 &&
-        !RegExp(r'exkl|inkl|före|utan').hasMatch(ln.l)) {
+        !RegExp(r'exkl|inkl|före|utan|momspliktig').hasMatch(ln.l)) {
       vt = ln.a.first;
     }
   }
+
+  // Column table: "Moms% Moms Netto Brutto" followed by one row per rate.
+  final tableHeader = RegExp(r'moms\s*%?\s+moms\s+netto\s+brutto');
+  final tableNets = <Money>[];
+  for (var k = 0; k < lines.length; k++) {
+    if (!tableHeader.hasMatch(lines[k].l)) continue;
+    for (var j = k + 1; j < lines.length; j++) {
+      final a = lines[j].a;
+      if (a.length < 4 || a[0].ore % 100 != 0) break;
+      final rate = a[0].ore ~/ 100;
+      if (![0, 6, 12, 25].contains(rate)) break;
+      if (!vats.any((x) => x.ratePercent == rate)) {
+        vats.add(InvoiceVatLine(rate, a[1], net: a[2]));
+        tableNets.add(a[2]);
+      }
+    }
+  }
+  if (net == null && tableNets.isNotEmpty) net = Money.sum(tableNets);
 
   Money? vat;
   var vconf = Confidence.low;

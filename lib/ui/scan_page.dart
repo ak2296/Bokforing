@@ -145,8 +145,14 @@ class _ScanPageState extends State<ScanPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _stage == ScanStage.ready ? Colors.black : null,
       appBar: AppBar(title: const Text('Skanna dokument')),
-      body: switch (_stage) {
+      body: SafeArea(top: false, child: _body()),
+    );
+  }
+
+  Widget _body() {
+    return switch (_stage) {
         ScanStage.initializing || ScanStage.processing => Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               const CircularProgressIndicator(),
@@ -166,17 +172,16 @@ class _ScanPageState extends State<ScanPage> {
         ScanStage.failed => _message('Något gick fel', _error ?? 'Okänt fel.',
             [FilledButton(onPressed: _init, child: const Text('Försök igen'))]),
         ScanStage.lowQuality => _quality(),
-      },
-    );
+    };
   }
 
   Widget _message(String title, String body, List<Widget> actions) => Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Text(title, style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            Text(body, textAlign: TextAlign.center),
+            SelectableText(body, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ...actions,
           ]),
