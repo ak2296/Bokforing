@@ -4,6 +4,8 @@ import '../app/app_controller.dart';
 import '../domain/dates.dart';
 import '../domain/models.dart';
 import '../domain/validation.dart';
+import 'review/invoice_review_page.dart';
+import 'review/z_review_page.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
 
@@ -103,6 +105,10 @@ Widget _historyAndScan(BuildContext context, String entity, int id, int? scanId)
             for (final a in audit)
               _Row(actions[a['action']] ?? '${a['action']}', _stamp(DateTime.parse(a['at'] as String))),
           ]),
+          if (scan != null && (scan['image_path'] as String?) != null)
+            _section(context, 'Originalbild', [
+              for (final path in (scan['image_path'] as String).split(';')) StoredImage(path),
+            ]),
           if (scan != null)
             _section(context, 'Avläst text från dokumentet', [
               SelectableText(scan['ocr_text'] as String,
@@ -147,6 +153,13 @@ class InvoiceDetailsPage extends StatelessWidget {
                 _section(context, 'Spårbarhet', _metaRows(inv.meta)),
                 _historyAndScan(context, 'invoice', id, inv.meta.scanId),
                 const SizedBox(height: 16),
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Redigera'),
+                  onPressed: () => Navigator.of(context)
+                      .push(MaterialPageRoute(builder: (_) => InvoiceReviewPage(existing: inv))),
+                ),
+                const SizedBox(height: 8),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.delete_outline),
                   label: const Text('Ta bort fakturan'),
@@ -205,6 +218,13 @@ class DailySalesDetailsPage extends StatelessWidget {
                 _section(context, 'Spårbarhet', _metaRows(d.meta)),
                 _historyAndScan(context, 'daily_sales', id, d.meta.scanId),
                 const SizedBox(height: 16),
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Redigera'),
+                  onPressed: () => Navigator.of(context)
+                      .push(MaterialPageRoute(builder: (_) => ZReviewPage(existing: d))),
+                ),
+                const SizedBox(height: 8),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.delete_outline),
                   label: const Text('Ta bort dagen'),

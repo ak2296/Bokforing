@@ -1,0 +1,383 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+
+import '../../app/app_controller.dart';
+import '../../domain/dates.dart';
+import '../../domain/invoice_parser.dart';
+import '../../domain/models.dart';
+import '../../domain/money.dart';
+import '../../domain/text_patterns.dart';
+import '../../domain/validation.dart';
+import '../../domain/vat.dart';
+import '../record_details.dart';
+import '../scan/scan_context.dart';
+import '../scan/scan_flow.dart';
+import '../theme.dart';
+import '../widgets/common.dart';
+import '../widgets/fields.dart';
+import 'review_common.dart';
+
+class _VatRow {
+  VatRate rate;
+  final TextEditingController amount;
+  final Money? net;
+  final Money? gross;
+  bool calculated;
+  _VatRow(this.rate, String amount, {this.net, this.gross, this.calculated = false})
+      : amount = TextEditingController(text: amount);
+}
+
+/// "Kontrollera uppgifterna" for an invoice or receipt. Used after a scan,
+/// for manual entry (no draft) and for editing a saved invoice.
+class InvoiceReviewPage extends StatefulWidget {
+  final InvoiceDraft? draft;
+  final ScanContext? scan;
+  final Invoice? existing;
+  const InvoiceReviewPage({super.key, this.draft, this.scan, this.existing});
+
+  @override
+  State<InvoiceReviewPage> createState() => _InvoiceReviewPageState();
+}
+
+class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
+  final _form = GlobalKey<FormState>();
+  late final TextEditingController _date, _supplier, _number, _total, _vat, _due, _ocr;
+  final List<_VatRow> _vatRows = [];
+  late bool _editing;
+  bool _edited = false;
+  bool _saving = false;
+  late bool _vatCalculated;
+  List<VatRate> _rates = VatRuleSet.current.rates;
+
+  InvoiceDraft? get _d => widget.draft;
+  bool get _manual => widget.draft == null && widget.existing == null;
+
+  @override
+  void initState() {
+    super.initState();
+    final d = _d;
+    final e = widget.existing;
+    String money(Money? m) => m?.toInput() ?? '';
+    _date = TextEditingController(text: e?.invoiceDate ?? d?.date.value ?? (_manual ? SwedishDates.iso(DateTime.now()) : ''));
+    _supplier = TextEditingController(text: e?.supplier ?? d?.supplier.value ?? '');
+    _number = TextEditingController(text: e?.invoiceNumber ?? d?.invoiceNumber.value ?? '');
+    _total = TextEditingController(text: money(e?.total ?? d?.total.value));
+    _vat = TextEditingController(text: money(e?.vatTotal ?? d?.vatTotal.value));
+    _due = TextEditingController(text: e?.dueDate ?? d?.dueDate.value ?? '');
+    _ocr = TextEditingController(text: e?.ocrReference ?? d?.ocrReference.value ?? '');
+    _vatCalculated = e?.vatCalculated ?? d?.vatCalculated ?? false;
+    for (final l in e?.vatLines ?? d?.vatLines ?? const <InvoiceVatLine>[]) {
+      _vatRows.add(_VatRow(l.rate, l.vat.toInput(), net: l.net, gross: l.gross, calculated: l.calculated));
+    }
+    _editing = widget.scan == null;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    AppScope.read(context).repo.vatRates().then((r) {
+      if (mounted) setState(() => _rates = r);
+    });
+  }
+
+  void _changed([String? _]) => setState(() => _edited = true);
+
+  Invoice? _build() {
+    final total = Money.parse(_total.text);
+    if (total == null || !SwedishDates.isValidIso(_date.text.trim())) return null;
+    final vat = _vat.text.trim().isEmpty ? Money.zero : Money.parse(_vat.text);
+    if (vat == null) return null;
+    final lines = <InvoiceVatLine>[];
+    for (final r in _vatRows) {
+      final v = Money.parse(r.amount.text);
+      if (v == null) return null;
+      lines.add(InvoiceVatLine(rate: r.rate, vat: v, net: r.net, gross: r.gross, calculated: r.calculated));
+    }
+    final source = widget.existing?.meta.source ?? (widget.scan == null ? RecordSource.manual : RecordSource.ocr);
+    return Invoice(
+      id: widget.existing?.id,
+      invoiceDate: _date.text.trim(),
+      supplier: _supplier.text.trim(),
+      invoiceNumber: _number.text.trim(),
+      total: total,
+      vatTotal: vat,
+      vatCalculated: _vatCalculated,
+      dueDate: SwedishDates.isValidIso(_due.text.trim()) ? _due.text.trim() : null,
+      ocrReference: _ocr.text.trim(),
+      vatLines: lines,
+      meta: RecordMeta(
+        source: source,
+        manuallyEdited: _edited || (widget.existing?.meta.manuallyEdited ?? false),
+        scanId: widget.existing?.meta.scanId,
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    if (!(_form.currentState?.validate() ?? false)) {
+      setState(() => _editing = true);
+      return;
+    }
+    final inv = _build();
+    if (inv == null) return;
+    final controller = AppScope.read(context);
+    final checks = const AccountingValidationEngine().validateInvoice(inv, net: _d?.net);
+    final problems = checks.where((c) => !c.isOk).toList();
+    if (problems.isNotEmpty) {
+      final ok = await confirmDialog(context,
+          title: 'Det finns varningar',
+          message: '${problems.map((p) => '• ${p.message}').join('\n')}\n\nVill du spara ändå? Uppgifterna sparas precis som de står.',
+          confirm: 'Spara ändå');
+      if (!ok || !mounted) return;
+    }
+    final dupes = await controller.repo.findDuplicateInvoices(inv);
+    if (dupes.isNotEmpty && mounted) {
+      final choice = await duplicateDialog(context,
+          title: 'Den här fakturan kan redan vara registrerad.',
+          lines: [
+            for (final d in dupes)
+              '${d.invoiceDate} · ${d.supplier.isEmpty ? 'Faktura' : d.supplier}'
+                  '${d.invoiceNumber.isEmpty ? '' : ' · nr ${d.invoiceNumber}'} · ${d.total.format()}',
+          ]);
+      if (!mounted) return;
+      if (choice == DuplicateChoice.showExisting) {
+        await openRecord(context, 'invoice', dupes.first.id!);
+        return;
+      }
+      if (choice != DuplicateChoice.saveAnyway) return;
+    }
+    setState(() => _saving = true);
+    try {
+      final scanId = await widget.scan?.persist(controller);
+      final toSave = scanId == null
+          ? inv
+          : Invoice(
+              invoiceDate: inv.invoiceDate,
+              supplier: inv.supplier,
+              invoiceNumber: inv.invoiceNumber,
+              total: inv.total,
+              vatTotal: inv.vatTotal,
+              vatCalculated: inv.vatCalculated,
+              dueDate: inv.dueDate,
+              ocrReference: inv.ocrReference,
+              vatLines: inv.vatLines,
+              meta: inv.meta.copyWith(scanId: scanId),
+            );
+      await controller.repo.saveInvoice(toSave);
+      controller.dataChanged();
+      if (!mounted) return;
+      showSaved(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Det gick inte att spara: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = _d;
+    final inv = _build();
+    final checks = inv == null ? const <ValidationResult>[] : const AccountingValidationEngine().validateInvoice(inv, net: d?.net);
+    Confidence? conf(Extracted<Object?>? e) => widget.scan == null || e == null ? null : (e.hasValue ? e.confidence : Confidence.low);
+    final linesSum = Money.sum(_vatRows.map((r) => Money.parse(r.amount.text) ?? Money.zero));
+    final vatValue = Money.parse(_vat.text);
+
+    return ReviewScaffold(
+      title: widget.existing != null ? 'Redigera faktura' : 'Kontrollera uppgifterna',
+      scan: widget.scan,
+      editing: _editing,
+      saving: _saving,
+      onSave: _save,
+      onEdit: () => setState(() => _editing = !_editing),
+      onRescan: widget.scan == null ? null : () => _rescan(context),
+      child: Form(
+        key: _form,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const DocTypeHeader(label: 'Faktura'),
+            if (d != null)
+              for (final n in d.notes) NoteCard(n),
+            DateField(controller: _date, label: 'Datum', confidence: conf(d?.date), enabled: _editing, onChanged: _changed),
+            if (d?.date.note != null) Text(d!.date.note!, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 12),
+            PlainField(controller: _supplier, label: 'Leverantör', confidence: conf(d?.supplier), enabled: _editing, onChanged: _changed),
+            const SizedBox(height: 12),
+            MoneyField(controller: _total, label: 'Summa (att betala)', confidence: conf(d?.total), enabled: _editing, onChanged: _changed),
+            if (d != null && d.totalCandidates.length > 1) _alternatives(d),
+            const SizedBox(height: 12),
+            MoneyField(
+              controller: _vat,
+              label: _vatCalculated ? 'Moms (beräknad)' : 'Moms',
+              confidence: conf(d?.vatTotal),
+              enabled: _editing,
+              required: false,
+              onChanged: (v) {
+                _vatCalculated = false;
+                _changed();
+              },
+            ),
+            const SizedBox(height: 8),
+            _vatSection(linesSum, vatValue),
+            const SizedBox(height: 12),
+            PlainField(controller: _number, label: 'Fakturanummer', confidence: conf(d?.invoiceNumber), enabled: _editing, onChanged: _changed),
+            const SizedBox(height: 12),
+            DateField(controller: _due, label: 'Förfallodatum', confidence: conf(d?.dueDate), enabled: _editing, required: false, onChanged: _changed),
+            const SizedBox(height: 12),
+            PlainField(
+                controller: _ocr,
+                label: 'OCR-nummer',
+                confidence: conf(d?.ocrReference),
+                enabled: _editing,
+                keyboardType: TextInputType.number,
+                onChanged: _changed),
+            const SizedBox(height: 16),
+            Text('Kontroll', style: Theme.of(context).textTheme.titleSmall),
+            if (inv == null)
+              const Text('Fyll i datum och summa för att kontrollera beloppen.')
+            else
+              ValidationList(checks),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _alternatives(InvoiceDraft d) {
+    final seen = <Money>{};
+    final options = d.totalCandidates.where((c) => seen.add(c.value)).take(4).toList();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          const Text('Andra möjliga belopp:'),
+          for (final c in options)
+            ActionChip(
+              label: Text('${c.value.format()} (${c.row.length > 24 ? '${c.row.substring(0, 24)}…' : c.row})'),
+              onPressed: !_editing
+                  ? null
+                  : () => setState(() {
+                        _total.text = c.value.toInput();
+                        _edited = true;
+                      }),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _vatSection(Money linesSum, Money? vatValue) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Moms per momssats', style: Theme.of(context).textTheme.titleSmall),
+            if (_vatRows.isEmpty) const Text('Ingen uppdelning. Lägg till om fakturan visar moms per momssats.'),
+            for (final r in _vatRows)
+              Row(
+                children: [
+                  DropdownButton<int>(
+                    value: r.rate.basisPoints,
+                    items: [
+                      for (final rate in {..._rates, r.rate}.toList()..sort())
+                        DropdownMenuItem(value: rate.basisPoints, child: Text(rate.label)),
+                    ],
+                    onChanged: !_editing
+                        ? null
+                        : (v) => setState(() {
+                              r.rate = VatRate(v!);
+                              _edited = true;
+                            }),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: r.amount,
+                      enabled: _editing,
+                      textAlign: TextAlign.right,
+                      style: moneyStyle,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: r.calculated ? 'Moms (beräknad)' : 'Moms',
+                        suffixText: 'kr',
+                        isDense: true,
+                      ),
+                      validator: (v) => Money.parse(v ?? '') == null ? 'Ange ett belopp' : null,
+                      onChanged: (_) {
+                        r.calculated = false;
+                        _changed();
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Ta bort raden',
+                    icon: const Icon(Icons.close),
+                    onPressed: !_editing
+                        ? null
+                        : () => setState(() {
+                              _vatRows.remove(r);
+                              _edited = true;
+                            }),
+                  ),
+                ],
+              ),
+            if (_editing)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Lägg till momssats'),
+                  onPressed: () => setState(() {
+                    _vatRows.add(_VatRow(VatRate.twentyFive, ''));
+                    _edited = true;
+                  }),
+                ),
+              ),
+            if (_vatRows.isNotEmpty && vatValue != linesSum) ...[
+              Text('Summan av momsraderna är ${linesSum.format()}.',
+                  style: const TextStyle(color: AppTheme.warning)),
+              if (_editing)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: () => setState(() {
+                      _vat.text = linesSum.toInput();
+                      _vatCalculated = false;
+                      _edited = true;
+                    }),
+                    child: const Text('Använd summan som total moms'),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _rescan(BuildContext context) async {
+    await widget.scan?.discardImages();
+    if (!context.mounted) return;
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    await startScan(navigator.context);
+  }
+}
+
+/// Small preview of a stored image used by the details pages.
+class StoredImage extends StatelessWidget {
+  final String path;
+  const StoredImage(this.path, {super.key});
+
+  @override
+  Widget build(BuildContext context) => File(path).existsSync()
+      ? Image.file(File(path), fit: BoxFit.contain)
+      : const Text('Bilden finns inte längre.');
+}
