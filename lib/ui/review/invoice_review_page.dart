@@ -270,7 +270,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       }
       controller.dataChanged();
       if (!mounted) return;
-      showSaved(context);
+      showSaved(context, date: inv.invoiceDate);
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);

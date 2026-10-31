@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../domain/dates.dart';
 import '../scan/scan_context.dart';
 import '../theme.dart';
 
@@ -34,10 +35,17 @@ Future<DuplicateChoice> duplicateDialog(BuildContext context,
 }
 
 /// Confirms the save to the user and returns to the main screen.
-void showSaved(BuildContext context) {
+/// Says which month the document was filed under, since that is where it
+/// shows up in Försäljning, Utgifter and Rapporter (not always this month).
+void showSaved(BuildContext context, {required String date}) {
   final messenger = ScaffoldMessenger.of(context);
   Navigator.of(context).popUntil((r) => r.isFirst);
-  messenger.showSnackBar(const SnackBar(content: Text('Registreringen har sparats.')));
+  final d = SwedishDates.parseIso(date);
+  final month = d == null ? '' : ' under ${SwedishDates.months[d.month - 1]} ${d.year}';
+  messenger.showSnackBar(SnackBar(
+    duration: const Duration(seconds: 6),
+    content: Text('Registreringen har sparats$month.'),
+  ));
 }
 
 class DocTypeHeader extends StatelessWidget {

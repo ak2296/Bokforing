@@ -268,7 +268,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
             ));
       controller.dataChanged();
       if (!mounted) return;
-      showSaved(context);
+      showSaved(context, date: day.businessDate);
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
