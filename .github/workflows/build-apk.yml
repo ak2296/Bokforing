@@ -3,7 +3,6 @@ name: Bygg Android-APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
 
 jobs:
   build:
@@ -17,64 +16,71 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.9'
           cache: true
-      - name: Skapa plattformsmappar (android/ios) utan att skriva över koden
+
+      - name: Skapa plattformsmappar (android/ios) om de saknas
         run: |
-          flutter create --platforms=android,ios --project-name bokforing --org se.bokforing .
-          rm -f test/widget_test.dart
-      - name: Android-inställningar för kamera och textigenkänning
+          if [ ! -d android ]; then
+            flutter create --platforms=android,ios --project-name bokforing --org se.bokforing .
+            rm -f test/widget_test.dart
+          fi
+
+      - name: Android-inställningar
         run: |
           f=$(ls android/app/build.gradle.kts android/app/build.gradle 2>/dev/null | head -1)
           sed -i 's/flutter\.minSdkVersion/24/' "$f"
-          grep -n "minSdk" "$f" || true
-          sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA"/>\n    <application|' android/app/src/main/AndroidManifest.xml
-          grep -n "CAMERA" android/app/src/main/AndroidManifest.xml
-      - name: Stäng av kodkrympning direkt i Gradle-filen
-        run: |
-          f=$(ls android/app/build.gradle.kts android/app/build.gradle 2>/dev/null | head -1)
+          # Shrinking (R8) broke ML Kit at runtime in an earlier release build.
           sed -i 's/\(signingConfig = signingConfigs.getByName("debug")\)/\1\n            isMinifyEnabled = false\n            isShrinkResources = false/' "$f"
-          sed -i 's/\(signingConfig signingConfigs.debug\)/\1\n            minifyEnabled false\n            shrinkResources false/' "$f"
-          grep -n -i "minify\|shrink" "$f" || echo "OBS: ingen minify-rad hittades"
-      - name: R8-regler för ML Kit (reservskydd om krympning ändå körs)
-        run: |
-          cat > android/app/proguard-rules.pro <<'RULES'
-          -dontwarn com.google.mlkit.vision.text.chinese.**
-          -dontwarn com.google.mlkit.vision.text.devanagari.**
-          -dontwarn com.google.mlkit.vision.text.japanese.**
-          -dontwarn com.google.mlkit.vision.text.korean.**
-          -keep class com.google.mlkit.** { *; }
-          -keep class com.google.android.gms.** { *; }
-          -keep class com.google.android.odml.** { *; }
-          -keep class com.google_mlkit_commons.** { *; }
-          -keep class com.google_mlkit_text_recognition.** { *; }
-          -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
-          RULES
-          sed -i 's/^ *//' android/app/proguard-rules.pro
-          cat android/app/proguard-rules.pro
+          m=android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.CAMERA' $m || sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA"/>\n    <application|' $m
+          grep -n "minSdk\|Minify\|Shrink" "$f" || true
+          grep -n "permission" $m || true
+
+      - name: SQLite för databastester
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libsqlite3-dev
+
       - run: flutter pub get
-      - run: flutter analyze
-        continue-on-error: true
-      - run: flutter test
-        continue-on-error: true
-      - name: Bygg APK för användning (release)
-        run: flutter build apk --release --no-shrink || flutter build apk --release
-      - name: Kontroll av kodkrympning
+
+      - name: Kodanalys
         run: |
-          if [ -d build/app/outputs/mapping/release ]; then
-            echo "VARNING: R8 kördes, release-appen är krympt"
-          else
-            echo "OK: ingen R8-krympning i release-appen"
-          fi
-      - name: Bygg APK för felsökning (debug, aldrig krympt)
+          set -o pipefail
+          flutter analyze --no-fatal-infos 2>&1 | tee /tmp/analyze.txt
+
+      - name: Tester
+        if: always()
         run: |
-          cp build/app/outputs/flutter-apk/app-release.apk /tmp/app-release.apk
-          flutter build apk --debug
-          cp /tmp/app-release.apk build/app/outputs/flutter-apk/app-release.apk
+          set -o pipefail
+          flutter test --reporter expanded 2>&1 | tee /tmp/test.txt
+
+      - name: Bygg debug-APK
+        run: |
+          set -o pipefail
+          flutter build apk --debug 2>&1 | tee /tmp/build.txt
+
+      - name: Bygg release-APK (utan krympning)
+        run: |
+          set -o pipefail
+          flutter build apk --release --no-shrink 2>&1 | tee -a /tmp/build.txt
+
+      # Error output as annotations, readable on the public run page and API.
+      - name: Felrapport
+        if: failure()
+        run: |
+          for f in /tmp/analyze.txt /tmp/test.txt /tmp/build.txt; do
+            [ -f "$f" ] || continue
+            body=$(grep -E "error|Error|ERROR|warning •|FAILED|Expected|Actual|\[E\]|failed|Exception|\.dart:[0-9]+" "$f" | grep -v "^\s*$" | head -n 80 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            [ -n "$body" ] && echo "::error title=$(basename $f)::$body"
+            echo "### $(basename $f)" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 120 "$f" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          done
+
       - uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: bokforing-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-      - uses: actions/upload-artifact@v4
-        with:
-          name: bokforing-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/app-debug.apk

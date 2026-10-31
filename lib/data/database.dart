@@ -1,0 +1,138 @@
+import 'package:path/path.dart' as p;
+import 'package:sqflite/sqflite.dart';
+
+/// Local SQLite database. All money columns are integer öre (`*_ore`) and all
+/// VAT rates are basis points (`*_bp`). Totals are derived, never stored,
+/// except amounts printed on the document itself (e.g. reported Z total).
+class AppDatabase {
+  static const fileName = 'bokforing.db';
+  static const version = 1;
+
+  static Future<Database> open({DatabaseFactory? factory, String? path}) async {
+    final f = factory ?? databaseFactory;
+    final dbPath = path ?? p.join(await f.getDatabasesPath(), fileName);
+    return f.openDatabase(
+      dbPath,
+      options: OpenDatabaseOptions(
+        version: version,
+        onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
+        onCreate: (db, _) => _create(db),
+      ),
+    );
+  }
+
+  static Future<void> _create(Database db) async {
+    final batch = db.batch();
+    batch.execute('''
+      CREATE TABLE business_profile (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        name TEXT NOT NULL DEFAULT '',
+        org_number TEXT NOT NULL DEFAULT '',
+        address TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL
+      )''');
+    batch.execute('''
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )''');
+    batch.execute('''
+      CREATE TABLE vat_rates (
+        basis_points INTEGER PRIMARY KEY,
+        active INTEGER NOT NULL DEFAULT 1
+      )''');
+    batch.execute('''
+      CREATE TABLE categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        vat_bp INTEGER NOT NULL,
+        sort_order INTEGER NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )''');
+    batch.execute('''
+      CREATE TABLE category_aliases (
+        label TEXT PRIMARY KEY,
+        category_id INTEGER NOT NULL REFERENCES categories(id),
+        created_at TEXT NOT NULL
+      )''');
+    batch.execute('''
+      CREATE TABLE document_scans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        doc_type TEXT NOT NULL,
+        ocr_text TEXT NOT NULL,
+        ocr_json TEXT,
+        image_path TEXT,
+        created_at TEXT NOT NULL
+      )''');
+    batch.execute('''
+      CREATE TABLE daily_sales (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_date TEXT NOT NULL,
+        z_number TEXT,
+        reported_total_ore INTEGER NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        source TEXT NOT NULL,
+        manually_edited INTEGER NOT NULL DEFAULT 0,
+        confirmed INTEGER NOT NULL DEFAULT 0,
+        scan_id INTEGER REFERENCES document_scans(id),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )''');
+    batch.execute('CREATE INDEX idx_daily_sales_date ON daily_sales(business_date)');
+    batch.execute('''
+      CREATE TABLE daily_sales_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        daily_sales_id INTEGER NOT NULL REFERENCES daily_sales(id) ON DELETE CASCADE,
+        category_id INTEGER REFERENCES categories(id),
+        category_name TEXT NOT NULL,
+        vat_bp INTEGER NOT NULL,
+        amount_ore INTEGER NOT NULL,
+        source_label TEXT,
+        position INTEGER NOT NULL
+      )''');
+    batch.execute('''
+      CREATE TABLE invoices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_date TEXT NOT NULL,
+        supplier TEXT NOT NULL DEFAULT '',
+        invoice_number TEXT NOT NULL DEFAULT '',
+        total_ore INTEGER NOT NULL,
+        vat_total_ore INTEGER NOT NULL,
+        vat_calculated INTEGER NOT NULL DEFAULT 0,
+        due_date TEXT,
+        ocr_reference TEXT NOT NULL DEFAULT '',
+        source TEXT NOT NULL,
+        manually_edited INTEGER NOT NULL DEFAULT 0,
+        confirmed INTEGER NOT NULL DEFAULT 0,
+        scan_id INTEGER REFERENCES document_scans(id),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )''');
+    batch.execute('CREATE INDEX idx_invoices_date ON invoices(invoice_date)');
+    batch.execute('''
+      CREATE TABLE invoice_vat (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+        vat_bp INTEGER NOT NULL,
+        vat_ore INTEGER NOT NULL,
+        net_ore INTEGER,
+        gross_ore INTEGER,
+        calculated INTEGER NOT NULL DEFAULT 0
+      )''');
+    batch.execute('''
+      CREATE TABLE audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity TEXT NOT NULL,
+        entity_id INTEGER,
+        action TEXT NOT NULL,
+        details TEXT NOT NULL DEFAULT '',
+        at TEXT NOT NULL
+      )''');
+    for (final bp in const [0, 600, 1200, 2500]) {
+      batch.insert('vat_rates', {'basis_points': bp, 'active': 1});
+    }
+    await batch.commit(noResult: true);
+  }
+}

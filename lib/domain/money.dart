@@ -1,102 +1,145 @@
-/// Money as integer öre. Never use double for accounting amounts.
+/// An amount in SEK stored as integer öre. Never use floating point for money.
 class Money implements Comparable<Money> {
-  const Money(this.ore);
-  factory Money.kronor(int kr) => Money(kr * 100);
-
   final int ore;
+  const Money(this.ore);
+
   static const zero = Money(0);
 
-  Money operator +(Money o) => Money(ore + o.ore);
-  Money operator -(Money o) => Money(ore - o.ore);
+  factory Money.kr(int kr, [int ore = 0]) => Money(kr * 100 + (kr < 0 ? -ore : ore));
+
+  Money operator +(Money other) => Money(ore + other.ore);
+  Money operator -(Money other) => Money(ore - other.ore);
   Money operator -() => Money(-ore);
+  bool operator <(Money other) => ore < other.ore;
+  bool operator >(Money other) => ore > other.ore;
+  bool operator <=(Money other) => ore <= other.ore;
+  bool operator >=(Money other) => ore >= other.ore;
+
   bool get isZero => ore == 0;
+  bool get isNegative => ore < 0;
+  Money abs() => Money(ore.abs());
+
+  static Money sum(Iterable<Money> values) =>
+      values.fold(Money.zero, (a, b) => a + b);
 
   @override
   int compareTo(Money other) => ore.compareTo(other.ore);
+
   @override
   bool operator ==(Object other) => other is Money && other.ore == ore;
+
   @override
   int get hashCode => ore.hashCode;
+
   @override
-  String toString() => format();
+  String toString() => 'Money($ore öre)';
 
-  static Money sum(Iterable<Money> items) =>
-      items.fold<Money>(zero, (a, b) => a + b);
-
-  /// "1 250,50 kr" with non-breaking spaces.
-  String format({bool unit = true}) {
-    final a = ore.abs();
-    final kr = (a ~/ 100).toString();
+  /// Swedish display format: `1 250,50 kr`. With [compact], `,00` is dropped.
+  String format({bool unit = true, bool compact = false}) {
+    final negative = ore < 0;
+    final abs = ore.abs();
+    final kr = abs ~/ 100;
+    final rest = abs % 100;
+    final digits = kr.toString();
     final buf = StringBuffer();
-    for (var i = 0; i < kr.length; i++) {
-      if (i > 0 && (kr.length - i) % 3 == 0) buf.write('\u00A0');
-      buf.write(kr[i]);
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) buf.write(' ');
+      buf.write(digits[i]);
     }
-    final r = (a % 100).toString().padLeft(2, '0');
-    final sign = ore < 0 ? '\u2212' : '';
-    return '$sign$buf,$r${unit ? '\u00A0kr' : ''}';
+    var s = buf.toString();
+    if (!(compact && rest == 0)) s += ',${rest.toString().padLeft(2, '0')}';
+    if (negative) s = '-$s';
+    return unit ? '$s kr' : s;
   }
 
-  /// Parses Swedish/OCR text. Returns null if invalid OR ambiguous
-  /// (e.g. "1.250" or "1,250" alone) so the caller asks the user.
-  static Money? parse(String raw) {
-    var s = raw
-        .trim()
-        .replaceAll('\u2212', '-')
-        .replaceAll(RegExp('[\u00A0\u202F\u2009]'), ' ');
-    s = s
-        .replaceFirst(RegExp(r'\s*(kr|sek|kronor|:-)\s*$', caseSensitive: false), '')
-        .trim();
-    var neg = false;
-    if (s.startsWith('-')) {
-      neg = true;
-      s = s.substring(1).trim();
-    } else if (s.startsWith('+')) {
-      s = s.substring(1).trim();
-    }
-    if (s.endsWith('-')) {
-      neg = true;
-      s = s.substring(0, s.length - 1).trim();
-    }
+  /// Plain text for an edit field: `1250,50`.
+  String toInput() {
+    final abs = ore.abs();
+    final s = '${abs ~/ 100},${(abs % 100).toString().padLeft(2, '0')}';
+    return ore < 0 ? '-$s' : s;
+  }
+
+  /// Parses Swedish and OCR amount formats. Returns null when the text is not
+  /// an amount or when the decimal separator is ambiguous (e.g. `1.250`).
+  ///
+  /// Accepted: `1 250,50`, `1250,50`, `1.250,50`, `1,250.50`, `1250.50`,
+  /// `125:-`, `125,-`, `12,5`, `1250`, `-34,00`, `34,00-`, with `kr`/`SEK`.
+  static Money? parse(String input) {
+    var s = input.trim();
+    s = s.replaceAll(RegExp(r'(sek|kr)\.?', caseSensitive: false), '');
+    s = s.replaceAll(RegExp(r'[\s   ]'), '');
     if (s.isEmpty) return null;
-    if (s.contains(' ')) {
-      if (!RegExp(r'^\d{1,3}( \d{3})+([.,]\d{1,2})?$').hasMatch(s)) return null;
-      s = s.replaceAll(' ', '');
-    }
-    if (!RegExp(r'^[\d.,]+$').hasMatch(s) || s.length > 15) return null;
 
-    final lc = s.lastIndexOf(',');
-    final ld = s.lastIndexOf('.');
-    var di = -1;
-    String? gs;
-    if (lc >= 0 && ld >= 0) {
-      di = lc > ld ? lc : ld;
-      gs = lc > ld ? '.' : ',';
-    } else if (lc >= 0 || ld >= 0) {
-      final sep = lc >= 0 ? ',' : '.';
-      final idx = s.lastIndexOf(sep);
-      final after = s.length - idx - 1;
-      if (s.split(sep).length > 2) {
-        if (!_grouped(sep).hasMatch(s)) return null;
-        gs = sep;
-      } else if (after >= 1 && after <= 2) {
-        di = idx;
+    var negative = false;
+    if (s.startsWith('-') || s.startsWith('−')) {
+      negative = true;
+      s = s.substring(1);
+    } else if (s.startsWith('+')) {
+      s = s.substring(1);
+    }
+    if (s.endsWith('-') && !s.endsWith(':-') && !s.endsWith(',-')) {
+      negative = !negative;
+      s = s.substring(0, s.length - 1);
+    }
+    if (s.endsWith(':-') || s.endsWith(',-') || s.endsWith('.-')) {
+      s = s.substring(0, s.length - 2);
+      if (!RegExp(r'^\d+$').hasMatch(s)) return null;
+    }
+    if (!RegExp(r'^[\d.,]+$').hasMatch(s) || !RegExp(r'\d').hasMatch(s)) {
+      return null;
+    }
+
+    String intPart;
+    String decPart = '';
+    final lastComma = s.lastIndexOf(',');
+    final lastDot = s.lastIndexOf('.');
+
+    if (lastComma >= 0 && lastDot >= 0) {
+      final decSep = lastComma > lastDot ? ',' : '.';
+      final thouSep = decSep == ',' ? '.' : ',';
+      final idx = s.lastIndexOf(decSep);
+      intPart = s.substring(0, idx);
+      decPart = s.substring(idx + 1);
+      if (intPart.contains(decSep)) return null;
+      if (!_validGrouping(intPart, thouSep)) return null;
+      intPart = intPart.replaceAll(thouSep, '');
+      if (decPart.isEmpty || decPart.length > 2) return null;
+    } else if (lastComma >= 0 || lastDot >= 0) {
+      final sep = lastComma >= 0 ? ',' : '.';
+      final parts = s.split(sep);
+      if (parts.length == 2) {
+        final after = parts[1];
+        if (after.length == 1 || after.length == 2) {
+          intPart = parts[0];
+          decPart = after;
+        } else if (after.length == 3) {
+          return null; // "1,250" or "1.250": ambiguous
+        } else {
+          return null;
+        }
+        if (intPart.isEmpty) intPart = '0';
       } else {
-        return null;
+        // Several separators of one kind can only be thousands grouping.
+        if (!_validGrouping(s, sep)) return null;
+        intPart = s.replaceAll(sep, '');
       }
+    } else {
+      intPart = s;
     }
-    var ip = di >= 0 ? s.substring(0, di) : s;
-    final fp = di >= 0 ? s.substring(di + 1) : '';
-    if (fp.length > 2) return null;
-    if (gs != null) {
-      if (!_grouped(gs).hasMatch(ip)) return null;
-      ip = ip.split(gs).join();
-    }
-    if (!RegExp(r'^\d+$').hasMatch(ip)) return null;
-    final o = int.parse(ip) * 100 + int.parse(('${fp}00').substring(0, 2));
-    return Money(neg ? -o : o);
+
+    if (!RegExp(r'^\d+$').hasMatch(intPart)) return null;
+    if (decPart.isNotEmpty && !RegExp(r'^\d+$').hasMatch(decPart)) return null;
+    if (intPart.length > 12) return null;
+    final kr = int.parse(intPart);
+    final ore = decPart.isEmpty ? 0 : int.parse(decPart.padRight(2, '0'));
+    final value = kr * 100 + ore;
+    return Money(negative ? -value : value);
   }
 
-  static RegExp _grouped(String sep) =>
-      RegExp('^\\d{1,3}(${RegExp.escape(sep)}\\d{3})+\$');
+  static bool _validGrouping(String s, String sep) {
+    if (!s.contains(sep)) return true;
+    final groups = s.split(sep);
+    if (groups.first.isEmpty || groups.first.length > 3) return false;
+    return groups.skip(1).every((g) => g.length == 3);
+  }
 }
