@@ -19,7 +19,11 @@ Possible additions to the app. Nothing here is built yet. The owner picks what c
 - Each day's sales and each invoice become bookkeeping entries on BAS accounts (sales per VAT rate, input/output VAT, costs).
 - The accountant's program then produces the official resultaträkning and balansräkning.
 
-## 4. Paid / unpaid invoices (base for a balance view)
-- Mark invoices as paid or unpaid, with payment date.
-- List of unpaid invoices and amounts owed.
+## 4. Paid / unpaid invoices and payment reminders (base for a balance view)
+- Mark invoices as paid or unpaid, with payment date ("Markera som betald").
+- Receipts and invoices stamped BETALD or paid by card/cash are suggested as already paid (the user confirms).
+- Reminder notification on the phone a chosen number of days before the due date (förfallodatum), and on the day. Works offline, no internet needed.
+- "Betala" view: amount, bankgiro/plusgiro and OCR number with copy buttons, to paste into the bank app.
+- List of unpaid invoices and amounts owed, sorted by due date.
+- No bank API: Swedish banks' PSD2 APIs are only for companies licensed by Finansinspektionen, and API aggregators (e.g. Tink, Enable Banking) quote prices privately and need a server. Not suitable for a free, server-less app.
 - Could later grow into a simple balance overview. A full balansrapport needs complete double-entry bookkeeping (bank, cash, loans, assets, equity) and is a much larger project.
