@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'app_icons.dart';
 import 'package:flutter/services.dart';
 
 import '../app/app_controller.dart';
@@ -21,7 +23,7 @@ class UnpaidPage extends StatelessWidget {
           loader: (c) => c.repo.unpaidInvoices(),
           builder: (context, list) {
             if (list.isEmpty) {
-              return const EmptyState(icon: Icons.check_circle_outline, text: 'Inga obetalda fakturor.');
+              return const EmptyState(icon: AppIcons.checkCircle, text: 'Inga obetalda fakturor.');
             }
             final total = Money.sum(list.map((i) => i.total));
             return ListView(
@@ -78,7 +80,7 @@ class UnpaidTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
-        leading: Icon(days != null && days < 0 ? Icons.error_outline : Icons.schedule, color: color),
+        leading: Icon(days != null && days < 0 ? AppIcons.error : AppIcons.schedule, color: color),
         title: Text(inv.supplier.isEmpty ? 'Faktura' : inv.supplier),
         subtitle: Text(dueText(inv.dueDate), style: TextStyle(color: color)),
         trailing: Text(inv.total.format(compact: true), style: moneyStyle),
@@ -115,7 +117,7 @@ Future<void> showPaySheet(BuildContext context, Invoice inv) => showModalBottomS
                 ),
               const SizedBox(height: 12),
               FilledButton.icon(
-                icon: const Icon(Icons.check),
+                icon: const Icon(AppIcons.check),
                 label: const Text('Markera som betald'),
                 onPressed: () async {
                   final controller = AppScope.read(c);
@@ -161,7 +163,7 @@ class _CopyRow extends StatelessWidget {
         subtitle: Text(display ?? value, style: Theme.of(context).textTheme.titleMedium?.merge(moneyStyle)),
         trailing: IconButton(
           tooltip: 'Kopiera $label',
-          icon: const Icon(Icons.copy),
+          icon: const Icon(AppIcons.copy),
           onPressed: () async {
             final messenger = ScaffoldMessenger.of(context);
             await Clipboard.setData(ClipboardData(text: value));

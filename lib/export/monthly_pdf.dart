@@ -77,7 +77,7 @@ Future<Uint8List> buildMonthlyPdf(MonthlyReport r, BusinessProfile profile, {Dat
       ),
       build: (context) => [
         if (r.rows.isEmpty)
-          pw.Text('Inga registreringar den här månaden.')
+          pw.Text(r.onlineCount == 0 ? 'Inga registreringar den här månaden.' : 'Inga Z-rapporter eller fakturor den här månaden.')
         else
           pw.TableHelper.fromTextArray(
             headers: headers,
@@ -96,7 +96,9 @@ Future<Uint8List> buildMonthlyPdf(MonthlyReport r, BusinessProfile profile, {Dat
             rowDecoration: const pw.BoxDecoration(),
           ),
         pw.SizedBox(height: 14),
-        summaryLine('Total försäljning', r.totalSales),
+        summaryLine('Försäljning i kassan', r.totalSales),
+        if (r.onlineCount > 0) summaryLine('Onlineförsäljning (${r.onlineCount} st)', r.totalOnline),
+        summaryLine('Total försäljning', r.totalAllSales, bold: true),
         summaryLine('Totala utgifter', r.totalExpenses),
         summaryLine('Total utgående moms (försäljning)', r.totalOutputVat),
         summaryLine('Total ingående moms', r.totalInputVat),
@@ -105,6 +107,7 @@ Future<Uint8List> buildMonthlyPdf(MonthlyReport r, BusinessProfile profile, {Dat
         pw.SizedBox(height: 10),
         pw.Text(
           'Beräknad moms utifrån de dokument som registrerats i appen. Detta är inte en momsdeklaration.'
+          '${r.onlineCount > 0 ? ' Onlineförsäljning är utbetalning efter provision och ingår inte i momsberäkningen.' : ''}'
           '${r.rows.any((x) => x.hasSalesDifference) ? ' * = dagens försäljningsrader stämmer inte med Z-rapportens total.' : ''}',
           style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey800),
         ),

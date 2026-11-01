@@ -47,7 +47,13 @@ class MonthlyReport {
   final Money totalOutputVat;
   final Money totalInputVat;
 
+  /// Payouts from delivery partners this month; no VAT figure.
+  final Money totalOnline;
+  final int onlineCount;
+
   const MonthlyReport({
+    this.totalOnline = Money.zero,
+    this.onlineCount = 0,
     required this.year,
     required this.month,
     required this.columns,
@@ -60,6 +66,9 @@ class MonthlyReport {
   });
 
   /// Utgående moms − ingående moms. Positive: to pay; negative: to get back.
+  /// Sales in the cash register plus online sales.
+  Money get totalAllSales => totalSales + totalOnline;
+
   Money get vatDifference => totalOutputVat - totalInputVat;
 
   String get title => SwedishDates.monthTitle(year, month);
@@ -71,7 +80,10 @@ class YearRow {
   final Money expenses;
   final Money outputVat;
   final Money inputVat;
-  const YearRow(this.month, this.sales, this.expenses, this.outputVat, this.inputVat);
+
+  /// Part of [sales] that came from delivery partners.
+  final Money online;
+  const YearRow(this.month, this.sales, this.expenses, this.outputVat, this.inputVat, {this.online = Money.zero});
   Money get vatDifference => outputVat - inputVat;
   String get monthName => SwedishDates.capitalize(SwedishDates.months[month - 1]);
 }
@@ -82,6 +94,7 @@ class YearReport {
   const YearReport(this.year, this.rows);
 
   Money get sales => Money.sum(rows.map((r) => r.sales));
+  Money get online => Money.sum(rows.map((r) => r.online));
   Money get expenses => Money.sum(rows.map((r) => r.expenses));
   Money get outputVat => Money.sum(rows.map((r) => r.outputVat));
   Money get inputVat => Money.sum(rows.map((r) => r.inputVat));
@@ -99,10 +112,12 @@ class ReportGenerator {
     required List<Category> categories,
     required List<DailySales> sales,
     required List<Invoice> invoices,
+    List<OnlineSale> online = const [],
   }) {
     final prefix = '${SwedishDates.monthKey(year, month)}-';
     final monthSales = sales.where((s) => s.businessDate.startsWith(prefix)).toList();
     final monthInvoices = invoices.where((i) => i.invoiceDate.startsWith(prefix)).toList();
+    final monthOnline = online.where((o) => o.paymentDate.startsWith(prefix)).toList();
 
     final active = categories.where((c) => c.active).toList()
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
@@ -144,11 +159,13 @@ class ReportGenerator {
         inputVat: Money.sum(dayInvoices.map((i) => i.vatTotal)),
         invoiceCount: dayInvoices.length,
         zReportCount: daySales.length,
-        hasSalesDifference: daySales.any((d) => !d.difference.isZero),
+        hasSalesDifference: daySales.any((d) => d.hasDifference),
       ));
     }
 
     return MonthlyReport(
+      totalOnline: Money.sum(monthOnline.map((o) => o.amount)),
+      onlineCount: monthOnline.length,
       year: year,
       month: month,
       columns: columns,
@@ -165,18 +182,21 @@ class ReportGenerator {
     required int year,
     required List<DailySales> sales,
     required List<Invoice> invoices,
+    List<OnlineSale> online = const [],
   }) {
     final rows = <YearRow>[];
     for (var m = 1; m <= 12; m++) {
       final prefix = '${SwedishDates.monthKey(year, m)}-';
       final s = sales.where((d) => d.businessDate.startsWith(prefix));
       final i = invoices.where((d) => d.invoiceDate.startsWith(prefix));
+      final monthOnline = Money.sum(online.where((o) => o.paymentDate.startsWith(prefix)).map((o) => o.amount));
       rows.add(YearRow(
         m,
-        Money.sum(s.map((d) => d.detailedTotal)),
+        Money.sum(s.map((d) => d.detailedTotal)) + monthOnline,
         Money.sum(i.map((d) => d.total)),
         Money.sum(s.map((d) => d.outputVat)),
         Money.sum(i.map((d) => d.vatTotal)),
+        online: monthOnline,
       ));
     }
     return YearReport(year, rows);

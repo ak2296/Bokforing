@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../app_icons.dart';
+
 import '../../ai/ai_result.dart';
 import '../../ai/gemini_client.dart';
 import '../../app/app_controller.dart';
@@ -17,7 +19,7 @@ Future<bool> aiConsent(BuildContext context, {required int imageCount}) async {
   final ok = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
-      icon: const Icon(Icons.cloud_upload_outlined),
+      icon: const Icon(AppIcons.cloudUpload),
       title: const Text('Förbättrad analys online'),
       content: SingleChildScrollView(
         child: Text(
@@ -105,6 +107,7 @@ Future<bool> runAiAnalysis(BuildContext context, ScanContext scan) async {
       final aliases = await controller.repo.categoryAliases();
       final ignored = await controller.repo.ignoredZLabels();
       page = ZReviewPage(draft: r.toZReportDraft(cats, aliases, ignored: ignored), scan: aiScan, fromAi: true);
+    case DocumentType.onlineSale:
     case DocumentType.unknown:
       if (context.mounted) {
         await _message(context, 'Dokumentet kändes inte igen',
@@ -164,7 +167,7 @@ class _AiOfferCardState extends State<AiOfferCard> {
             for (final r in widget.reasons) Text('• $r'),
             const SizedBox(height: 8),
             OutlinedButton.icon(
-              icon: const Icon(Icons.auto_awesome_outlined),
+              icon: const Icon(AppIcons.ai),
               label: const Text('Förbättrad analys online'),
               onPressed: () => runAiAnalysis(context, widget.scan),
             ),

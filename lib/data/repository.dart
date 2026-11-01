@@ -410,6 +410,81 @@ class Repository {
     });
   }
 
+  // ---------- Online sales ----------
+
+  Future<int> saveOnlineSale(OnlineSale s) => db.transaction((txn) async {
+        final values = {
+          'payment_date': s.paymentDate,
+          'partner': s.partner.trim(),
+          'document_number': s.documentNumber.trim(),
+          'amount_ore': s.amount.ore,
+          'source': s.meta.source.name,
+          'manually_edited': s.meta.manuallyEdited ? 1 : 0,
+          'confirmed': 1,
+          'scan_id': s.meta.scanId,
+          'updated_at': _now(),
+        };
+        final detail = '${s.paymentDate} ${s.partner} ${s.amount.ore}';
+        if (s.id == null) {
+          final id = await txn.insert('online_sales', {...values, 'created_at': _now()});
+          await _audit(txn, 'online_sale', id, 'create', detail);
+          return id;
+        }
+        await txn.update('online_sales', {...values, 'manually_edited': 1}, where: 'id = ?', whereArgs: [s.id]);
+        await _audit(txn, 'online_sale', s.id, 'update', detail);
+        return s.id!;
+      });
+
+  OnlineSale _online(Map<String, Object?> r) => OnlineSale(
+        id: r['id'] as int,
+        paymentDate: r['payment_date'] as String,
+        partner: r['partner'] as String,
+        documentNumber: r['document_number'] as String,
+        amount: Money(r['amount_ore'] as int),
+        meta: _meta(r),
+      );
+
+  Future<OnlineSale?> onlineSale(int id) async {
+    final rows = await db.query('online_sales', where: 'id = ?', whereArgs: [id]);
+    return rows.isEmpty ? null : _online(rows.first);
+  }
+
+  Future<List<OnlineSale>> onlineSalesBetween(String fromIso, String toIso) async {
+    final rows = await db.query('online_sales',
+        where: 'payment_date >= ? AND payment_date <= ?',
+        whereArgs: [fromIso, toIso],
+        orderBy: 'payment_date, id');
+    return rows.map(_online).toList();
+  }
+
+  /// Same document number, or same partner, date and amount.
+  Future<List<OnlineSale>> findDuplicateOnlineSales(OnlineSale s) async {
+    final rows = await db.query('online_sales', where: 'id != ?', whereArgs: [s.id ?? -1]);
+    final number = s.documentNumber.trim().toLowerCase();
+    return rows.map(_online).where((o) {
+      final sameNumber = number.isNotEmpty && o.documentNumber.trim().toLowerCase() == number;
+      final samePayment = o.paymentDate == s.paymentDate &&
+          o.amount == s.amount &&
+          normalizeLabel(o.partner) == normalizeLabel(s.partner);
+      return sameNumber || samePayment;
+    }).toList();
+  }
+
+  Future<void> deleteOnlineSale(int id) => db.transaction((txn) async {
+        await txn.delete('online_sales', where: 'id = ?', whereArgs: [id]);
+        await _audit(txn, 'online_sale', id, 'delete', '');
+      });
+
+  Future<List<String>> knownPartners() async {
+    final rows = await db.rawQuery("SELECT DISTINCT partner FROM online_sales WHERE partner != '' ORDER BY id DESC");
+    return [for (final r in rows) r['partner'] as String];
+  }
+
+  Future<List<String>> knownSuppliers() async {
+    final rows = await db.rawQuery("SELECT DISTINCT supplier FROM invoices WHERE supplier != ''");
+    return [for (final r in rows) r['supplier'] as String];
+  }
+
   /// "Markera som betald" / "Markera som obetald", with an audit entry.
   Future<void> setInvoicePaid(int id, {required bool paid, String? paidDate}) async {
     await db.transaction((txn) async {
@@ -520,12 +595,17 @@ class Repository {
   Future<List<RegistrationSummary>> recentRegistrations({int limit = 10}) async {
     final rows = await db.rawQuery('''
       SELECT 'invoice' AS kind, id, invoice_date AS date, total_ore AS amount,
-             vat_total_ore AS vat, supplier AS title, confirmed, created_at
+             vat_total_ore AS vat, supplier AS title, confirmed, created_at,
+             paid, due_date
       FROM invoices
       UNION ALL
       SELECT 'z' AS kind, d.id, d.business_date, d.reported_total_ore,
-             0, COALESCE(d.z_number, ''), d.confirmed, d.created_at
+             0, COALESCE(d.z_number, ''), d.confirmed, d.created_at, 1, NULL
       FROM daily_sales d
+      UNION ALL
+      SELECT 'online' AS kind, o.id, o.payment_date, o.amount_ore,
+             0, o.partner, o.confirmed, o.created_at, 1, NULL
+      FROM online_sales o
       ORDER BY created_at DESC LIMIT ?''', [limit]);
     return [
       for (final r in rows)
@@ -538,6 +618,8 @@ class Repository {
           title: r['title'] as String,
           confirmed: (r['confirmed'] as int) == 1,
           createdAt: DateTime.parse(r['created_at'] as String),
+          paid: (r['paid'] as int? ?? 0) == 1,
+          dueDate: r['due_date'] as String?,
         ),
     ];
   }
@@ -547,6 +629,7 @@ class Repository {
     final args = fromIso == null ? <Object>[] : [fromIso, toIso!];
     final a = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM invoices$where', args)) ?? 0;
     final b = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM daily_sales$where', args)) ?? 0;
-    return a + b;
+    final c = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM online_sales$where', args)) ?? 0;
+    return a + b + c;
   }
 }

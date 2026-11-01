@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app_icons.dart';
+
 import '../../app/app_controller.dart';
 import '../../app/settings_keys.dart';
 import '../../domain/models.dart';
@@ -62,7 +64,7 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 header('Företag'),
                 ListTile(
-                  leading: const Icon(Icons.store_outlined),
+                  leading: const Icon(AppIcons.store),
                   title: Text(_profile.name.isEmpty ? 'Företagsnamn saknas' : _profile.name),
                   subtitle: Text([
                     if (_profile.orgNumber.isNotEmpty) 'Org.nr ${_profile.orgNumber}',
@@ -75,21 +77,21 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 header('Försäljning'),
                 ListTile(
-                  leading: const Icon(Icons.category_outlined),
+                  leading: const Icon(AppIcons.category),
                   title: const Text('Försäljningskategorier'),
                   subtitle: const Text('Namn och momssats per kategori'),
                   onTap: () => Navigator.of(context)
                       .push(MaterialPageRoute(builder: (_) => const CategoriesPage())),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.receipt_outlined),
+                  leading: const Icon(AppIcons.rules),
                   title: const Text('Fält på Z-rapport'),
                   subtitle: const Text('Vad varje rad på Z-rapporten registreras som'),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ZFieldsPage())),
                 ),
                 header('Dokument'),
                 SwitchListTile(
-                  secondary: const Icon(Icons.image_outlined),
+                  secondary: const Icon(AppIcons.image),
                   title: const Text('Behåll originalbilder'),
                   subtitle: const Text('Av: bilden tas bort efter att du godkänt uppgifterna. Texten sparas ändå.'),
                   value: _keepImages,
@@ -100,7 +102,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 header('Påminnelser'),
                 SwitchListTile(
-                  secondary: const Icon(Icons.notifications_outlined),
+                  secondary: const Icon(AppIcons.notifications),
                   title: const Text('Påminn om fakturor som ska betalas'),
                   subtitle: const Text('En avisering i telefonen före förfallodagen och på förfallodagen.'),
                   value: _reminders,
@@ -132,20 +134,20 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 header('Data'),
                 ListTile(
-                  leading: const Icon(Icons.backup_outlined),
+                  leading: const Icon(AppIcons.backup),
                   title: const Text('Säkerhetskopiering'),
                   subtitle: const Text('Exportera eller importera säkerhetskopia'),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupPage())),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.history),
+                  leading: const Icon(AppIcons.history),
                   title: const Text('Historik'),
                   subtitle: const Text('Alla registreringar med status'),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryPage())),
                 ),
                 header('Förbättrad analys (valfritt)'),
                 ListTile(
-                  leading: const Icon(Icons.auto_awesome_outlined),
+                  leading: const Icon(AppIcons.ai),
                   title: const Text('Förbättrad analys online'),
                   subtitle: const Text('Av som standard. Skickar en bild till Google bara när du godkänner det.'),
                   onTap: () => Navigator.of(context)
@@ -153,18 +155,18 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 header('App'),
                 const ListTile(
-                  leading: Icon(Icons.language),
+                  leading: Icon(AppIcons.language),
                   title: Text('Språk'),
                   subtitle: Text('Svenska'),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.lock_outline),
+                  leading: const Icon(AppIcons.lock),
                   title: const Text('Integritet'),
                   onTap: () => Navigator.of(context)
                       .push(MaterialPageRoute(builder: (_) => const PrivacyPage())),
                 ),
                 const AboutListTile(
-                  icon: Icon(Icons.info_outline),
+                  icon: Icon(AppIcons.info),
                   applicationName: 'Bokföringsassistent',
                   applicationVersion: '0.2.0',
                   aboutBoxChildren: [

@@ -71,6 +71,19 @@ class PaymentDetector {
     'payment terms': 3,
   };
 
+  static const possibleStamp = 'möjlig stämpel BETALD';
+  static const cashPayment = 'betalningsvillkor Kontant';
+
+  /// A short line of its own that is or nearly is BETALD. Words that really
+  /// mean "to pay" are left out.
+  static bool isStampRow(String normalized) {
+    final n = normalized.trim();
+    if (!RegExp(r'^[a-zåäö]{4,8}\W*$').hasMatch(n)) return false;
+    final word = n.replaceAll(RegExp(r'\W'), '');
+    if (const {'betala', 'betalas', 'belopp', 'detalj', 'detaljer', 'metall'}.contains(word)) return false;
+    return TextPatterns.similarity(word, 'betald') >= 0.65 || TextPatterns.similarity(word, 'betalt') >= 0.65;
+  }
+
   /// [paperAspect] is height / width of the paper in the photo, when known.
   /// Thermal receipts are long and narrow; invoices are usually A4 (≈1.41).
   PaymentDetection detect(List<String> rows, {double? paperAspect}) {
@@ -105,6 +118,12 @@ class PaymentDetector {
     // A stamp "BETALD"/"BETALT" on its own line, or a credit note: nothing to pay.
     final stamped = norm.any((n) => RegExp(r'^(betald|betalt|paid)\b\W*$').hasMatch(n));
     final credit = text.contains('kreditnota') || text.contains('kreditfaktura') || text.contains('credit note');
+    // Stamps are often crooked and misread ("BEAD"), and payment terms
+    // "Kontant" mean paid on delivery: both are only suggestions.
+    final maybeStamp = !stamped && norm.any(isStampRow);
+    final cashTerms = norm.any((n) => RegExp(r'^(betalningsvillkor\W*)?kontant\W*$').hasMatch(n));
+    if (maybeStamp) reasons.add(possibleStamp);
+    if (cashTerms) reasons.add(cashPayment);
 
     final margin = (receipt - invoice).abs();
     final kind = margin < 3
@@ -112,8 +131,10 @@ class PaymentDetector {
         : receipt > invoice
             ? PaymentKind.kvitto
             : PaymentKind.faktura;
-    final paid = kind == PaymentKind.kvitto || stamped || credit;
-    final confidence = stamped || credit
+    final paid = kind == PaymentKind.kvitto || stamped || credit || maybeStamp || cashTerms;
+    final confidence = maybeStamp || cashTerms
+        ? Confidence.medium
+        : stamped || credit
         ? Confidence.high
         : margin >= 5
             ? Confidence.high

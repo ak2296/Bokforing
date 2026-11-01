@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_icons.dart';
+
 import '../domain/dates.dart';
 import 'record_details.dart';
 import 'unpaid_page.dart';
@@ -23,7 +25,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
-              icon: const Icon(Icons.payments_outlined),
+              icon: const Icon(AppIcons.payments),
               label: const Text('Obetalda fakturor'),
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UnpaidPage())),
             ),
@@ -35,13 +37,13 @@ class _ExpensesPageState extends State<ExpensesPage> {
               builder: (context, m) {
                 if (m.invoices.isEmpty) {
                   return const EmptyState(
-                      icon: Icons.receipt_long_outlined, text: 'Inga fakturor registrerade den här månaden.');
+                      icon: AppIcons.expenses, text: 'Inga fakturor registrerade den här månaden.');
                 }
                 return ListView(
                   children: [
                     for (final inv in m.invoices.reversed)
                       ListTile(
-                        leading: const Icon(Icons.receipt_long_outlined),
+                        leading: const Icon(AppIcons.expenses),
                         title: Text([
                           if (inv.total.isNegative) 'Kreditnota',
                           if (inv.supplier.isNotEmpty) inv.supplier else if (!inv.total.isNegative) 'Faktura',

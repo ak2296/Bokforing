@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_icons.dart';
+
 import '../app/app_controller.dart';
 import '../app/settings_keys.dart';
 import '../domain/category_templates.dart';
@@ -88,7 +90,7 @@ class _SetupWizardState extends State<SetupWizard> {
                   ),
                   IconButton(
                     tooltip: 'Ta bort raden',
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(AppIcons.close),
                     onPressed: () => setState(() => _zRules.remove(r)),
                   ),
                 ],
@@ -216,7 +218,7 @@ class _SetupWizardState extends State<SetupWizard> {
             const SizedBox(height: 12),
             for (final r in _zRules) _zRuleRow(r),
             OutlinedButton.icon(
-              icon: const Icon(Icons.add),
+              icon: const Icon(AppIcons.add),
               label: const Text('Lägg till rad'),
               onPressed: _drafts.isEmpty
                   ? null
@@ -245,7 +247,7 @@ class _SetupWizardState extends State<SetupWizard> {
         leading: _step > 0
             ? IconButton(
                 tooltip: 'Tillbaka',
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(AppIcons.back),
                 onPressed: () => setState(() => _step--))
             : null,
       ),

@@ -5,6 +5,9 @@ class Money implements Comparable<Money> {
 
   static const zero = Money(0);
 
+  /// Differences below this are treated as rounding and give no warning.
+  static const ignoredDifference = Money(100);
+
   factory Money.kr(int kr, [int ore = 0]) => Money(kr * 100 + (kr < 0 ? -ore : ore));
 
   Money operator +(Money other) => Money(ore + other.ore);

@@ -6,7 +6,7 @@ import 'package:sqflite/sqflite.dart';
 /// except amounts printed on the document itself (e.g. reported Z total).
 class AppDatabase {
   static const fileName = 'bokforing.db';
-  static const version = 3;
+  static const version = 4;
 
   static Future<Database> open({DatabaseFactory? factory, String? path}) async {
     final f = factory ?? databaseFactory;
@@ -20,6 +20,11 @@ class AppDatabase {
         onUpgrade: (db, oldVersion, _) async {
           if (oldVersion < 2) await _createV2(db);
           if (oldVersion < 3) await _upgradeToV3(db);
+          if (oldVersion < 4) {
+            final batch = db.batch();
+            _v4Tables(batch);
+            await batch.commit(noResult: true);
+          }
         },
       ),
     );
@@ -136,6 +141,7 @@ class AppDatabase {
       )''');
     _v2Tables(batch);
     _v3Changes(batch);
+    _v4Tables(batch);
     for (final bp in const [0, 600, 1200, 2500]) {
       batch.insert('vat_rates', {'basis_points': bp, 'active': 1});
     }
@@ -179,5 +185,24 @@ class AppDatabase {
     // they do not suddenly trigger reminders.
     batch.execute('UPDATE invoices SET paid = 1');
     await batch.commit(noResult: true);
+  }
+
+  /// v4: payouts from delivery partners (online sales).
+  static void _v4Tables(Batch batch) {
+    batch.execute('''
+      CREATE TABLE IF NOT EXISTS online_sales (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        payment_date TEXT NOT NULL,
+        partner TEXT NOT NULL DEFAULT '',
+        document_number TEXT NOT NULL DEFAULT '',
+        amount_ore INTEGER NOT NULL,
+        source TEXT NOT NULL,
+        manually_edited INTEGER NOT NULL DEFAULT 0,
+        confirmed INTEGER NOT NULL DEFAULT 0,
+        scan_id INTEGER REFERENCES document_scans(id),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )''');
+    batch.execute('CREATE INDEX IF NOT EXISTS idx_online_sales_date ON online_sales(payment_date)');
   }
 }

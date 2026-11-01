@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
+import '../app_icons.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/dates.dart';
@@ -10,7 +12,7 @@ import '../theme.dart';
 enum DuplicateChoice { showExisting, saveAnyway, cancel }
 
 Future<DuplicateChoice> duplicateDialog(BuildContext context,
-    {required String title, required List<String> lines}) async {
+    {required String title, required List<String> lines, bool showExistingAvailable = true}) async {
   final choice = await showDialog<DuplicateChoice>(
     context: context,
     builder: (c) => AlertDialog(
@@ -26,7 +28,8 @@ Future<DuplicateChoice> duplicateDialog(BuildContext context,
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, DuplicateChoice.cancel), child: const Text('Avbryt')),
-        TextButton(onPressed: () => Navigator.pop(c, DuplicateChoice.showExisting), child: const Text('Visa befintlig')),
+        if (showExistingAvailable)
+          TextButton(onPressed: () => Navigator.pop(c, DuplicateChoice.showExisting), child: const Text('Visa befintlig')),
         FilledButton(onPressed: () => Navigator.pop(c, DuplicateChoice.saveAnyway), child: const Text('Registrera ändå')),
       ],
     ),
@@ -35,6 +38,15 @@ Future<DuplicateChoice> duplicateDialog(BuildContext context,
 }
 
 /// Confirms the save to the user and returns to the main screen.
+/// Saving was blocked: says why and shows the field that needs filling in.
+void showBlocked(BuildContext context, String message, GlobalKey field) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  final target = field.currentContext;
+  if (target != null) {
+    Scrollable.ensureVisible(target, duration: const Duration(milliseconds: 250), alignment: 0.2);
+  }
+}
+
 /// Says which month the document was filed under, since that is where it
 /// shows up in Försäljning, Utgifter and Rapporter (not always this month).
 void showSaved(BuildContext context, {required String date}) {
@@ -68,7 +80,7 @@ class NoteCard extends StatelessWidget {
         color: AppTheme.warning.withValues(alpha: 0.1),
         margin: const EdgeInsets.only(bottom: 12),
         child: ListTile(
-          leading: const Icon(Icons.info_outline, color: AppTheme.warning),
+          leading: const Icon(AppIcons.info, color: AppTheme.warning),
           title: Text(text),
         ),
       );
@@ -154,7 +166,7 @@ class ReviewScaffold extends StatelessWidget {
                         style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                         icon: saving
                             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.check),
+                            : const Icon(AppIcons.check),
                         label: const Text('Godkänn och spara'),
                         onPressed: saving ? null : onSave,
                       ),
@@ -195,7 +207,7 @@ class _Preview extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         margin: const EdgeInsets.only(bottom: 16),
         child: ExpansionTile(
-          leading: const Icon(Icons.image_outlined),
+          leading: const Icon(AppIcons.image),
           title: const Text('Skannat dokument'),
           subtitle: const Text('Tryck för att jämföra med bilden'),
           children: [
@@ -217,7 +229,7 @@ class _Preview extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(
-                    icon: const Icon(Icons.copy),
+                    icon: const Icon(AppIcons.copy),
                     label: const Text('Kopiera avläst text'),
                     onPressed: () async {
                       final messenger = ScaffoldMessenger.of(context);

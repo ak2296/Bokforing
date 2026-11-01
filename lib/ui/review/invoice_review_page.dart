@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../app_icons.dart';
+
 import '../../app/app_controller.dart';
 import '../../domain/dates.dart';
 import '../../domain/invoice_parser.dart';
@@ -56,6 +58,9 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   /// Null until known: the user must say whether the document is paid.
   bool? _paid;
   String? _paidReason;
+  PaymentKind _kind = PaymentKind.unknown;
+  final _dateKey = GlobalKey();
+  final _totalKey = GlobalKey();
   late final TextEditingController _paidDate, _bankgiro, _plusgiro;
   bool _rememberKind = true;
   bool _kindLoaded = false;
@@ -107,15 +112,12 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     if (e != null) {
       _paid = e.paid;
     } else if (p != null && p.kind != PaymentKind.unknown) {
+      _kind = p.kind;
       _paid = p.paid;
-      _paidReason = p.kind == PaymentKind.kvitto
-          ? 'Ser ut som ett kvitto (redan betalt)'
-          : p.paid
-              ? 'Faktura märkt som betald'
-              : 'Ser ut som en faktura att betala';
+      _paidReason = _reasonFor(p);
     }
     _paidDate = TextEditingController(
-        text: e?.paidDate ?? (_paid == true ? (d?.date.value ?? SwedishDates.iso(DateTime.now())) : ''));
+        text: e?.paidDate ?? (_paid == true ? (d?.paidDate ?? d?.date.value ?? SwedishDates.iso(DateTime.now())) : ''));
     _bankgiro = TextEditingController(text: e?.bankgiro ?? d?.bankgiro.value ?? '');
     _plusgiro = TextEditingController(text: e?.plusgiro ?? d?.plusgiro.value ?? '');
   }
@@ -127,23 +129,27 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     repo.vatRates().then((r) {
       if (mounted) setState(() => _rates = r);
     });
-    // The user's earlier choice for this supplier beats the printed signals,
-    // except a BETALD stamp.
-    if (!_kindLoaded && widget.existing == null && _supplier.text.trim().isNotEmpty) {
+    // The earlier choice for this supplier decides only when the printed
+    // signals are unsure; clear signals win, which also repairs a wrong memory.
+    final p = _d?.payment;
+    if (!_kindLoaded && widget.existing == null && _supplier.text.trim().isNotEmpty && !(p?.isCertain ?? false)) {
       _kindLoaded = true;
       repo.supplierPaymentKind(_supplier.text).then((kind) {
         if (!mounted || kind == null) return;
-        final stamped = _d?.payment?.reasons.contains('stämpel BETALD') ?? false;
         setState(() {
-          _setPaid(kind == 'kvitto' || stamped, edited: false);
-          _paidReason = kind == 'kvitto'
-              ? 'Kvitto enligt tidigare val för ${_supplier.text.trim()}'
-              : stamped
-                  ? 'Faktura märkt som betald'
-                  : 'Faktura enligt tidigare val för ${_supplier.text.trim()}';
+          _kind = kind == 'kvitto' ? PaymentKind.kvitto : PaymentKind.faktura;
+          _setPaid(kind == 'kvitto' || (p?.paid ?? false), edited: false);
+          _paidReason = '${kind == 'kvitto' ? 'Kvitto' : 'Faktura'} enligt tidigare val för ${_supplier.text.trim()}';
         });
       });
     }
+  }
+
+  String _reasonFor(PaymentDetection p) {
+    if (p.reasons.contains(PaymentDetector.possibleStamp)) return 'Verkar ha en stämpel BETALD. Kontrollera.';
+    if (p.reasons.contains(PaymentDetector.cashPayment)) return 'Betalningsvillkor: Kontant. Kontrollera.';
+    if (p.kind == PaymentKind.kvitto) return 'Ser ut som ett kvitto (redan betalt)';
+    return p.paid ? 'Faktura märkt som betald' : 'Ser ut som en faktura att betala';
   }
 
   void _setPaid(bool paid, {bool edited = true}) {
@@ -151,8 +157,18 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     if (paid && _paidDate.text.isEmpty) {
       _paidDate.text = SwedishDates.isValidIso(_date.text.trim()) ? _date.text.trim() : SwedishDates.iso(DateTime.now());
     }
-    if (edited) _edited = true;
+    if (edited) {
+      _edited = true;
+      _paidReason = null;
+    }
   }
+
+  /// What the supplier sends. Paying a faktura does not make it a kvitto.
+  PaymentKind get _effectiveKind => _kind != PaymentKind.unknown
+      ? _kind
+      : _paid == true
+          ? PaymentKind.kvitto
+          : PaymentKind.faktura;
 
   /// Why the offline reading is not good enough; empty when it is.
   late final List<String> _aiReasons = _computeAiReasons();
@@ -219,8 +235,17 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   }
 
   Future<void> _save() async {
-    if (!(_form.currentState?.validate() ?? false)) {
+    final valid = _form.currentState?.validate() ?? false;
+    if (!valid) {
       setState(() => _editing = true);
+      if (!SwedishDates.isValidIso(_date.text.trim())) {
+        showBlocked(context, 'Fyll i datum innan du sparar.', _dateKey);
+      } else if (Money.parse(_total.text) == null) {
+        showBlocked(context, 'Fyll i summan innan du sparar.', _totalKey);
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Rätta det som är rödmarkerat innan du sparar.')));
+      }
       return;
     }
     final inv = _build();
@@ -264,9 +289,8 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       await controller.repo.saveInvoice(toSave);
       if (!toSave.paid && toSave.dueDate != null) await controller.reminders?.requestPermission();
       if (_rememberKind && inv.supplier.isNotEmpty && !inv.total.isNegative) {
-        final stamped = _d?.payment?.reasons.contains('stämpel BETALD') ?? false;
-        // A stamped invoice is still an invoice; remember what the supplier sends.
-        await controller.repo.rememberSupplierPaymentKind(inv.supplier, inv.paid && !stamped ? 'kvitto' : 'faktura');
+        await controller.repo
+            .rememberSupplierPaymentKind(inv.supplier, _effectiveKind == PaymentKind.kvitto ? 'kvitto' : 'faktura');
       }
       controller.dataChanged();
       if (!mounted) return;
@@ -283,7 +307,10 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     final d = _d;
     final inv = _build();
     final checks = inv == null ? const <ValidationResult>[] : const AccountingValidationEngine().validateInvoice(inv, net: d?.net);
-    Confidence? conf(Extracted<Object?>? e) => widget.scan == null || e == null ? null : (e.hasValue ? e.confidence : Confidence.low);
+    Confidence? conf(Extracted<Object?>? e) =>
+        widget.scan == null || e == null ? null : (e.hasValue ? e.confidence : Confidence.low);
+    // Optional fields that are simply not on the paper are not uncertain.
+    Confidence? optional(Extracted<Object?>? e) => e != null && e.hasValue ? conf(e) : null;
     final linesSum = Money.sum(_vatRows.map((r) => Money.parse(r.amount.text) ?? Money.zero));
     final vatValue = Money.parse(_vat.text);
 
@@ -300,11 +327,14 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const DocTypeHeader(label: 'Faktura'),
+            DocTypeHeader(label: _effectiveKind == PaymentKind.kvitto && _paid == true ? 'Kvitto' : 'Faktura'),
             if (widget.scan != null && !widget.fromAi) AiOfferCard(scan: widget.scan!, reasons: _aiReasons),
             if (d != null)
               for (final n in d.notes) NoteCard(n),
-            DateField(controller: _date, label: 'Datum', confidence: conf(d?.date), enabled: _editing, onChanged: _changed),
+            KeyedSubtree(
+              key: _dateKey,
+              child: DateField(controller: _date, label: 'Datum', confidence: conf(d?.date), enabled: _editing, onChanged: _changed),
+            ),
             if (d?.date.note != null) Text(d!.date.note!, style: Theme.of(context).textTheme.bodySmall),
             if (d != null && d.dateOptions.length > 1)
               Wrap(
@@ -332,7 +362,10 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
             const SizedBox(height: 4),
             PlainField(controller: _supplier, label: 'Leverantör', confidence: conf(d?.supplier), enabled: _editing, onChanged: _changed),
             const SizedBox(height: 12),
-            MoneyField(controller: _total, label: 'Summa (att betala)', confidence: conf(d?.total), enabled: _editing, onChanged: _changed),
+            KeyedSubtree(
+              key: _totalKey,
+              child: MoneyField(controller: _total, label: 'Summa (att betala)', confidence: conf(d?.total), enabled: _editing, onChanged: _changed),
+            ),
             if (d != null && d.totalCandidates.length > 1) _alternatives(d),
             const SizedBox(height: 12),
             MoneyField(
@@ -349,14 +382,14 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
             const SizedBox(height: 8),
             _vatSection(linesSum, vatValue),
             const SizedBox(height: 12),
-            PlainField(controller: _number, label: 'Fakturanummer', confidence: conf(d?.invoiceNumber), enabled: _editing, onChanged: _changed),
+            PlainField(controller: _number, label: 'Fakturanummer', confidence: optional(d?.invoiceNumber), enabled: _editing, onChanged: _changed),
             const SizedBox(height: 12),
-            DateField(controller: _due, label: 'Förfallodatum', confidence: conf(d?.dueDate), enabled: _editing, required: false, onChanged: _changed),
+            DateField(controller: _due, label: 'Förfallodatum', confidence: optional(d?.dueDate), enabled: _editing, required: false, onChanged: _changed),
             const SizedBox(height: 12),
             PlainField(
                 controller: _ocr,
                 label: 'OCR-nummer',
-                confidence: conf(d?.ocrReference),
+                confidence: optional(d?.ocrReference),
                 enabled: _editing,
                 keyboardType: TextInputType.number,
                 onChanged: _changed),
@@ -395,14 +428,20 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
                 children: [
                   Expanded(
                     child: FilledButton.tonal(
-                      onPressed: () => setState(() => _setPaid(true)),
+                      onPressed: () => setState(() {
+                        _kind = PaymentKind.kvitto;
+                        _setPaid(true);
+                      }),
                       child: const Text('Betald (kvitto)'),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: FilledButton.tonal(
-                      onPressed: () => setState(() => _setPaid(false)),
+                      onPressed: () => setState(() {
+                        _kind = PaymentKind.faktura;
+                        _setPaid(false);
+                      }),
                       child: const Text('Obetald (faktura)'),
                     ),
                   ),
@@ -450,7 +489,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
                 contentPadding: EdgeInsets.zero,
                 dense: true,
                 value: _rememberKind,
-                title: Text('Kom ihåg: $supplier skickar ${paid ? 'kvitton' : 'fakturor'}'),
+                title: Text('Kom ihåg: $supplier skickar ${_effectiveKind == PaymentKind.kvitto ? 'kvitton' : 'fakturor'}'),
                 onChanged: (v) => setState(() => _rememberKind = v ?? false),
               ),
           ],
@@ -532,7 +571,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
                   ),
                   IconButton(
                     tooltip: 'Ta bort raden',
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(AppIcons.close),
                     onPressed: !_editing
                         ? null
                         : () => setState(() {
@@ -546,7 +585,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(AppIcons.add),
                   label: const Text('Lägg till momssats'),
                   onPressed: () => setState(() {
                     _vatRows.add(_VatRow(VatRate.twentyFive, ''));

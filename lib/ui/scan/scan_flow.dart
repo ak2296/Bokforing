@@ -9,12 +9,15 @@ import '../../app/app_controller.dart';
 import '../../domain/classifier.dart';
 import '../../domain/invoice_parser.dart';
 import '../../domain/ocr_models.dart';
+import '../../domain/online_parser.dart';
 import '../../domain/text_merge.dart';
 import '../../domain/z_report_parser.dart';
 import '../../imaging/preprocess.dart';
 import '../../ocr/ocr_service.dart';
 import '../../ai/gemini_client.dart';
 import '../review/ai_assist.dart';
+import '../app_icons.dart';
+import '../review/online_review_page.dart';
 import '../review/invoice_review_page.dart';
 import '../review/z_review_page.dart';
 import 'camera_page.dart';
@@ -31,24 +34,25 @@ enum ScanState {
   ocrFailed,
   documentUnknown,
   lowConfidence,
+  mismatch,
   invoiceDetected,
   zReportDetected,
   failed,
 }
 
 /// Starts the camera and walks through processing to the review screen.
-Future<void> startScan(BuildContext context, {bool longDocument = false}) async {
+Future<void> startScan(BuildContext context, {bool online = false}) async {
   final paths = await Navigator.of(context)
-      .push<List<String>>(MaterialPageRoute(builder: (_) => CameraPage(longDocument: longDocument)));
+      .push<List<String>>(MaterialPageRoute(builder: (_) => CameraPage(online: online)));
   if (paths == null || paths.isEmpty || !context.mounted) return;
   await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ScanFlowPage(photoPaths: paths, longDocument: longDocument)));
+      builder: (_) => ScanFlowPage(photoPaths: paths, online: online)));
 }
 
 class ScanFlowPage extends StatefulWidget {
   final List<String> photoPaths;
-  final bool longDocument;
-  const ScanFlowPage({super.key, required this.photoPaths, required this.longDocument});
+  final bool online;
+  const ScanFlowPage({super.key, required this.photoPaths, required this.online});
 
   @override
   State<ScanFlowPage> createState() => _ScanFlowPageState();
@@ -64,6 +68,7 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
   OcrResult? _ocr;
   Classification? _classification;
   bool _aiUsable = false;
+  DocumentType? _mismatchType;
 
   @override
   void initState() {
@@ -86,12 +91,12 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
         classification: _classification,
       );
 
-  Widget _aiButton() => !_aiUsable || _processed.isEmpty
+  Widget _aiButton() => !_aiUsable || widget.online || _processed.isEmpty
       ? const SizedBox.shrink()
       : Padding(
           padding: const EdgeInsets.only(top: 8),
           child: OutlinedButton.icon(
-            icon: const Icon(Icons.auto_awesome_outlined),
+            icon: const Icon(AppIcons.ai),
             label: const Text('Förbättrad analys online'),
             onPressed: () => runAiAnalysis(context, _context(DocumentType.unknown)),
           ),
@@ -153,6 +158,30 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
       setState(() => _step = 'Tolkar dokumentet…');
       final c = const DocumentClassifier().classify(merged.text);
       _classification = c;
+      final partners = await AppScope.read(context).repo.knownPartners();
+      final onlinePaper = OnlineParser.looksLikeOnline(merged.text, partners: partners);
+      if (widget.online) {
+        // The online button was pressed: only stop if the paper is clearly
+        // something else.
+        if (!onlinePaper && c.isCertain && c.type == DocumentType.zReport) {
+          if (!mounted) return;
+          setState(() {
+            _state = ScanState.mismatch;
+            _mismatchType = DocumentType.zReport;
+          });
+          return;
+        }
+        await _openReview(DocumentType.onlineSale);
+        return;
+      }
+      if (onlinePaper) {
+        if (!mounted) return;
+        setState(() {
+          _state = ScanState.mismatch;
+          _mismatchType = DocumentType.onlineSale;
+        });
+        return;
+      }
       if (c.type == DocumentType.unknown && c.confidence == 0) {
         if (!mounted) return;
         setState(() => _state = ScanState.documentUnknown);
@@ -187,9 +216,16 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
     final controller = AppScope.read(context);
     setState(() => _state = type == DocumentType.invoice ? ScanState.invoiceDetected : ScanState.zReportDetected);
     Widget page;
-    if (type == DocumentType.invoice) {
+    if (type == DocumentType.onlineSale) {
+      final partners = await controller.repo.knownPartners();
+      page = OnlineReviewPage(draft: OnlineParser(knownPartners: partners).parse(ocr), scan: ctx);
+    } else if (type == DocumentType.invoice) {
       final aspect = widget.photoPaths.length == 1 && _aspects.length == 1 ? _aspects.single : null;
-      page = InvoiceReviewPage(draft: const InvoiceParser().parse(ocr, paperAspect: aspect), scan: ctx);
+      final suppliers = await controller.repo.knownSuppliers();
+      final profile = await controller.repo.profile();
+      page = InvoiceReviewPage(
+          draft: InvoiceParser(knownSuppliers: suppliers, ownName: profile.name).parse(ocr, paperAspect: aspect),
+          scan: ctx);
     } else {
       final cats = await controller.repo.categories();
       final aliases = await controller.repo.categoryAliases();
@@ -212,13 +248,21 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
     if (!mounted) return;
     final navigator = Navigator.of(context);
     navigator.pop();
-    await startScan(navigator.context, longDocument: widget.longDocument);
+    await startScan(navigator.context, online: widget.online);
   }
 
   Future<void> _manual(DocumentType type) async {
-    final page = type == DocumentType.invoice ? const InvoiceReviewPage() : const ZReviewPage();
+    final Widget page = type == DocumentType.invoice ? const InvoiceReviewPage() : const ZReviewPage();
     await Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => page));
   }
+
+  Widget _manualChoice() => widget.online
+      ? OutlinedButton(
+          onPressed: () => Navigator.of(context)
+              .pushReplacement(MaterialPageRoute(builder: (_) => const OnlineReviewPage())),
+          child: const Text('Fyll i manuellt'),
+        )
+      : _ManualButtons(onPick: _manual);
 
   @override
   Widget build(BuildContext context) {
@@ -243,12 +287,12 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
       case ScanState.lowQuality:
         final issues = {for (final q in _quality) ...q.issues}.toList();
         body = _Panel(
-          icon: Icons.image_not_supported_outlined,
+          icon: AppIcons.imageOff,
           title: 'Bildkvaliteten är för låg',
           children: [
             for (final i in issues)
               ListTile(
-                leading: const Icon(Icons.warning_amber_rounded),
+                leading: const Icon(AppIcons.warning),
                 title: Text(i.title),
                 subtitle: Text(i.advice),
               ),
@@ -261,18 +305,18 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
         );
       case ScanState.ocrFailed:
         body = _Panel(
-          icon: Icons.text_snippet_outlined,
+          icon: AppIcons.text,
           title: 'Ingen text kunde läsas',
           children: [
             const Text('Prova att ta bilden närmare och med bättre ljus. För långa kvitton: använd "Långt dokument".'),
             _aiButton(),
           ],
           primary: FilledButton(onPressed: _rescan, child: const Text('Skanna igen')),
-          secondary: _ManualButtons(onPick: _manual),
+          secondary: _manualChoice(),
         );
       case ScanState.documentUnknown:
         body = _Panel(
-          icon: Icons.help_outline,
+          icon: AppIcons.help,
           title: 'Dokumentet känns inte igen',
           children: [
             const Text('Det ser inte ut som en faktura, ett kvitto eller en Z-rapport.'),
@@ -284,10 +328,36 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
             OutlinedButton(onPressed: () => _openReview(DocumentType.zReport), child: const Text('Det är en Z-rapport')),
           ]),
         );
+      case ScanState.mismatch:
+        final toOnline = _mismatchType == DocumentType.onlineSale;
+        body = _Panel(
+          icon: AppIcons.help,
+          title: toOnline ? 'Det här ser ut som onlineförsäljning' : 'Det här ser ut som en Z-rapport',
+          children: [
+            Text(toOnline
+                ? 'Utbetalningar från en partner är försäljning, inte en utgift. Vill du registrera den som onlineförsäljning?'
+                : 'Du tryckte på Skanna onlineförsäljning. Vill du byta till Z-rapport?'),
+          ],
+          primary: FilledButton(
+            onPressed: () => _openReview(_mismatchType!),
+            child: Text(toOnline ? 'Ja, onlineförsäljning' : 'Ja, Z-rapport'),
+          ),
+          secondary: OutlinedButton(
+            onPressed: () {
+              if (toOnline) {
+                final c = _classification!;
+                _openReview(c.type == DocumentType.zReport ? DocumentType.zReport : DocumentType.invoice);
+              } else {
+                _openReview(DocumentType.onlineSale);
+              }
+            },
+            child: Text(toOnline ? 'Nej, fortsätt som vanligt' : 'Nej, onlineförsäljning'),
+          ),
+        );
       case ScanState.lowConfidence:
         final c = _classification!;
         body = _Panel(
-          icon: Icons.help_outline,
+          icon: AppIcons.help,
           title: 'Vi är osäkra på dokumenttypen.',
           children: [
             Text('Bästa gissning: ${c.type.label} (${(c.confidence * 100).round()} % säkerhet). Välj vad det är:'),
@@ -308,11 +378,11 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
         );
       case ScanState.failed:
         body = _Panel(
-          icon: Icons.error_outline,
+          icon: AppIcons.error,
           title: 'Något gick fel',
           children: [Text('Inget har sparats. ${_error ?? ''}')],
           primary: FilledButton(onPressed: _rescan, child: const Text('Skanna igen')),
-          secondary: _ManualButtons(onPick: _manual),
+          secondary: _manualChoice(),
         );
     }
     return Scaffold(

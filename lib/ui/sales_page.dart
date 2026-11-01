@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_icons.dart';
+
 import '../domain/dates.dart';
 import 'record_details.dart';
 import 'theme.dart';
@@ -26,20 +28,20 @@ class _SalesPageState extends State<SalesPage> {
               builder: (context, m) {
                 if (m.sales.isEmpty) {
                   return const EmptyState(
-                      icon: Icons.point_of_sale_outlined, text: 'Inga Z-rapporter registrerade den här månaden.');
+                      icon: AppIcons.register, text: 'Inga Z-rapporter registrerade den här månaden.');
                 }
                 return ListView(
                   children: [
                     for (final d in m.sales.reversed)
                       ListTile(
-                        leading: Icon(d.difference.isZero ? Icons.check_circle_outline : Icons.warning_amber_rounded,
-                            color: d.difference.isZero ? AppTheme.ok : AppTheme.warning),
+                        leading: Icon(!d.hasDifference ? AppIcons.checkCircle : AppIcons.warning,
+                            color: !d.hasDifference ? AppTheme.ok : AppTheme.warning),
                         title: Text(SwedishDates.mediumDay(d.businessDate)),
                         subtitle: Text([
                           'Z-rapport',
                           if ((d.zNumber ?? '').isNotEmpty) 'Z-nr ${d.zNumber}',
                           'Moms ${d.outputVat.format(compact: true)}',
-                          if (!d.difference.isZero) 'Skillnad ${d.difference.format(compact: true)}',
+                          if (d.hasDifference) 'Skillnad ${d.difference.format(compact: true)}',
                         ].join(' · ')),
                         trailing: Text(d.detailedTotal.format(compact: true), style: moneyStyle),
                         onTap: () => openRecord(context, 'z', d.id!),

@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 
+import 'app_icons.dart';
+
 import '../app/app_controller.dart';
 import '../domain/dates.dart';
 import '../domain/models.dart';
 import '../domain/validation.dart';
 import 'review/invoice_review_page.dart';
+import 'review/online_review_page.dart';
 import 'review/z_review_page.dart';
 import 'theme.dart';
 import 'unpaid_page.dart';
 import 'widgets/common.dart';
 
-Future<void> openRecord(BuildContext context, String kind, int id) =>
-    Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => kind == 'invoice' ? InvoiceDetailsPage(id: id) : DailySalesDetailsPage(id: id)));
+Future<void> openRecord(BuildContext context, String kind, int id) async {
+  if (kind == 'online') {
+    final navigator = Navigator.of(context);
+    final sale = await AppScope.read(context).repo.onlineSale(id);
+    if (sale != null) navigator.push(MaterialPageRoute(builder: (_) => OnlineReviewPage(existing: sale)));
+    return;
+  }
+  await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => kind == 'invoice' ? InvoiceDetailsPage(id: id) : DailySalesDetailsPage(id: id)));
+}
 
 class _Row extends StatelessWidget {
   final String label;
@@ -50,7 +60,7 @@ class ValidationList extends StatelessWidget {
               dense: true,
               contentPadding: EdgeInsets.zero,
               leading: Icon(
-                r.isOk ? Icons.check_circle_outline : Icons.warning_amber_rounded,
+                r.isOk ? AppIcons.checkCircle : AppIcons.warning,
                 color: r.isOk
                     ? AppTheme.ok
                     : r.status == ValidationStatus.error
@@ -137,7 +147,7 @@ class InvoiceDetailsPage extends StatelessWidget {
         body: Reloading<Invoice?>(
           loader: (c) => c.repo.invoice(id),
           builder: (context, inv) {
-            if (inv == null) return const EmptyState(icon: Icons.search_off, text: 'Fakturan finns inte längre.');
+            if (inv == null) return const EmptyState(icon: AppIcons.searchOff, text: 'Fakturan finns inte längre.');
             final checks = const AccountingValidationEngine().validateInvoice(inv);
             return ListView(
               padding: const EdgeInsets.all(16),
@@ -159,7 +169,7 @@ class InvoiceDetailsPage extends StatelessWidget {
                   const SizedBox(height: 8),
                   if (!inv.paid)
                     FilledButton.tonalIcon(
-                      icon: const Icon(Icons.payments_outlined),
+                      icon: const Icon(AppIcons.payments),
                       label: const Text('Betala / Markera som betald'),
                       onPressed: () => showPaySheet(context, inv),
                     )
@@ -183,14 +193,14 @@ class InvoiceDetailsPage extends StatelessWidget {
                 _historyAndScan(context, 'invoice', id, inv.meta.scanId),
                 const SizedBox(height: 16),
                 FilledButton.tonalIcon(
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: const Icon(AppIcons.edit),
                   label: const Text('Redigera'),
                   onPressed: () => Navigator.of(context)
                       .push(MaterialPageRoute(builder: (_) => InvoiceReviewPage(existing: inv))),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(AppIcons.delete),
                   label: const Text('Ta bort fakturan'),
                   onPressed: () async {
                     final controller = AppScope.read(context);
@@ -221,7 +231,7 @@ class DailySalesDetailsPage extends StatelessWidget {
         body: Reloading<DailySales?>(
           loader: (c) => c.repo.dailySales(id),
           builder: (context, d) {
-            if (d == null) return const EmptyState(icon: Icons.search_off, text: 'Dagen finns inte längre.');
+            if (d == null) return const EmptyState(icon: AppIcons.searchOff, text: 'Dagen finns inte längre.');
             final checks = const AccountingValidationEngine().validateDailySales(d);
             return ListView(
               padding: const EdgeInsets.all(16),
@@ -248,14 +258,14 @@ class DailySalesDetailsPage extends StatelessWidget {
                 _historyAndScan(context, 'daily_sales', id, d.meta.scanId),
                 const SizedBox(height: 16),
                 FilledButton.tonalIcon(
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: const Icon(AppIcons.edit),
                   label: const Text('Redigera'),
                   onPressed: () => Navigator.of(context)
                       .push(MaterialPageRoute(builder: (_) => ZReviewPage(existing: d))),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(AppIcons.delete),
                   label: const Text('Ta bort dagen'),
                   onPressed: () async {
                     final controller = AppScope.read(context);

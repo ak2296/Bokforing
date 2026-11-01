@@ -3,15 +3,15 @@ import 'package:flutter/material.dart';
 import '../domain/dates.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
+import 'app_icons.dart';
 import 'history_page.dart';
-import 'unpaid_page.dart';
 import 'record_details.dart';
 import 'theme.dart';
+import 'unpaid_page.dart';
 import 'widgets/common.dart';
 
 class DashboardPage extends StatelessWidget {
-  final VoidCallback onScan;
-  const DashboardPage({super.key, required this.onScan});
+  const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,20 +29,10 @@ class DashboardPage extends StatelessWidget {
         final r = month.report;
         final diff = r.vatDifference;
         return ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
           children: [
-            if (month.profile.name.isNotEmpty)
-              Text(month.profile.name.toUpperCase(), style: Theme.of(context).textTheme.titleMedium),
-            Text(ym.title, style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-              onPressed: onScan,
-              icon: const Icon(Icons.document_scanner_outlined),
-              label: const Text('Skanna dokument'),
-            ),
             if (unpaid.isNotEmpty) _UnpaidCard(unpaid),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
@@ -51,10 +41,8 @@ class DashboardPage extends StatelessWidget {
               crossAxisSpacing: 8,
               childAspectRatio: 1.7,
               children: [
-                _StatCard('Försäljning denna månad', r.totalSales),
+                _StatCard('Försäljning denna månad', r.totalAllSales),
                 _StatCard('Utgifter denna månad', r.totalExpenses),
-                _StatCard('Utgående moms', r.totalOutputVat),
-                _StatCard('Ingående moms', r.totalInputVat),
                 _StatCard(diff.isNegative ? 'Momsskillnad (att få tillbaka)' : 'Momsskillnad (att betala)', diff),
                 _CountCard('Antal skannade dokument', count),
               ],
@@ -74,7 +62,7 @@ class DashboardPage extends StatelessWidget {
               ],
             ),
             if (recent.isEmpty)
-              const EmptyState(icon: Icons.inbox_outlined, text: 'Inga registreringar ännu.')
+              const EmptyState(icon: AppIcons.inbox, text: 'Inga registreringar ännu.')
             else
               for (final e in recent) RegistrationTile(entry: e),
           ],
@@ -91,8 +79,9 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
+        margin: EdgeInsets.zero,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(13),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -115,8 +104,9 @@ class _CountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
+        margin: EdgeInsets.zero,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(13),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -145,7 +135,11 @@ class RegistrationTile extends StatelessWidget {
     ].join(' · ');
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(e.kind == 'invoice' ? Icons.receipt_long_outlined : Icons.point_of_sale_outlined),
+      leading: IconTile(switch (e.kind) {
+        'invoice' => AppIcons.expenses,
+        'online' => AppIcons.delivery,
+        _ => AppIcons.register,
+      }),
       title: Text(SwedishDates.shortDay(e.date)),
       subtitle: Text(sub),
       trailing: Text(e.amount.format(compact: true), style: moneyStyle),
@@ -171,7 +165,7 @@ class _UnpaidCard extends StatelessWidget {
       child: Card(
         color: urgent ? color.withValues(alpha: 0.1) : null,
         child: ListTile(
-          leading: Icon(Icons.payments_outlined, color: urgent ? color : null),
+          leading: Icon(AppIcons.payments, color: urgent ? color : null),
           title: Text('Att betala: ${unpaid.length} ${unpaid.length == 1 ? 'faktura' : 'fakturor'}'),
           subtitle: Text(first == null
               ? 'Inget förfallodatum angivet'

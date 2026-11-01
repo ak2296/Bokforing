@@ -103,6 +103,8 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     'telefon', 'momsreg', 'kvitto på köp', 'kvitto pa kop', 'kassa nr', 'kassanr', 'kassör', 'ej kvitto',
   ];
 
+  static const _titleWords = ['z-rapport', 'z rapport', 'zrapport', 'z-report', 'z report', 'dagsrapport', 'kassarapport'];
+
   static const _printStamp = ['utskri', 'skriven', 'printed', 'kopia skapad'];
 
   static const _notTotal = ['grand total', 'ackumulerad', 'exkl', 'netto', 'moms', 'retur', 'rabatt', 'kontant', 'kort', 'swish', 'antal'];
@@ -176,7 +178,7 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       }
       if (label == null) continue;
       if (_notTotal.any((w) => n.contains(w)) && score < 90) continue;
-      if (n.contains('grand total') || n.contains('ackumulerad')) continue;
+      if (n.contains('grand total') || n.contains('ackumulerad') || n.contains('exkl')) continue;
       var amounts = TextPatterns.amounts(rows[i].text);
       if (amounts.isEmpty && i + 1 < rows.length && TextPatterns.amounts(rows[i + 1].text).length == 1) {
         amounts = TextPatterns.amounts(rows[i + 1].text);
@@ -204,11 +206,21 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     String? labelledSrc;
     String? from;
     String? fromSrc;
+    String? title;
+    String? titleSrc;
+    final titleRow = norm.indexWhere((n) => TextPatterns.containsAny(n, _titleWords));
     for (var i = 0; i < rows.length; i++) {
       if (_printStamp.any((w) => norm[i].contains(w))) continue;
+      // A bare date above the report title is the browser's print date in
+      // the page margin, never the business date.
+      if (i < titleRow && !RegExp(r'[a-zåäö]{2,}').hasMatch(norm[i])) continue;
       // A date far in the future is a misread, never a business date.
       final d = TextPatterns.dates(rows[i].text).where(plausible).toList();
       dates.addAll(d);
+      if (i == titleRow && d.isNotEmpty) {
+        title = d.first;
+        titleSrc = rows[i].text;
+      }
       // A period "2026-10-30 06:00 – 2026-10-31 05:59": the first is Från.
       if (from == null &&
           d.length >= 2 &&
@@ -243,6 +255,8 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     Extracted<String> date;
     if (from != null) {
       date = Extracted(from, Confidence.high, source: fromSrc, note: 'Från-datum i rapportens period');
+    } else if (title != null) {
+      date = Extracted(title, unique.length == 1 ? Confidence.high : Confidence.medium, source: titleSrc);
     } else if (labelled != null) {
       date = Extracted(labelled, unique.length == 1 ? Confidence.high : Confidence.medium, source: labelledSrc);
     } else if (unique.length == 1) {
@@ -377,6 +391,12 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     for (var i = 0; i < rows.length; i++) {
       final m = re.firstMatch(rows[i].text);
       if (m != null) return Extracted(m.group(1)!, Confidence.medium, source: rows[i].text);
+    }
+    // "Underlag: Z1-180"
+    final underlag = RegExp(r'underlag\s*[:.]?\s*([a-z]{0,2}\d[\w-]*)', caseSensitive: false);
+    for (final r in rows) {
+      final m = underlag.firstMatch(r.text);
+      if (m != null) return Extracted(m.group(1)!, Confidence.high, source: r.text);
     }
     return const Extracted.none();
   }

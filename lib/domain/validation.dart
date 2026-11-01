@@ -23,19 +23,20 @@ class ValidationResult {
 class AccountingValidationEngine {
   const AccountingValidationEngine();
 
-  /// Allowed difference for net + VAT vs. total: öresavrundning up to 50 öre
-  /// plus one öre of rounding per VAT line.
-  static Money totalTolerance(int vatLines) => Money(50 + vatLines);
+  /// Differences under 1 kr are rounding and give no warning. The amounts
+  /// themselves are never changed.
+  static const ignoredDifference = Money.ignoredDifference;
+  static Money totalTolerance(int vatLines) => const Money(99);
 
   /// Z-report: the category rows must add up to the reported daily total.
-  /// Any difference, however small, is shown to the user.
+  /// A difference of 1 kr or more is shown to the user.
   ValidationResult reconcileZReport(Iterable<Money> categoryAmounts, Money reportedTotal) {
     final detailed = Money.sum(categoryAmounts);
     final diff = detailed - reportedTotal;
-    if (diff.isZero) {
-      return const ValidationResult(ValidationStatus.ok, 'total',
+    if (diff.abs() < ignoredDifference) {
+      return ValidationResult(ValidationStatus.ok, 'total',
           'Kontroll: detaljerad försäljning stämmer med dagsförsäljningen.',
-          difference: Money.zero);
+          difference: diff);
     }
     return ValidationResult(ValidationStatus.warning, 'total',
         'Varning: försäljningsbeloppen stämmer inte. Skillnad ${diff.format()}.',
@@ -82,7 +83,7 @@ class AccountingValidationEngine {
   ValidationResult checkInvoiceArithmetic(Money net, Money vat, Money total,
       {int vatLines = 1}) {
     final diff = net + vat - total;
-    if (diff.abs() <= totalTolerance(vatLines)) {
+    if (diff.abs() < ignoredDifference) {
       return ValidationResult(ValidationStatus.ok, 'total',
           'Netto + moms stämmer med summan.', difference: diff);
     }
@@ -95,7 +96,7 @@ class AccountingValidationEngine {
   ValidationResult checkVatBreakdown(List<InvoiceVatLine> lines, Money vatTotal) {
     final sum = Money.sum(lines.map((l) => l.vat));
     final diff = sum - vatTotal;
-    if (diff.abs() <= Money(lines.length)) {
+    if (diff.abs() < ignoredDifference) {
       return ValidationResult(ValidationStatus.ok, 'vat',
           'Momsen per momssats stämmer med total moms.', difference: diff);
     }
@@ -114,7 +115,7 @@ class AccountingValidationEngine {
     }
     if (expected == null) return null;
     final diff = line.vat - expected;
-    if (diff.abs() <= const Money(2)) return null;
+    if (diff.abs() < ignoredDifference) return null;
     return ValidationResult(ValidationStatus.warning, 'vat',
         'Moms ${line.rate.label}: ${line.vat.format()} stämmer inte med beräknat ${expected.format()}.',
         difference: diff);
@@ -128,7 +129,7 @@ class AccountingValidationEngine {
           total.isNegative ? 'Kreditnota: momsen ska också vara minus.' : 'Momsen är negativ men summan är positiv.');
     }
     final max = VatCalculator.vatFromGross(total.abs(), VatRate.twentyFive);
-    if (vat.abs() > max + const Money(1)) {
+    if (vat.abs() - max >= ignoredDifference) {
       return ValidationResult(ValidationStatus.warning, 'vat',
           'Momsen (${vat.format()}) är högre än 25 % av summan kan ge (${max.format()}).');
     }

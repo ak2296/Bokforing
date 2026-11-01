@@ -25,6 +25,7 @@ dependencies:
   file_picker: ^13.3.0
   cryptography: ^2.9.0
   flutter_local_notifications: ^22.3.3
+  flutter_tabler_icons: ^1.43.0
   timezone: ^0.11.2
 
 dev_dependencies:
@@ -35,3 +36,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.otf
+        - asset: assets/fonts/Inter-Medium.otf
+          weight: 500

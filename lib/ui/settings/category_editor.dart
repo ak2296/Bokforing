@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app_icons.dart';
+
 import '../../domain/models.dart';
 import '../../domain/vat.dart';
 
@@ -68,7 +70,7 @@ class CategoryListEditor extends StatelessWidget {
                       index: i,
                       child: const Padding(
                         padding: EdgeInsets.all(8),
-                        child: Icon(Icons.drag_indicator, semanticLabel: 'Ändra ordning'),
+                        child: Icon(AppIcons.drag, semanticLabel: 'Ändra ordning'),
                       ),
                     ),
                     Expanded(
@@ -80,7 +82,7 @@ class CategoryListEditor extends StatelessWidget {
                     if (showNames) ...[
                       IconButton(
                         tooltip: 'Redigera kategori',
-                        icon: const Icon(Icons.edit_outlined),
+                        icon: const Icon(AppIcons.edit),
                         onPressed: () async {
                           final name = await askCategoryName(context, initial: d.name);
                           if (name != null) {
@@ -91,7 +93,7 @@ class CategoryListEditor extends StatelessWidget {
                       ),
                       IconButton(
                         tooltip: 'Ta bort kategori',
-                        icon: const Icon(Icons.delete_outline),
+                        icon: const Icon(AppIcons.delete),
                         onPressed: () async {
                           final ok = await showDialog<bool>(
                             context: context,
@@ -122,7 +124,7 @@ class CategoryListEditor extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: OutlinedButton.icon(
-              icon: const Icon(Icons.add),
+              icon: const Icon(AppIcons.add),
               label: const Text('Lägg till kategori'),
               onPressed: () async {
                 final name = await askCategoryName(context);

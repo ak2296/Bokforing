@@ -123,6 +123,9 @@ class DailySales {
   Money get detailedTotal => Money.sum(items.map((i) => i.amount));
   Money get outputVat => Money.sum(items.map((i) => i.vatAmount));
   Money get difference => detailedTotal - reportedTotal;
+
+  /// True when the difference is worth a warning (1 kr or more).
+  bool get hasDifference => difference.abs() >= Money.ignoredDifference;
 }
 
 class InvoiceVatLine {
@@ -192,8 +195,12 @@ class RegistrationSummary {
   final String title;
   final bool confirmed;
   final DateTime createdAt;
+  final bool paid;
+  final String? dueDate;
 
   const RegistrationSummary({
+    this.paid = false,
+    this.dueDate,
     required this.kind,
     required this.id,
     required this.date,
@@ -204,7 +211,11 @@ class RegistrationSummary {
     required this.createdAt,
   });
 
-  String get typeLabel => kind == 'invoice' ? 'Faktura' : 'Z-rapport';
+  String get typeLabel => switch (kind) {
+        'invoice' => paid && dueDate == null ? 'Kvitto' : 'Faktura',
+        'online' => 'Onlineförsäljning',
+        _ => 'Z-rapport',
+      };
 }
 
 extension InvoiceCopy on Invoice {
@@ -227,4 +238,25 @@ extension InvoiceCopy on Invoice {
         bankgiro: bankgiro,
         plusgiro: plusgiro,
       );
+}
+
+/// A payout from a delivery partner (e.g. Foodora), after their commission.
+/// It adds to the month's total sales but carries no VAT figure, since the
+/// paid amount does not show the VAT on the underlying sales.
+class OnlineSale {
+  final int? id;
+  final String paymentDate;
+  final String partner;
+  final String documentNumber;
+  final Money amount;
+  final RecordMeta meta;
+
+  const OnlineSale({
+    this.id,
+    required this.paymentDate,
+    required this.partner,
+    this.documentNumber = '',
+    required this.amount,
+    required this.meta,
+  });
 }

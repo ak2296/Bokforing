@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_icons.dart';
+
 import '../domain/models.dart';
 import 'dashboard_page.dart';
 import 'widgets/common.dart';
@@ -14,7 +16,7 @@ class HistoryPage extends StatelessWidget {
         body: Reloading<List<RegistrationSummary>>(
           loader: (c) => c.repo.recentRegistrations(limit: 1000),
           builder: (context, list) => list.isEmpty
-              ? const EmptyState(icon: Icons.history, text: 'Inga registreringar ännu.')
+              ? const EmptyState(icon: AppIcons.history, text: 'Inga registreringar ännu.')
               : ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [

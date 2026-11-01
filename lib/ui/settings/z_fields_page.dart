@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app_icons.dart';
+
 import '../../app/app_controller.dart';
 import '../../domain/models.dart';
 
@@ -105,7 +107,7 @@ class _ZFieldsPageState extends State<ZFieldsPage> {
           ? null
           : FloatingActionButton.extended(
               onPressed: () => _edit(),
-              icon: const Icon(Icons.add),
+              icon: const Icon(AppIcons.add),
               label: const Text('Lägg till rad'),
             ),
       body: cats == null
@@ -130,7 +132,7 @@ class _ZFieldsPageState extends State<ZFieldsPage> {
                 else if (_rules.isEmpty)
                   const Card(
                     child: ListTile(
-                      leading: Icon(Icons.info_outline),
+                      leading: Icon(AppIcons.info),
                       title: Text('Inga egna rader ännu.'),
                       subtitle: Text('Tryck på "Lägg till rad". Raderna sparas också när du väljer "Kom ihåg" vid granskning.'),
                     ),
@@ -144,7 +146,7 @@ class _ZFieldsPageState extends State<ZFieldsPage> {
                       onTap: () => _edit(label: r.label, categoryId: r.categoryId),
                       trailing: IconButton(
                         tooltip: 'Ta bort raden',
-                        icon: const Icon(Icons.delete_outline),
+                        icon: const Icon(AppIcons.delete),
                         onPressed: () async {
                           await AppScope.read(context).repo.deleteZLabelRule(r.label);
                           await _load();

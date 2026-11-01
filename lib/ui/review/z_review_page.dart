@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app_icons.dart';
+
 import '../../app/app_controller.dart';
 import '../../data/repository.dart';
 import '../../domain/dates.dart';
@@ -56,6 +58,8 @@ class ZReviewPage extends StatefulWidget {
 
 class _ZReviewPageState extends State<ZReviewPage> {
   final _form = GlobalKey<FormState>();
+  final _dateKey = GlobalKey();
+  final _reportedKey = GlobalKey();
   late final TextEditingController _date, _zNumber, _reported, _note;
   List<Category>? _categories;
   final List<_Row> _rows = [];
@@ -116,7 +120,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
         final covered = {for (final l in d.lines) ...[?l.categoryId, ?l.suggestedCategoryId]};
         for (final c in cats) {
           if (!covered.contains(c.id)) {
-            _rows.add(_Row(label: c.name, fromReport: false, amount: '', categoryId: c.id));
+            _rows.add(_Row(label: c.name, fromReport: false, amount: '0,00', categoryId: c.id));
           }
         }
       } else {
@@ -172,15 +176,24 @@ class _ZReviewPageState extends State<ZReviewPage> {
   }
 
   Future<void> _save() async {
-    if (!(_form.currentState?.validate() ?? false)) {
+    final valid = _form.currentState?.validate() ?? false;
+    if (!valid) {
       setState(() => _editing = true);
+      if (!SwedishDates.isValidIso(_date.text.trim())) {
+        showBlocked(context, 'Fyll i försäljningsdagen innan du sparar.', _dateKey);
+      } else if (Money.parse(_reported.text) == null) {
+        showBlocked(context, 'Fyll i dagsförsäljningen innan du sparar.', _reportedKey);
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Rätta det som är rödmarkerat innan du sparar.')));
+      }
       return;
     }
     final reported = Money.parse(_reported.text);
     if (reported == null) return;
     final controller = AppScope.read(context);
     final items = _items();
-    if (items.isEmpty) {
+    if (items.every((i) => i.amount.isZero)) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Koppla minst en rad till en kategori innan du sparar.')));
       return;
@@ -200,7 +213,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
     );
     // The category rows are what gets recorded; the printed daily total is
     // only a check. A difference is shown, never corrected by the app.
-    if (!day.difference.isZero) {
+    if (day.hasDifference) {
       final choice = await showDialog<String>(
         context: context,
         builder: (c) => AlertDialog(
@@ -311,7 +324,10 @@ class _ZReviewPageState extends State<ZReviewPage> {
                     const NoteCard('Du har inga försäljningskategorier. Lägg till dem under Inställningar → Försäljningskategorier.'),
                   if (d != null)
                     for (final n in d.notes) NoteCard(n),
-                  DateField(controller: _date, label: 'Datum (försäljningsdag)', confidence: conf(d?.date), enabled: _editing, onChanged: _changed),
+                  KeyedSubtree(
+                    key: _dateKey,
+                    child: DateField(controller: _date, label: 'Datum (försäljningsdag)', confidence: conf(d?.date), enabled: _editing, onChanged: _changed),
+                  ),
                   if (d != null && d.otherDates.isNotEmpty)
                     Wrap(
                       spacing: 6,
@@ -338,7 +354,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton.icon(
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(AppIcons.add),
                         label: const Text('Lägg till rad'),
                         onPressed: cats.isEmpty
                             ? null
@@ -349,7 +365,10 @@ class _ZReviewPageState extends State<ZReviewPage> {
                       ),
                     ),
                   const SizedBox(height: 12),
-                  MoneyField(controller: _reported, label: 'Dagsförsäljning (enligt rapporten)', confidence: conf(d?.total), enabled: _editing, onChanged: _changed),
+                  KeyedSubtree(
+                    key: _reportedKey,
+                    child: MoneyField(controller: _reported, label: 'Dagsförsäljning (enligt rapporten)', confidence: conf(d?.total), enabled: _editing, onChanged: _changed),
+                  ),
                   const SizedBox(height: 12),
                   _summary(detailed, reported, check, ignored),
                   const SizedBox(height: 12),
@@ -379,62 +398,55 @@ class _ZReviewPageState extends State<ZReviewPage> {
             Row(
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(r.fromReport ? 'På rapporten: ${r.label}' : (assigned?.name ?? r.label),
-                          style: Theme.of(context).textTheme.bodyMedium),
-                      if (r.match == MatchKind.exact || r.match == MatchKind.remembered || r.match == MatchKind.ignored)
-                        Text(
-                            switch (r.match) {
-                              MatchKind.exact => 'Samma namn som kategorin',
-                              MatchKind.ignored => 'Räknas inte med enligt Fält på Z-rapport',
-                              _ => 'Enligt Fält på Z-rapport',
-                            },
-                            style: Theme.of(context).textTheme.bodySmall),
-                    ],
-                  ),
+                  child: Text(r.fromReport ? r.label : (assigned?.name ?? r.label),
+                      style: Theme.of(context).textTheme.bodyLarge),
                 ),
-                SizedBox(
-                  width: 140,
-                  child: TextFormField(
-                    controller: r.amount,
-                    enabled: _editing,
-                    textAlign: TextAlign.right,
-                    style: moneyStyle,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                    decoration: const InputDecoration(suffixText: 'kr', isDense: true),
-                    validator: (v) => (v ?? '').trim().isEmpty || Money.parse(v!) != null ? null : 'Fel belopp',
-                    onChanged: _changed,
-                  ),
-                ),
+                if (_editing)
+                  SizedBox(
+                    width: 130,
+                    child: TextFormField(
+                      controller: r.amount,
+                      textAlign: TextAlign.right,
+                      style: moneyStyle,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      decoration: const InputDecoration(suffixText: 'kr', isDense: true),
+                      validator: (v) => (v ?? '').trim().isEmpty || Money.parse(v!) != null ? null : 'Fel belopp',
+                      onChanged: _changed,
+                    ),
+                  )
+                else
+                  Text(Money.parse(r.amount.text)?.format() ?? '–',
+                      style: moneyStyle.copyWith(fontWeight: FontWeight.w500)),
               ],
             ),
-            const SizedBox(height: 6),
             Row(
               children: [
-                const Text('Räknas som: '),
+                Text('Räknas som ', style: Theme.of(context).textTheme.bodySmall),
                 Expanded(
-                  child: DropdownButton<int>(
-                    isExpanded: true,
-                    value: r.categoryId ?? -1,
-                    items: [
-                      for (final c in cats) DropdownMenuItem(value: c.id, child: Text('${c.name} (${c.vat.label})')),
-                      const DropdownMenuItem(value: -1, child: Text('Räknas inte med')),
-                    ],
-                    onChanged: !_editing && r.categoryId != null && !r.userAssigned
-                        ? null
-                        : (v) => setState(() {
-                              r.categoryId = v == -1 ? null : v;
-                              r.userAssigned = true;
-                              _edited = true;
-                            }),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      isExpanded: true,
+                      isDense: true,
+                      style: Theme.of(context).textTheme.bodySmall,
+                      value: r.categoryId ?? -1,
+                      items: [
+                        for (final c in cats) DropdownMenuItem(value: c.id, child: Text('${c.name} · ${c.vat.label}')),
+                        const DropdownMenuItem(value: -1, child: Text('Räknas inte med')),
+                      ],
+                      onChanged: !_editing && r.categoryId != null && !r.userAssigned
+                          ? null
+                          : (v) => setState(() {
+                                r.categoryId = v == -1 ? null : v;
+                                r.userAssigned = true;
+                                _edited = true;
+                              }),
+                    ),
                   ),
                 ),
                 if (_editing && !r.fromReport)
                   IconButton(
                     tooltip: 'Ta bort raden',
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(AppIcons.close),
                     onPressed: () => setState(() {
                       _rows.remove(r);
                       _edited = true;
@@ -492,9 +504,13 @@ class _ZReviewPageState extends State<ZReviewPage> {
               Text(ok ? 'Uppgifterna stämmer' : 'Varning: differens ${(detailed - reported!).format()}',
                   style: TextStyle(fontWeight: FontWeight.bold, color: ok ? AppTheme.ok : AppTheme.warning)),
             if (check != null) Text(check.message),
-            if (ignored > 0)
-              Text('$ignored ${ignored == 1 ? 'rad räknas' : 'rader räknas'} inte med.',
-                  style: Theme.of(context).textTheme.bodySmall),
+            if (ignored > 0) ...[
+              const SizedBox(height: 6),
+              Text('Räknas inte med:', style: Theme.of(context).textTheme.bodySmall),
+              for (final r in _rows.where((r) => r.categoryId == null && (Money.parse(r.amount.text)?.ore ?? 0) != 0))
+                Text('• ${r.label}: ${Money.parse(r.amount.text)!.format()}',
+                    style: Theme.of(context).textTheme.bodySmall),
+            ],
           ],
         ),
       ),

@@ -157,8 +157,10 @@ class OcrResult {
   /// Repairs a common OCR slip on receipts: a space next to the decimal
   /// comma ("598, 90" or "598 ,90" for 598,90), which would otherwise be read
   /// as two numbers.
+  ///
+  /// A "|" between digits is a misread 1 ("43|1,30").
   static String cleanOcrText(String s) =>
-      s.replaceAllMapped(RegExp(r'(\d)\s?([,.])\s(\d{2})(?![\d,.])'), (m) => '${m[1]}${m[2]}${m[3]}').replaceAllMapped(
+      s.replaceAllMapped(RegExp(r'(?<=\d)\|(?=[\d,])'), (m) => '1').replaceAllMapped(RegExp(r'(\d)\s?([,.])\s(\d{2})(?![\d,.])'), (m) => '${m[1]}${m[2]}${m[3]}').replaceAllMapped(
           RegExp(r'(\d)\s([,.])(\d{2})(?![\d,.])'), (m) => '${m[1]}${m[2]}${m[3]}');
 
   List<List<OcrLine>> _group(List<OcrLine> kept, double slope) {

@@ -1,11 +1,12 @@
 import 'text_patterns.dart';
 
-enum DocumentType { invoice, zReport, unknown }
+enum DocumentType { invoice, zReport, onlineSale, unknown }
 
 extension DocumentTypeText on DocumentType {
   String get label => switch (this) {
         DocumentType.invoice => 'Faktura',
         DocumentType.zReport => 'Z-rapport',
+        DocumentType.onlineSale => 'Onlineförsäljning',
         DocumentType.unknown => 'Annat',
       };
 }

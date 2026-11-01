@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app_icons.dart';
+
 import '../../ai/gemini_client.dart';
 import '../../app/app_controller.dart';
 
@@ -101,7 +103,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               helperText: 'Skapa en nyckel på aistudio.google.com under "Get API key".',
               suffixIcon: IconButton(
                 tooltip: _showKey ? 'Dölj' : 'Visa',
-                icon: Icon(_showKey ? Icons.visibility_off : Icons.visibility),
+                icon: Icon(_showKey ? AppIcons.visibilityOff : AppIcons.visibility),
                 onPressed: () => setState(() => _showKey = !_showKey),
               ),
             ),

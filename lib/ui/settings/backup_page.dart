@@ -1,6 +1,8 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../app_icons.dart';
+
 import '../../app/app_controller.dart';
 import '../../domain/dates.dart';
 import '../../export/backup.dart';
@@ -131,13 +133,13 @@ class _BackupPageState extends State<BackupPage> {
             if (_busy) const LinearProgressIndicator(),
             const SizedBox(height: 8),
             FilledButton.icon(
-              icon: const Icon(Icons.save_alt),
+              icon: const Icon(AppIcons.save),
               label: const Text('Exportera säkerhetskopia'),
               onPressed: _busy ? null : _export,
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
-              icon: const Icon(Icons.restore),
+              icon: const Icon(AppIcons.restore),
               label: const Text('Importera säkerhetskopia'),
               onPressed: _busy ? null : _import,
             ),

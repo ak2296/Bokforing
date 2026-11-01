@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app_icons.dart';
+
 import '../../domain/dates.dart';
 import '../../domain/money.dart';
 import '../../domain/text_patterns.dart';
@@ -17,7 +19,7 @@ class ConfidenceBadge extends StatelessWidget {
     final high = c == Confidence.high;
     return Tooltip(
       message: c.label,
-      child: Icon(high ? Icons.check_circle : Icons.warning_amber_rounded,
+      child: Icon(high ? AppIcons.checkCircle : AppIcons.warning,
           color: high ? AppTheme.ok : AppTheme.warning, semanticLabel: c.label),
     );
   }
@@ -97,7 +99,7 @@ class DateField extends StatelessWidget {
         decoration: _decoration(context, label, confidence, hint: 'ÅÅÅÅ-MM-DD').copyWith(
           suffixIcon: IconButton(
             tooltip: 'Välj datum',
-            icon: const Icon(Icons.calendar_month_outlined),
+            icon: const Icon(AppIcons.calendar),
             onPressed: !enabled
                 ? null
                 : () async {

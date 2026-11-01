@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app_icons.dart';
+
 import '../../app/app_controller.dart';
 import '../../domain/dates.dart';
 import '../../domain/models.dart';
@@ -28,8 +30,9 @@ class MonthData {
   final List<Category> categories;
   final List<DailySales> sales;
   final List<Invoice> invoices;
+  final List<OnlineSale> online;
   final MonthlyReport report;
-  const MonthData(this.profile, this.categories, this.sales, this.invoices, this.report);
+  const MonthData(this.profile, this.categories, this.sales, this.invoices, this.online, this.report);
 
   static Future<MonthData> load(AppController c, YearMonth ym) async {
     final repo = c.repo;
@@ -37,9 +40,10 @@ class MonthData {
     final cats = await repo.categories(includeInactive: true);
     final sales = await repo.dailySalesBetween(ym.firstDay, ym.lastDay);
     final invoices = await repo.invoicesBetween(ym.firstDay, ym.lastDay);
+    final online = await repo.onlineSalesBetween(ym.firstDay, ym.lastDay);
     final report = const ReportGenerator().monthly(
-        year: ym.year, month: ym.month, categories: cats, sales: sales, invoices: invoices);
-    return MonthData(profile, cats, sales, invoices, report);
+        year: ym.year, month: ym.month, categories: cats, sales: sales, invoices: invoices, online: online);
+    return MonthData(profile, cats, sales, invoices, online, report);
   }
 }
 
@@ -54,12 +58,12 @@ class MonthSwitcher extends StatelessWidget {
         children: [
           IconButton(
               tooltip: 'Föregående månad',
-              icon: const Icon(Icons.chevron_left),
+              icon: const Icon(AppIcons.chevronLeft),
               onPressed: () => onChanged(value.previous)),
           Text(value.title, style: Theme.of(context).textTheme.titleMedium),
           IconButton(
               tooltip: 'Nästa månad',
-              icon: const Icon(Icons.chevron_right),
+              icon: const Icon(AppIcons.chevronRight),
               onPressed: () => onChanged(value.next)),
         ],
       );

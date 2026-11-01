@@ -39,6 +39,7 @@ class Backup {
     'invoices',
     'invoice_vat',
     'supplier_payment_kinds',
+    'online_sales',
     'audit_log',
   ];
 

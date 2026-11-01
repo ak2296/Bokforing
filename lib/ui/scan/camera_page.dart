@@ -3,12 +3,17 @@ import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
+import '../app_icons.dart';
+
+const _accent = Color(0xFF5FE0B0);
+const _background = Color(0xFF0C1411);
+
 /// Document camera with a framing guide. Returns the captured file paths
-/// (several in "Långt dokument" mode) or null when cancelled. It never takes
-/// a photo by itself; when the document looks steady it only suggests it.
+/// (several with "I delar") or null when cancelled. It never takes a photo
+/// by itself; when the document looks steady it only suggests it.
 class CameraPage extends StatefulWidget {
-  final bool longDocument;
-  const CameraPage({super.key, this.longDocument = false});
+  final bool online;
+  const CameraPage({super.key, this.online = false});
 
   @override
   State<CameraPage> createState() => _CameraPageState();
@@ -21,6 +26,9 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
   bool _busy = false;
   bool _streaming = false;
   final List<String> _shots = [];
+
+  /// "I delar": several photos of one long document.
+  bool _inParts = false;
 
   bool _detected = false;
   bool _steady = false;
@@ -167,7 +175,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
       await _stopStream();
       final file = await c.takePicture();
       _shots.add(file.path);
-      if (!widget.longDocument) {
+      if (!_inParts) {
         if (mounted) Navigator.pop(context, List<String>.of(_shots));
         return;
       }
@@ -189,100 +197,126 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
     Widget body;
     if (_permissionDenied) {
       body = _Message(
-        icon: Icons.no_photography_outlined,
+        icon: AppIcons.cameraOff,
         text: 'Appen behöver tillgång till kameran för att skanna dokument.\n\n'
             'Om du tidigare har nekat: öppna telefonens Inställningar → Appar → Bokföringsassistent → Behörigheter och tillåt Kamera.',
         action: FilledButton(onPressed: _retry, child: const Text('Försök igen')),
       );
     } else if (_error != null) {
       body = _Message(
-          icon: Icons.error_outline,
+          icon: AppIcons.error,
           text: _error!,
           action: FilledButton(onPressed: _retry, child: const Text('Försök igen')));
     } else if (c == null || !c.value.isInitialized) {
       body = const Center(child: CircularProgressIndicator());
     } else {
+      final preview = c.value.previewSize;
+      final hint = _steady
+          ? 'Dokument upptäckt – håll stilla och tryck på knappen'
+          : _detected
+              ? 'Dokument upptäckt'
+              : widget.online
+                  ? 'Placera partnerns betalningsbekräftelse inom ramen'
+                  : 'Placera fakturan eller Z-rapporten inom ramen';
       body = Column(
         children: [
+          // The frame takes all the room between the title and the button.
           Expanded(
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1 / c.value.aspectRatio,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    CameraPreview(c),
-                    CustomPaint(painter: _FramePainter(_detected)),
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      top: 12,
-                      child: _Hint(
-                        _steady
-                            ? 'Dokument upptäckt – håll stilla och tryck på knappen'
-                            : _detected
-                                ? 'Dokument upptäckt'
-                                : 'Placera fakturan eller Z-rapporten inom ramen',
-                        highlight: _detected,
+                    FittedBox(
+                      fit: BoxFit.cover,
+                      clipBehavior: Clip.hardEdge,
+                      child: SizedBox(
+                        width: preview?.height ?? 720,
+                        height: preview?.width ?? 1280,
+                        child: CameraPreview(c),
                       ),
                     ),
+                    CustomPaint(painter: _FramePainter(_detected)),
+                    Positioned(left: 40, right: 40, top: 22, child: _Hint(hint, highlight: _detected)),
                   ],
                 ),
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            padding: const EdgeInsets.fromLTRB(8, 12, 8, 14),
             child: Row(
               children: [
                 Expanded(
-                  child: widget.longDocument
-                      ? Text(
-                          _shots.isEmpty
-                              ? 'Börja överst. Ta en bild i taget med lite överlapp.'
-                              : '${_shots.length} ${_shots.length == 1 ? 'bild' : 'bilder'} tagna',
-                          style: const TextStyle(color: Colors.white))
-                      : const SizedBox.shrink(),
+                  child: _shots.isNotEmpty
+                      ? Text('${_shots.length} ${_shots.length == 1 ? 'bild' : 'bilder'}',
+                          textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 13))
+                      : _ModeButton(
+                          icon: AppIcons.file,
+                          label: 'Hela',
+                          selected: !_inParts,
+                          onTap: () => setState(() => _inParts = false),
+                        ),
                 ),
-                SizedBox(
-                  width: 76,
-                  height: 76,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      shape: const CircleBorder(),
-                      backgroundColor: _steady ? Colors.greenAccent.shade400 : Colors.white,
-                      foregroundColor: Colors.black,
-                      padding: EdgeInsets.zero,
+                GestureDetector(
+                  onTap: _busy ? null : _capture,
+                  child: Semantics(
+                    button: true,
+                    label: 'Ta bild',
+                    child: Container(
+                      width: 68,
+                      height: 68,
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: _steady ? _accent : Colors.white, width: 3),
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: _steady ? _accent : Colors.white),
+                        child: _busy
+                            ? const Padding(padding: EdgeInsets.all(14), child: CircularProgressIndicator(strokeWidth: 3))
+                            : null,
+                      ),
                     ),
-                    onPressed: _busy ? null : _capture,
-                    child: _busy
-                        ? const CircularProgressIndicator()
-                        : const Icon(Icons.camera_alt, size: 34, semanticLabel: 'Ta bild'),
                   ),
                 ),
                 Expanded(
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: widget.longDocument && _shots.isNotEmpty
-                        ? FilledButton.tonal(
+                  child: _shots.isNotEmpty
+                      ? Center(
+                          child: FilledButton.tonal(
                             onPressed: _busy ? null : () => Navigator.pop(context, List<String>.of(_shots)),
                             child: const Text('Klar'),
-                          )
-                        : const SizedBox.shrink(),
-                  ),
+                          ),
+                        )
+                      : _ModeButton(
+                          icon: AppIcons.files,
+                          label: 'I delar',
+                          selected: _inParts,
+                          onTap: () => setState(() => _inParts = true),
+                        ),
                 ),
               ],
             ),
           ),
+          if (_inParts && _shots.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child: Text('Börja överst. Ta en bild i taget med lite överlapp.',
+                  style: TextStyle(color: Colors.white70, fontSize: 12)),
+            ),
         ],
       );
     }
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _background,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: _background,
         foregroundColor: Colors.white,
-        title: Text(widget.longDocument ? 'Långt dokument' : 'Skanna dokument'),
+        toolbarHeight: 44,
+        titleTextStyle: const TextStyle(fontFamily: 'Inter', color: Colors.white, fontSize: 14),
+        title: Text(widget.online ? 'Skanna onlineförsäljning' : 'Skanna dokument'),
       ),
       body: SafeArea(child: body),
     );
@@ -305,24 +339,60 @@ class _Hint extends StatelessWidget {
       );
 }
 
+class _ModeButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ModeButton({required this.icon, required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? _accent : const Color(0xFFAEB9B3);
+    return InkResponse(
+      onTap: onTap,
+      child: Semantics(
+        selected: selected,
+        button: true,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: selected ? FontWeight.w500 : FontWeight.w400)),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Corner markers instead of a full box, so the document stays visible.
 class _FramePainter extends CustomPainter {
   final bool detected;
   const _FramePainter(this.detected);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTRB(size.width * 0.06, size.height * 0.1, size.width * 0.94, size.height * 0.92);
-    final shade = Paint()..color = Colors.black.withValues(alpha: 0.35);
-    final path = Path()
-      ..addRect(Offset.zero & size)
-      ..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(12)))
-      ..fillType = PathFillType.evenOdd;
-    canvas.drawPath(path, shade);
-    final border = Paint()
-      ..color = detected ? Colors.greenAccent : Colors.white
+    const inset = 10.0, arm = 28.0, r = 12.0;
+    final paint = Paint()
+      ..color = detected ? _accent : Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(12)), border);
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    final right = size.width - inset, bottom = size.height - inset;
+    void corner(double x, double y, double dx, double dy) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(x, y + dy * arm)
+          ..lineTo(x, y + dy * r)
+          ..quadraticBezierTo(x, y, x + dx * r, y)
+          ..lineTo(x + dx * arm, y),
+        paint,
+      );
+    }
+
+    corner(inset, inset, 1, 1);
+    corner(right, inset, -1, 1);
+    corner(inset, bottom, 1, -1);
+    corner(right, bottom, -1, -1);
   }
 
   @override
