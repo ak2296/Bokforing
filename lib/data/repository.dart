@@ -502,22 +502,6 @@ class Repository {
     return [for (final r in rows) await _invoiceFromRow(db, r)];
   }
 
-  /// Whether a supplier's documents are receipts ('kvitto', paid) or
-  /// invoices to pay ('faktura'), as chosen by the user earlier.
-  Future<String?> supplierPaymentKind(String supplier) async {
-    final s = normalizeLabel(supplier);
-    if (s.isEmpty) return null;
-    final rows = await db.query('supplier_payment_kinds', where: 'supplier = ?', whereArgs: [s]);
-    return rows.isEmpty ? null : rows.first['kind'] as String;
-  }
-
-  Future<void> rememberSupplierPaymentKind(String supplier, String kind) async {
-    final s = normalizeLabel(supplier);
-    if (s.isEmpty) return;
-    await db.insert('supplier_payment_kinds', {'supplier': s, 'kind': kind, 'created_at': _now()},
-        conflictAlgorithm: ConflictAlgorithm.replace);
-  }
-
   Future<Invoice?> _loadInvoice(DatabaseExecutor ex, int id) async {
     final rows = await ex.query('invoices', where: 'id = ?', whereArgs: [id]);
     return rows.isEmpty ? null : _invoiceFromRow(ex, rows.first);

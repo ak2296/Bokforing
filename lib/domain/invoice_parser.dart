@@ -260,6 +260,12 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       }
     }
 
+    // A reinterpreted amount is never "sure", however well the sums fit.
+    if (vat.note != null && vatTotal.value != null) {
+      vatTotal = Extracted(vatTotal.value!, Confidence.medium, source: vatTotal.source, note: vat.note);
+      notes.add(vat.note!);
+    }
+
     final dates = _dates(rows, norm);
     final ocrNumber = _labelledValue(rows, norm, ['ocr-nummer', 'ocr nr', 'ocrnr', 'ocr'], RegExp(r'\d(?: ?\d){1,24}'));
     final ocrReference = ocrNumber.hasValue
@@ -313,15 +319,19 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
   _VatInfo? _sumCheck(List<TextRow> rows, List<String> norm, List<TotalCandidate> candidates) {
     final printed = <int>{};
     final vats = <int>{};
+    // A separator can be lost: "58,50" read as "5850". Only digits with no
+    // separator on a VAT row may be read that way, and only if the sums below
+    // then hold, which never happens when 5850 as written already fits.
+    final withoutSeparator = <int, Money>{};
     for (var i = 0; i < rows.length; i++) {
       for (final t in TextPatterns.amounts(rows[i].text)) {
         if (t.value.isZero || t.value.isNegative) continue;
         if (t.hasDecimals) {
           printed.add(t.value.ore);
           vats.add(t.value.ore);
-        } else if (_hasVatWord(norm[i])) {
-          // The separator can be lost: "58,50" read as "5850".
+        } else if (t.plainDigits && t.value >= Money.kr(100) && _hasVatWord(norm[i])) {
           vats.add(t.value.ore ~/ 100);
+          withoutSeparator[t.value.ore ~/ 100] = t.value;
         }
       }
     }
@@ -335,7 +345,12 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
             if ((v - expected).abs() > 3 || v == net) continue;
             if ((net + v - total).abs() >= Money.ignoredDifference.ore) continue;
             final gross = Money(net + v);
-            return _VatInfo([InvoiceVatLine(rate: rate, vat: Money(v), net: Money(net), gross: gross)], null, Money(net), gross, true);
+            final asRead = printed.contains(v) ? null : withoutSeparator[v];
+            return _VatInfo([InvoiceVatLine(rate: rate, vat: Money(v), net: Money(net), gross: gross)], null, Money(net), gross, true,
+                note: asRead == null
+                    ? null
+                    : 'Momsen lästes som ${asRead.ore ~/ 100} utan komma. Den tolkades som ${Money(v).format()} '
+                        'eftersom ${rate.label} av ${Money(net).format()} ger det och summan då stämmer. Kontrollera mot pappret.');
           }
         }
       }
@@ -630,21 +645,6 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       }
     }
     if (requireConsistent) return null;
-    // The separator can be lost or misread: "58,50" as "5850" or "58.500".
-    // The printed base proves which it is.
-    for (var vi = 0; vi < amounts.length; vi++) {
-      for (var bi = 0; bi < amounts.length; bi++) {
-        if (vi == bi || amounts[bi].isZero || amounts[vi].isZero) continue;
-        final expected = VatCalculator.vatFromNet(amounts[bi], rate);
-        for (final divisor in const [100, 1000]) {
-          if (amounts[vi].ore % divisor != 0) continue;
-          final vat = Money(amounts[vi].ore ~/ divisor);
-          if ((expected - vat).abs() <= const Money(3)) {
-            return InvoiceVatLine(rate: rate, vat: vat, net: amounts[bi], gross: amounts[bi] + vat);
-          }
-        }
-      }
-    }
     // Not consistent: keep the last amount as the printed VAT; validation
     // will flag it for the user.
     return InvoiceVatLine(rate: rate, vat: amounts.last);
@@ -938,7 +938,10 @@ class _VatInfo {
   final Money? net;
   final Money? grossSum;
   final bool fromTable;
-  const _VatInfo(this.lines, this.explicitTotal, this.net, this.grossSum, this.fromTable);
+
+  /// Set when an amount was reinterpreted, for the user to check.
+  final String? note;
+  const _VatInfo(this.lines, this.explicitTotal, this.net, this.grossSum, this.fromTable, {this.note});
 }
 
 class _Payment {

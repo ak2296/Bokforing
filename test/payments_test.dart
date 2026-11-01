@@ -90,10 +90,6 @@ void main() {
     expect(paid.paidDate, '2026-11-09');
     expect((await repo.unpaidInvoices()).single.id, later);
     expect((await repo.auditFor('invoice', soon)).map((a) => a['action']), ['create', 'paid']);
-
-    await repo.rememberSupplierPaymentKind('Willys', 'kvitto');
-    expect(await repo.supplierPaymentKind('  WILLYS '), 'kvitto');
-    expect(await repo.supplierPaymentKind('Okänd'), isNull);
     await repo.db.close();
   });
 }

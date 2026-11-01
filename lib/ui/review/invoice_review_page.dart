@@ -62,8 +62,6 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   final _dateKey = GlobalKey();
   final _totalKey = GlobalKey();
   late final TextEditingController _paidDate, _bankgiro, _plusgiro;
-  bool _rememberKind = true;
-  bool _kindLoaded = false;
 
   /// Also true before a total is filled in, when the paper says Kreditnota.
   late bool _isCredit =
@@ -132,20 +130,6 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     repo.vatRates().then((r) {
       if (mounted) setState(() => _rates = r);
     });
-    // The earlier choice for this supplier decides only when the printed
-    // signals are unsure; clear signals win, which also repairs a wrong memory.
-    final p = _d?.payment;
-    if (!_kindLoaded && widget.existing == null && _supplier.text.trim().isNotEmpty && !(p?.isCertain ?? false)) {
-      _kindLoaded = true;
-      repo.supplierPaymentKind(_supplier.text).then((kind) {
-        if (!mounted || kind == null) return;
-        setState(() {
-          _kind = kind == 'kvitto' ? PaymentKind.kvitto : PaymentKind.faktura;
-          _setPaid(kind == 'kvitto' || (p?.paid ?? false), edited: false);
-          _paidReason = '${kind == 'kvitto' ? 'Kvitto' : 'Faktura'} enligt tidigare val för ${_supplier.text.trim()}';
-        });
-      });
-    }
   }
 
   String _reasonFor(PaymentDetection p) {
@@ -296,10 +280,6 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       final toSave = scanId == null ? inv : inv.copyWith(meta: inv.meta.copyWith(scanId: scanId));
       await controller.repo.saveInvoice(toSave);
       if (!toSave.paid && toSave.dueDate != null) await controller.reminders?.requestPermission();
-      if (_rememberKind && inv.supplier.isNotEmpty && !inv.total.isNegative) {
-        await controller.repo
-            .rememberSupplierPaymentKind(inv.supplier, _effectiveKind == PaymentKind.kvitto ? 'kvitto' : 'faktura');
-      }
       controller.dataChanged();
       if (!mounted) return;
       showSaved(context, date: inv.invoiceDate);
@@ -421,11 +401,10 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   }
 
   /// Kvitto (already paid) or faktura (to pay). Pre-filled from the printed
-  /// signals or the supplier's earlier choice; the user always confirms.
+  /// signals; the user always confirms.
   Widget _paymentSection() {
     final t = Theme.of(context).textTheme;
     final paid = _paid;
-    final supplier = _supplier.text.trim();
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -497,14 +476,6 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
                     onChanged: _changed),
               ],
             ],
-            if (widget.existing == null && supplier.isNotEmpty && paid != null)
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                value: _rememberKind,
-                title: Text('Kom ihåg: $supplier skickar ${_effectiveKind == PaymentKind.kvitto ? 'kvitton' : 'fakturor'}'),
-                onChanged: (v) => setState(() => _rememberKind = v ?? false),
-              ),
           ],
         ),
       ),

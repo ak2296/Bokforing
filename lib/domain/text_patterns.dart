@@ -31,7 +31,10 @@ class AmountToken {
   final int start;
   final int end;
   final bool hasDecimals;
-  const AmountToken(this.value, this.start, this.end, this.hasDecimals);
+
+  /// Printed as digits only, with no comma, dot or space: "5850".
+  final bool plainDigits;
+  const AmountToken(this.value, this.start, this.end, this.hasDecimals, {this.plainDigits = false});
 }
 
 class TextPatterns {
@@ -60,7 +63,7 @@ class TextPatterns {
       raw = raw.trim();
       final v = Money.parse(raw);
       if (v == null) continue;
-      out.add(AmountToken(v, m.start, m.end, hasDecimals));
+      out.add(AmountToken(v, m.start, m.end, hasDecimals, plainDigits: RegExp(r'^\d+$').hasMatch(raw)));
     }
     return out;
   }

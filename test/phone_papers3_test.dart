@@ -247,6 +247,7 @@ void main() {
     expect(d.total.value, Money.kr(1034));
     expect(d.total.confidence, Confidence.high);
     expect(d.vatTotal.value, const Money(5850));
+    expect(d.vatTotal.confidence, Confidence.medium);
     expect(d.vatLines.single.rate, VatRate.six);
     expect(d.net, Money.kr(975));
     expect(d.date.value, '2026-10-23');
@@ -303,10 +304,34 @@ void main() {
       expect(TextPatterns.amounts('0775-700 500'), isEmpty);
     });
 
-    test('a separator lost in the VAT amount is repaired from the base', () {
+    test('a lost separator is read only when base and total prove it, and is flagged', () {
       final d = _inv('Faktura\nMoms 25% (100,00)   2500\nAtt betala   125,00');
       expect(d.vatTotal.value, Money.kr(25));
+      expect(d.vatTotal.confidence, Confidence.medium);
       expect(d.total.value, Money.kr(125));
+      expect(d.notes.join(), contains('2500'));
+    });
+
+    test('a real VAT of 5850 stays 5850', () {
+      final d = _inv('Faktura\nMoms 25% (23 400,00)   5850\nAtt betala   29 250,00');
+      expect(d.vatTotal.value, Money.kr(5850));
+      expect(d.total.value, Money.kr(29250));
+    });
+
+    test('5850 is not changed without a base and a total that prove it', () {
+      expect(_inv('Faktura\nMoms 6%   5850\nAtt betala   1034,00').vatTotal.value, Money.kr(5850));
+      expect(_inv('Faktura\nMoms 6% (975,00)   5850\nAtt betala   9000,00').vatTotal.value, Money.kr(5850));
+    });
+
+    test('an amount written with a comma or spaces is never reinterpreted', () {
+      expect(_inv('Faktura\nMoms 6% (975,00)   5850,00\nAtt betala   1034,00').vatTotal.value, Money.kr(5850));
+      expect(_inv('Faktura\nMoms 6% (975,00)   5 850\nAtt betala   1034,00').vatTotal.value, Money.kr(5850));
+    });
+
+    test('Köpnota decides nothing: the same supplier can send a faktura', () {
+      final d = _inv('Axfood Snabbgross AB\nKÖPNOTA Nr: 85721\nFaktura\nFörfallodatum 2026-11-20\nBankgiro: 123-4567\nAtt betala   500,00');
+      expect(d.payment!.kind, PaymentKind.faktura);
+      expect(d.payment!.paid, isFalse);
     });
   });
 }
