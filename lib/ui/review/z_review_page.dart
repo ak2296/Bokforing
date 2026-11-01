@@ -366,9 +366,11 @@ class _ZReviewPageState extends State<ZReviewPage> {
     final suggested = _cat(r.suggestedId);
     final assigned = _cat(r.categoryId);
     final needsConfirm = r.categoryId == null && suggested != null && !r.userAssigned;
+    // A line that is not counted can always be assigned, without "Redigera".
+    final unassigned = r.categoryId == null && !r.userAssigned && r.match != MatchKind.ignored;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      color: needsConfirm ? AppTheme.warning.withValues(alpha: 0.08) : null,
+      color: unassigned ? AppTheme.warning.withValues(alpha: 0.08) : null,
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: Column(
@@ -420,7 +422,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
                       for (final c in cats) DropdownMenuItem(value: c.id, child: Text('${c.name} (${c.vat.label})')),
                       const DropdownMenuItem(value: -1, child: Text('Räknas inte med')),
                     ],
-                    onChanged: !_editing && !needsConfirm
+                    onChanged: !_editing && r.categoryId != null && !r.userAssigned
                         ? null
                         : (v) => setState(() {
                               r.categoryId = v == -1 ? null : v;
