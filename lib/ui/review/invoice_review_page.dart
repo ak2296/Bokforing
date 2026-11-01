@@ -65,7 +65,9 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   bool _rememberKind = true;
   bool _kindLoaded = false;
 
-  bool get _isCredit => Money.parse(_total.text)?.isNegative ?? false;
+  /// Also true before a total is filled in, when the paper says Kreditnota.
+  late bool _isCredit =
+      (widget.draft?.isCredit ?? false) || (widget.existing?.total.isNegative ?? false);
 
   /// Flips the sign of total, VAT and VAT lines. The amounts themselves are
   /// unchanged; only whether they are added or subtracted.
@@ -77,6 +79,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     }
 
     setState(() {
+      _isCredit = credit;
       sign(_total);
       sign(_vat);
       for (final r in _vatRows) {
@@ -146,6 +149,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   }
 
   String _reasonFor(PaymentDetection p) {
+    if (widget.draft?.isCredit ?? false) return 'Kreditnota: det finns inget att betala';
     if (p.reasons.contains(PaymentDetector.possibleStamp)) return 'Verkar ha en stämpel BETALD. Kontrollera.';
     if (p.reasons.contains(PaymentDetector.cashPayment)) return 'Betalningsvillkor: Kontant. Kontrollera.';
     if (p.kind == PaymentKind.kvitto) return 'Ser ut som ett kvitto (redan betalt)';
@@ -200,15 +204,19 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   void _changed([String? _]) => setState(() => _edited = true);
 
   Invoice? _build() {
-    final total = Money.parse(_total.text);
-    if (total == null || !SwedishDates.isValidIso(_date.text.trim())) return null;
-    final vat = _vat.text.trim().isEmpty ? Money.zero : Money.parse(_vat.text);
-    if (vat == null) return null;
+    // On a kreditnota every amount counts as minus, also one typed without it.
+    Money signed(Money m) => _isCredit ? -m.abs() : m;
+    final parsedTotal = Money.parse(_total.text);
+    if (parsedTotal == null || !SwedishDates.isValidIso(_date.text.trim())) return null;
+    final total = signed(parsedTotal);
+    final parsedVat = _vat.text.trim().isEmpty ? Money.zero : Money.parse(_vat.text);
+    if (parsedVat == null) return null;
+    final vat = signed(parsedVat);
     final lines = <InvoiceVatLine>[];
     for (final r in _vatRows) {
       final v = Money.parse(r.amount.text);
       if (v == null) return null;
-      lines.add(InvoiceVatLine(rate: r.rate, vat: v, net: r.net, gross: r.gross, calculated: r.calculated));
+      lines.add(InvoiceVatLine(rate: r.rate, vat: signed(v), net: r.net, gross: r.gross, calculated: r.calculated));
     }
     final source = widget.existing?.meta.source ?? (widget.fromAi ? RecordSource.ai : widget.scan == null ? RecordSource.manual : RecordSource.ocr);
     return Invoice(
@@ -327,7 +335,12 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            DocTypeHeader(label: _effectiveKind == PaymentKind.kvitto && _paid == true ? 'Kvitto' : 'Faktura'),
+            DocTypeHeader(
+                label: _isCredit
+                    ? 'Kreditnota'
+                    : _effectiveKind == PaymentKind.kvitto && _paid == true
+                        ? 'Kvitto'
+                        : 'Faktura'),
             if (widget.scan != null && !widget.fromAi) AiOfferCard(scan: widget.scan!, reasons: _aiReasons),
             if (d != null)
               for (final n in d.notes) NoteCard(n),
@@ -366,7 +379,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
               key: _totalKey,
               child: MoneyField(controller: _total, label: 'Summa (att betala)', confidence: conf(d?.total), enabled: _editing, onChanged: _changed),
             ),
-            if (d != null && d.totalCandidates.length > 1) _alternatives(d),
+            if (d != null && d.totalCandidates.any((c) => c.value != d.total.value?.abs())) _alternatives(d),
             const SizedBox(height: 12),
             MoneyField(
               controller: _vat,
@@ -499,7 +512,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   }
 
   Widget _alternatives(InvoiceDraft d) {
-    final seen = <Money>{};
+    final seen = <Money>{if (d.total.value != null) d.total.value!.abs()};
     final options = d.totalCandidates.where((c) => seen.add(c.value)).take(4).toList();
     return Padding(
       padding: const EdgeInsets.only(top: 6),

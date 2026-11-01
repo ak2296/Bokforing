@@ -122,6 +122,10 @@ class PaymentDetector {
     // "Kontant" mean paid on delivery: both are only suggestions.
     final maybeStamp = !stamped && norm.any(isStampRow);
     final cashTerms = norm.any((n) => RegExp(r'^(betalningsvillkor\W*)?kontant\W*$').hasMatch(n));
+    // "Kontant 706.00": the amount was paid in cash, as on a receipt. So is a
+    // paper whose very title is "Kvitto".
+    if (norm.any((n) => RegExp(r'^kontant\s+\d[\d\s.,]*(kr|sek)?$').hasMatch(n))) receipt += 3;
+    if (norm.take(3).any((n) => n == 'kvitto')) receipt += 3;
     if (maybeStamp) reasons.add(possibleStamp);
     if (cashTerms) reasons.add(cashPayment);
 

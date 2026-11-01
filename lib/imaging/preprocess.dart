@@ -144,7 +144,7 @@ PreprocessResult preprocessDocument(PreprocessRequest req) {
   }
 
   final enhanced = _enhance(gray, image.width, image.height);
-  final out = img.Image(width: image.width, height: image.height, numChannels: 1);
+  final out = img.Image(width: image.width, height: image.height);
   for (var y = 0; y < image.height; y++) {
     for (var x = 0; x < image.width; x++) {
       final v = enhanced[y * image.width + x];

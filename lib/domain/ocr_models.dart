@@ -129,14 +129,18 @@ class OcrResult {
   /// ML Kit's line angles; since its sign convention is not documented, both
   /// directions (and no correction) are tried and the one that pairs the
   /// most lines wins.
-  List<TextRow> rows() {
+  ///
+  /// On a curved page the amount column can sit a whole line off from its
+  /// names: [rightShift] moves amount-only lines at the right by that many
+  /// pixels before grouping (see [rowShifts]).
+  List<TextRow> rows({double rightShift = 0}) {
     final kept = lines.where((l) => !isMarginText(l)).toList();
     final angles = kept.map((l) => l.angle).whereType<double>().where((a) => a.abs() < 15).toList()..sort();
     final median = angles.isEmpty ? 0.0 : angles[angles.length ~/ 2];
     final candidates = median.abs() < 0.2 ? [0.0] : [0.0, median, -median];
     List<List<OcrLine>>? best;
     for (final deg in candidates) {
-      final g = _group(kept, math.tan(deg * math.pi / 180));
+      final g = _group(kept, math.tan(deg * math.pi / 180), rightShift);
       if (best == null || g.length < best.length) best = g;
     }
     final groups = best ?? const <List<OcrLine>>[];
@@ -160,12 +164,42 @@ class OcrResult {
   ///
   /// A "|" between digits is a misread 1 ("43|1,30").
   static String cleanOcrText(String s) =>
-      s.replaceAllMapped(RegExp(r'(?<=\d)\|(?=[\d,])'), (m) => '1').replaceAllMapped(RegExp(r'(\d)\s?([,.])\s(\d{2})(?![\d,.])'), (m) => '${m[1]}${m[2]}${m[3]}').replaceAllMapped(
+      s
+          // The letter O for zero after a decimal comma: "198, OO".
+          .replaceAllMapped(RegExp(r'(\d[,.]\s?)[Oo]{2}\b'), (m) => '${m[1]}00')
+          .replaceAllMapped(RegExp(r'(?<=\d)\|(?=[\d,])'), (m) => '1')
+          .replaceAllMapped(RegExp(r'(\d)\s?([,.])\s(\d{2})(?![\d,.])'), (m) => '${m[1]}${m[2]}${m[3]}')
+          .replaceAllMapped(
           RegExp(r'(\d)\s([,.])(\d{2})(?![\d,.])'), (m) => '${m[1]}${m[2]}${m[3]}');
 
-  List<List<OcrLine>> _group(List<OcrLine> kept, double slope) {
+  static bool _isAmountOnly(String text) {
+    final t = text.replaceAll(RegExp(r'\b(kr|sek)\b', caseSensitive: false), '');
+    return RegExp(r'\d').hasMatch(t) && !RegExp(r'[A-Za-zÅÄÖåäö]{2,}').hasMatch(t);
+  }
+
+  bool _isRightAmount(OcrLine l, double pageRight) =>
+      _isAmountOnly(l.text) && (l.box.left + l.box.right) / 2 > pageRight / 2;
+
+  /// Offsets worth trying for [rows]: up to two lines each way. Empty when
+  /// the page has no separate amount column.
+  List<double> rowShifts() {
+    final kept = lines.where((l) => !isMarginText(l)).toList();
+    if (kept.isEmpty) return const [];
+    final pageRight = kept.map((l) => l.box.right).reduce(math.max);
+    if (!kept.any((l) => _isRightAmount(l, pageRight))) return const [];
+    final heights = kept.map((l) => l.box.height).toList()..sort();
+    final h = heights[heights.length ~/ 2];
+    if (h <= 0) return const [];
+    return [for (final f in const [1.0, -1.0, 0.5, -0.5, 1.5, -1.5, 2.0, -2.0]) f * h];
+  }
+
+  List<List<OcrLine>> _group(List<OcrLine> kept, double slope, double rightShift) {
     final midX = kept.isEmpty ? 0.0 : kept.map((l) => (l.box.left + l.box.right) / 2).reduce((a, b) => a + b) / kept.length;
-    double y(OcrLine l) => l.box.centerY - slope * ((l.box.left + l.box.right) / 2 - midX);
+    final pageRight = kept.isEmpty ? 0.0 : kept.map((l) => l.box.right).reduce(math.max);
+    double y(OcrLine l) =>
+        l.box.centerY -
+        slope * ((l.box.left + l.box.right) / 2 - midX) -
+        (rightShift != 0 && _isRightAmount(l, pageRight) ? rightShift : 0);
     final sorted = [...kept]..sort((a, b) => y(a).compareTo(y(b)));
     final groups = <List<OcrLine>>[];
     for (final line in sorted) {

@@ -72,6 +72,7 @@ class TextPatterns {
     String blank(Match m) => ' ' * m.group(0)!.length;
     s = s.replaceAllMapped(RegExp(r'\d{4}[-./]\d{1,2}[-./]\d{1,2}'), blank);
     s = s.replaceAllMapped(RegExp(r'\b\d{1,2}[-./]\d{1,2}[-./]\d{2,4}\b'), blank);
+    s = s.replaceAllMapped(RegExp(r'\b\d{1,2}[./]\d{1,2},\d{4}\b'), blank);
     s = s.replaceAllMapped(RegExp(r'(\d{1,2})\.?\s+([A-Za-zåäÅÄ]{3,9})\.?,?\s+\d{4}'),
         (m) => _month(m.group(2)!) == null ? m.group(0)! : blank(m));
     s = s.replaceAllMapped(RegExp(r'\b([A-Za-zåäÅÄ]{3,9})\.?\s+\d{1,2},?\s+\d{4}'),
@@ -96,10 +97,13 @@ class TextPatterns {
       final iso = _iso(m.group(1)!, m.group(2)!, m.group(3)!);
       if (iso != null) found.add((m.start, iso));
     }
-    for (final m in RegExp(r'(?<!\d)(\d{1,2})[-./](\d{1,2})[-./](\d{4}|\d{2})(?!\d)').allMatches(row)) {
-      var y = m.group(3)!;
-      if (y.length == 2) y = '20$y';
-      final iso = _iso(y, m.group(2)!, m.group(1)!);
+    // Day first with a full year; a misread comma is accepted ("24.09,2026").
+    for (final m in RegExp(r'(?<!\d)(\d{1,2})[-./,](\d{1,2})[-./,](\d{4})(?!\d)').allMatches(row)) {
+      final iso = _iso(m.group(3)!, m.group(2)!, m.group(1)!);
+      if (iso != null) found.add((m.start, iso));
+    }
+    for (final m in RegExp(r'(?<!\d)(\d{1,2})([-./])(\d{1,2})[-./](\d{2})(?!\d)').allMatches(row)) {
+      final iso = _shortDate(m.group(1)!, m.group(2)!, m.group(3)!, m.group(4)!);
       if (iso != null) found.add((m.start, iso));
     }
     // Month names, Swedish and English: "28 okt 2026", "28 October 2026",
@@ -124,6 +128,18 @@ class TextPatterns {
       if (!out.contains(f.$2)) out.add(f.$2);
     }
     return out;
+  }
+
+  /// A two-digit year: "26-10-07" is year first in Sweden, "09/10/26" day
+  /// first. The reading with a realistic year wins; 2007 or 2031 is not one.
+  static String? _shortDate(String a, String sep, String month, String c) {
+    final latest = DateTime.now().year + 1;
+    String? read(String yy, String dd) {
+      final year = 2000 + int.parse(yy);
+      return year >= 2015 && year <= latest ? _iso('$year', month, dd) : null;
+    }
+
+    return sep == '-' ? (read(a, c) ?? read(c, a)) : (read(c, a) ?? read(a, c));
   }
 
   static const _months = {

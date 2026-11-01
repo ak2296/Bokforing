@@ -39,9 +39,9 @@ void main() {
     expect(d.sumWith(const {}), Money.kr(3652));
   });
 
-  test('a misread line close to a rule is only suggested', () {
+  test('a line two letters off a rule is only suggested', () {
     final d = const ZReportParser(_cats, aliases: {'drycka avhämtning': 3})
-        .parse(OcrResult.fromPlainText('Z-rapport\nVarugrupper\nDrycka avhämtnlng 70,00\nTotal försäljning 70,00'));
+        .parse(OcrResult.fromPlainText('Z-rapport\nVarugrupper\nDrycka avhämtnlnq 70,00\nTotal försäljning 70,00'));
     final l = d.lines.single;
     expect(l.categoryId, isNull);
     expect(l.suggestedCategoryId, 3);

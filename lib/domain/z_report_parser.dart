@@ -111,7 +111,48 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
 
   @override
   ZReportDraft parse(OcrResult ocr) {
-    final rows = _pairLabelsWithAmounts(ocr.rows());
+    final base = _parseRows(ocr.rows());
+    if (_difference(base, base) == Money.zero) return base;
+
+    // The rows don't add up. On a curved page the amount column can be a line
+    // off, so try shifting it. The sales rows and the total may need different
+    // shifts, and the one that makes them agree is the evidence.
+    final tries = [base, for (final s in ocr.rowShifts()) _parseRows(ocr.rows(rightShift: s))];
+    var bestLines = base;
+    var bestTotal = base;
+    Money? best = _difference(base, base);
+    for (final l in tries) {
+      if (l.lines.length < 2 || l.lines.length < base.lines.length) continue;
+      for (final t in tries) {
+        final diff = _difference(l, t);
+        if (diff != null && (best == null || diff < best)) {
+          best = diff;
+          bestLines = l;
+          bestTotal = t;
+        }
+      }
+    }
+    return ZReportDraft(
+      date: base.date,
+      otherDates: base.otherDates,
+      zNumber: base.zNumber,
+      total: bestTotal.total,
+      lines: bestLines.lines,
+      sectionFound: bestLines.sectionFound,
+      notes: base.notes,
+    );
+  }
+
+  /// How far the rows of [lines] are from the total of [total], or null when
+  /// either is missing.
+  static Money? _difference(ZReportDraft lines, ZReportDraft total) {
+    final t = total.total.value;
+    if (t == null || lines.lines.isEmpty) return null;
+    return (Money.sum(lines.lines.map((l) => l.amount)) - t).abs();
+  }
+
+  ZReportDraft _parseRows(List<TextRow> ocrRows) {
+    final rows = _pairLabelsWithAmounts(ocrRows);
     final norm = [for (final r in rows) TextPatterns.normalize(r.text)];
     final notes = <String>[];
 
@@ -348,8 +389,8 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
             : (categoryId: null, suggested: c.id, match: MatchKind.possible, warning: w);
       }
     }
-    // A printed line close to one of the owner's rules (OCR often misreads a
-    // letter or two) is suggested, never assigned automatically.
+    // A line one letter off the owner's own rule ("avhäntning") counts as that
+    // rule, as the owner decided; a line further off is only suggested.
     String? closest;
     var closestScore = 0.0;
     for (final key in aliases.keys) {
@@ -362,6 +403,10 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     if (closest != null && closestScore >= 0.8) {
       final id = aliases[closest]!;
       final c = active.where((c) => c.id == id).firstOrNull;
+      final oneLetterOff = closest.length >= 5 && (1 - closestScore) * closest.length <= 1.01;
+      if (c != null && oneLetterOff && rateWarning(c) == null) {
+        return (categoryId: id, suggested: null, match: MatchKind.remembered, warning: null);
+      }
       if (c != null) {
         return (categoryId: null, suggested: id, match: MatchKind.possible, warning: 'Liknar "$closest" som räknas som ${c.name}.');
       }
