@@ -190,9 +190,6 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     if (fit != null) {
       vat = fit;
       candidates = _totalCandidates(rows, norm, vat, payment, allowNegative: isCredit);
-    } else if (candidates.isEmpty) {
-      // A misread VAT must not hide the total.
-      candidates = _totalCandidates(rows, norm, vat, payment, allowNegative: isCredit, trustVat: false);
     }
     Extracted<Money> total = const Extracted.none();
     if (candidates.isNotEmpty) {
@@ -349,7 +346,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
   // ---------- Total ----------
 
   List<TotalCandidate> _totalCandidates(List<TextRow> rows, List<String> norm, _VatInfo vat, _Payment pay,
-      {bool allowNegative = false, bool trustVat = true}) {
+      {bool allowNegative = false}) {
     final out = <TotalCandidate>[];
     final pageBottom = rows.isEmpty ? 1.0 : rows.last.box.bottom;
     final vatSum = vat.explicitTotal?.$1 ?? (vat.lines.isEmpty ? null : Money.sum(vat.lines.map((l) => l.vat)));
@@ -394,7 +391,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       }
       if (raw.value.isZero || (raw.value.isNegative && !allowNegative)) continue;
       // A total can never be smaller than the VAT in it.
-      if (trustVat && vatSum != null && raw.value.abs() < vatSum.abs()) continue;
+      if (vatSum != null && raw.value.abs() < vatSum.abs()) continue;
       // Compare magnitudes; a kreditnota gets its sign afterwards.
       final a = AmountToken(raw.value.abs(), raw.start, raw.end, raw.hasDecimals);
 

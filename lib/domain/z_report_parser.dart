@@ -110,7 +110,27 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
   static const _notTotal = ['grand total', 'ackumulerad', 'exkl', 'netto', 'moms', 'retur', 'rabatt', 'kontant', 'kort', 'swish', 'antal'];
 
   @override
-  ZReportDraft parse(OcrResult ocr) {
+  ZReportDraft parse(OcrResult ocr) => _withoutExtras(_bestReading(ocr));
+
+  /// When the rows with a category already make up the day's total, a row
+  /// that matches nothing can't be a sale: it is misread text from the photo.
+  static ZReportDraft _withoutExtras(ZReportDraft d) {
+    final total = d.total.value;
+    final counted = d.lines.where((l) => l.categoryId != null);
+    if (total == null || counted.isEmpty) return d;
+    if ((Money.sum(counted.map((l) => l.amount)) - total).abs() >= Money.ignoredDifference) return d;
+    return ZReportDraft(
+      date: d.date,
+      otherDates: d.otherDates,
+      zNumber: d.zNumber,
+      total: d.total,
+      lines: d.lines.where((l) => l.match != MatchKind.none).toList(),
+      sectionFound: d.sectionFound,
+      notes: d.notes,
+    );
+  }
+
+  ZReportDraft _bestReading(OcrResult ocr) {
     final base = _parseRows(ocr.rows());
     if (_difference(base, base) == Money.zero) return base;
 

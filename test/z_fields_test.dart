@@ -48,6 +48,19 @@ void main() {
     expect(l.match, MatchKind.possible);
   });
 
+  test('a row that matches nothing is dropped when the others make up the total', () {
+    final d = const ZReportParser(_cats).parse(OcrResult.fromPlainText(
+        'Z-rapport\nVarugrupper\nMat 100,00\nOs /lonslip 360,00\nKonfektyr 50,00\nTotal försäljning 150,00'));
+    expect(d.lines.map((l) => l.label), ['Mat', 'Konfektyr']);
+    expect(d.total.value, Money.kr(150));
+  });
+
+  test('a row that matches nothing stays when the total needs it', () {
+    final d = const ZReportParser(_cats).parse(OcrResult.fromPlainText(
+        'Z-rapport\nVarugrupper\nMat 100,00\nOkänd 50,00\nTotal försäljning 150,00'));
+    expect(d.lines.map((l) => l.label), ['Mat', 'Okänd']);
+  });
+
   test('rules are stored, changed and removed', () async {
     sqfliteFfiInit();
     final repo = Repository(await AppDatabase.open(factory: databaseFactoryFfi, path: inMemoryDatabasePath));
