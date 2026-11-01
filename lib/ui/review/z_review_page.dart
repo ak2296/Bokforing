@@ -421,7 +421,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
             ),
             Row(
               children: [
-                Text('Räknas som ', style: Theme.of(context).textTheme.bodySmall),
+                if (r.categoryId != null) Text('Räknas som ', style: Theme.of(context).textTheme.bodySmall),
                 Expanded(
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<int>(
@@ -470,6 +470,19 @@ class _ZReviewPageState extends State<ZReviewPage> {
               ),
             ] else if (r.warning != null)
               Text(r.warning!, style: const TextStyle(color: AppTheme.warning)),
+            if (unassigned && !needsConfirm) ...[
+              Text('Finns inte i din lista. Välj en kategori ovan, eller:', style: Theme.of(context).textTheme.bodySmall),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => setState(() {
+                    r.userAssigned = true;
+                    _edited = true;
+                  }),
+                  child: const Text('Räkna inte med raden'),
+                ),
+              ),
+            ],
             if (r.fromReport && r.userAssigned &&
                 (assigned == null || Repository.normalizeLabel(r.label) != Repository.normalizeLabel(assigned.name)))
               CheckboxListTile(

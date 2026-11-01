@@ -70,6 +70,11 @@ class TextPatterns {
   static String _maskNonAmounts(String row) {
     var s = row;
     String blank(Match m) => ' ' * m.group(0)!.length;
+    // Bankgiro "439-9093", org number "556628-9285", phone "040-185310".
+    s = s.replaceAllMapped(RegExp(r'(?<![\d-])\d{3,4}-\d{4}(?![\d-])'), blank);
+    s = s.replaceAllMapped(RegExp(r'(?<![\d-])\d{6}-\d{4}(?![\d-])'), blank);
+    s = s.replaceAllMapped(RegExp(r'(?<![\d-])0\d{1,3}-\d(?: ?\d){4,8}(?![\d-])'), blank);
+    s = s.replaceAllMapped(RegExp(r'(?<!\d)20\d{2} \d{2} \d{2}(?!\d)'), blank);
     s = s.replaceAllMapped(RegExp(r'\d{4}[-./]\d{1,2}[-./]\d{1,2}'), blank);
     s = s.replaceAllMapped(RegExp(r'\b\d{1,2}[-./]\d{1,2}[-./]\d{2,4}\b'), blank);
     s = s.replaceAllMapped(RegExp(r'\b\d{1,2}[./]\d{1,2},\d{4}\b'), blank);
@@ -102,8 +107,13 @@ class TextPatterns {
       final iso = _iso(m.group(3)!, m.group(2)!, m.group(1)!);
       if (iso != null) found.add((m.start, iso));
     }
-    for (final m in RegExp(r'(?<!\d)(\d{1,2})([-./])(\d{1,2})[-./](\d{2})(?!\d)').allMatches(row)) {
-      final iso = _shortDate(m.group(1)!, m.group(2)!, m.group(3)!, m.group(4)!);
+    // Spaces instead of dashes on a giro slip: "2026 10 28".
+    for (final m in RegExp(r'(?<!\d)(20\d{2}) (\d{2}) (\d{2})(?!\d)').allMatches(row)) {
+      final iso = _iso(m.group(1)!, m.group(2)!, m.group(3)!);
+      if (iso != null) found.add((m.start, iso));
+    }
+    for (final m in _short.allMatches(row)) {
+      final iso = _shortDate(m.group(1)!, m.group(2)!, m.group(3)!);
       if (iso != null) found.add((m.start, iso));
     }
     // Month names, Swedish and English: "28 okt 2026", "28 October 2026",
@@ -130,17 +140,38 @@ class TextPatterns {
     return out;
   }
 
-  /// A two-digit year: "26-10-07" is year first in Sweden, "09/10/26" day
-  /// first. The reading with a realistic year wins; 2007 or 2031 is not one.
-  static String? _shortDate(String a, String sep, String month, String c) {
+  static final _short = RegExp(r'(?<!\d)(\d{1,2})[-./](\d{1,2})[-./](\d{2})(?!\d)');
+
+  /// A two-digit year can be first or last: "26.10.24" and "09/10/26". Only
+  /// realistic years count; 2007 or 2031 is not one.
+  static List<String> _shortReadings(String a, String month, String c) {
     final latest = DateTime.now().year + 1;
     String? read(String yy, String dd) {
       final year = 2000 + int.parse(yy);
       return year >= 2015 && year <= latest ? _iso('$year', month, dd) : null;
     }
 
-    return sep == '-' ? (read(a, c) ?? read(c, a)) : (read(c, a) ?? read(a, c));
+    return {read(c, a), read(a, c)}.whereType<String>().toList();
   }
+
+  static int _daysFromToday(String iso) =>
+      SwedishDates.parseIso(iso)!.difference(DateTime.now()).inDays.abs();
+
+  /// The reading closest to today wins: a paper is scanned soon after it is
+  /// printed.
+  static String? _shortDate(String a, String month, String c) {
+    final readings = _shortReadings(a, month, c);
+    if (readings.isEmpty) return null;
+    readings.sort((x, y) => _daysFromToday(x).compareTo(_daysFromToday(y)));
+    return readings.first;
+  }
+
+  /// True when a short date in [row] has two readings that are both recent,
+  /// so the closest one may still be the wrong one.
+  static bool hasAmbiguousDate(String row) => _short.allMatches(row).any((m) {
+        final readings = _shortReadings(m.group(1)!, m.group(2)!, m.group(3)!);
+        return readings.length == 2 && readings.every((r) => _daysFromToday(r) <= 400);
+      });
 
   static const _months = {
     'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'maj': 5, 'may': 5, 'jun': 6,

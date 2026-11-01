@@ -168,6 +168,8 @@ class OcrResult {
           // The letter O for zero after a decimal comma: "198, OO".
           .replaceAllMapped(RegExp(r'(\d[,.]\s?)[Oo]{2}\b'), (m) => '${m[1]}00')
           .replaceAllMapped(RegExp(r'(?<=\d)\|(?=[\d,])'), (m) => '1')
+          // Two amounts stuck together: "492,00123,00".
+          .replaceAllMapped(RegExp(r'(\d,\d{2})(?=\d{2,}[,.]\d{2}(?!\d))'), (m) => '${m[1]} ')
           .replaceAllMapped(RegExp(r'(\d)\s?([,.])\s(\d{2})(?![\d,.])'), (m) => '${m[1]}${m[2]}${m[3]}')
           .replaceAllMapped(
           RegExp(r'(\d)\s([,.])(\d{2})(?![\d,.])'), (m) => '${m[1]}${m[2]}${m[3]}');

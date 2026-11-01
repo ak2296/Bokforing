@@ -58,6 +58,7 @@ class PaymentDetector {
     'förfallodag': 4,
     'förfaller': 3,
     'betalas senast': 4,
+    'betala senast': 4,
     'bankgiro': 3,
     'plusgiro': 3,
     'ocr': 2,
@@ -129,14 +130,23 @@ class PaymentDetector {
     if (maybeStamp) reasons.add(possibleStamp);
     if (cashTerms) reasons.add(cashPayment);
 
+    // The paper itself says it is paid, even with bankgiro and OCR printed on
+    // it: "Kontantnota", "Köpnota", "Betald med kort".
+    final statedPaid = RegExp(r'kontantnota|k[öo]pnota|betal[dt] med (kort|kontant|swish)').hasMatch(text);
+    if (statedPaid) reasons.add('betalt enligt pappret');
+
     final margin = (receipt - invoice).abs();
-    final kind = margin < 3
-        ? PaymentKind.unknown
-        : receipt > invoice
-            ? PaymentKind.kvitto
-            : PaymentKind.faktura;
+    final kind = statedPaid
+        ? PaymentKind.kvitto
+        : margin < 3
+            ? PaymentKind.unknown
+            : receipt > invoice
+                ? PaymentKind.kvitto
+                : PaymentKind.faktura;
     final paid = kind == PaymentKind.kvitto || stamped || credit || maybeStamp || cashTerms;
-    final confidence = maybeStamp || cashTerms
+    final confidence = statedPaid
+        ? Confidence.high
+        : maybeStamp || cashTerms
         ? Confidence.medium
         : stamped || credit
         ? Confidence.high
