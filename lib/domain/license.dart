@@ -38,6 +38,7 @@ class LicenseChecker {
 
   static const testCode = '0000';
   static const testCodeId = 'test-1';
+  static const testCodeUntil = '2027-11-05';
 
   final String publicKey;
   final Set<String> revoked;
@@ -48,9 +49,9 @@ class LicenseChecker {
   /// The licence in [code], or null when the code is damaged or not signed
   /// with the owner's key.
   Future<License?> read(String code) async {
-    // The owner's test code while the app is being tested. It has no end date
-    // and stops working for good when its id goes into [appRevoked].
-    if (code.trim() == testCode) return const License(id: testCodeId);
+    // The owner's test code while the app is being tested. Every copy of the
+    // app stops accepting it on the same day, so old APKs need no clean-up.
+    if (code.trim() == testCode) return const License(id: testCodeId, until: testCodeUntil);
     final parts = code.replaceAll(RegExp(r'\s'), '').split('.');
     if (parts.length != 3 || parts[0] != 'BOK1') return null;
     try {
