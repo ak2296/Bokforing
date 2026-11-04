@@ -20,6 +20,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/fields.dart';
 import 'ai_assist.dart';
+import '../settings/activation_page.dart';
 import 'review_common.dart';
 
 class _VatRow {
@@ -230,6 +231,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   }
 
   Future<void> _save() async {
+    if (!await requireLicense(context) || !mounted) return;
     final valid = _form.currentState?.validate() ?? false;
     if (!valid) {
       setState(() => _editing = true);

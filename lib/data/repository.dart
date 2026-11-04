@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 
 import '../app/settings_keys.dart';
+import '../domain/dates.dart';
+import '../domain/license.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
 import '../domain/vat.dart';
@@ -33,6 +35,43 @@ class Repository {
   }
 
   Future<void> setBoolSetting(String key, bool value) => setSetting(key, value ? '1' : '0');
+
+  /// The latest date this phone has shown, so setting the clock back does not
+  /// bring an expired code back to life.
+  Future<String> _licenseToday() async {
+    final today = SwedishDates.iso(DateTime.now());
+    final seen = await setting(SettingsKeys.licenseLastSeen);
+    if (seen != null && seen.compareTo(today) > 0) return seen;
+    if (seen != today) await setSetting(SettingsKeys.licenseLastSeen, today);
+    return today;
+  }
+
+  Future<LicenseState> licenseState({LicenseChecker checker = const LicenseChecker()}) async {
+    final code = await setting(SettingsKeys.licenseCode);
+    final license = code == null ? null : await checker.read(code);
+    return LicenseState(license, checker.statusOf(license, await _licenseToday()));
+  }
+
+  /// Stores a valid code and returns null, or returns why it was refused. A
+  /// customer's code also sets the company name and org number.
+  Future<String?> activateLicense(String code, {LicenseChecker checker = const LicenseChecker()}) async {
+    final license = await checker.read(code);
+    if (license == null) return 'Koden stämmer inte. Kontrollera att hela koden kom med.';
+    switch (checker.statusOf(license, await _licenseToday())) {
+      case LicenseStatus.revoked:
+        return 'Den här koden är avslutad och kan inte användas.';
+      case LicenseStatus.expired:
+        return 'Koden gick ut ${license.until}.';
+      case LicenseStatus.active:
+      case LicenseStatus.missing:
+        break;
+    }
+    await setSetting(SettingsKeys.licenseCode, code.replaceAll(RegExp(r'\s'), ''));
+    if (license.locksCompany) {
+      await saveProfile((await profile()).copyWith(name: license.companyName, orgNumber: license.orgNumber));
+    }
+    return null;
+  }
 
   /// Enskild firma or aktiebolag; null until chosen.
   Future<CompanyForm?> companyForm() async => CompanyForm.parse(await setting(SettingsKeys.companyForm));

@@ -12,6 +12,7 @@ import '../scan/scan_flow.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/fields.dart';
+import '../settings/activation_page.dart';
 import 'review_common.dart';
 
 /// "Kontrollera uppgifterna" for a partner's payout: scan, manual entry or
@@ -58,6 +59,7 @@ class _OnlineReviewPageState extends State<OnlineReviewPage> {
   void _changed([String? _]) => setState(() => _edited = true);
 
   Future<void> _save() async {
+    if (!await requireLicense(context) || !mounted) return;
     final amount = Money.parse(_amount.text);
     final date = _date.text.trim();
     if (!SwedishDates.isValidIso(date)) {

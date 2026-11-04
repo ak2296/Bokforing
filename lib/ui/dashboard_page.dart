@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../domain/dates.dart';
+import '../domain/license.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
 import 'app_icons.dart';
 import 'history_page.dart';
 import 'record_details.dart';
+import 'settings/activation_page.dart';
 import 'theme.dart';
 import 'unpaid_page.dart';
 import 'widgets/common.dart';
@@ -16,21 +18,32 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ym = YearMonth.now();
-    return Reloading<(MonthData, List<RegistrationSummary>, int, List<Invoice>)>(
+    return Reloading<(MonthData, List<RegistrationSummary>, int, List<Invoice>, LicenseState)>(
       deps: ym.title,
       loader: (c) async => (
         await MonthData.load(c, ym),
         await c.repo.recentRegistrations(limit: 8),
         await c.repo.documentCount(fromIso: ym.firstDay, toIso: ym.lastDay),
         await c.repo.unpaidInvoices(),
+        await c.repo.licenseState(),
       ),
       builder: (context, data) {
-        final (month, recent, count, unpaid) = data;
+        final (month, recent, count, unpaid, license) = data;
         final r = month.report;
         final diff = r.vatDifference;
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
           children: [
+            if (license.status != LicenseStatus.active)
+              Card(
+                child: ListTile(
+                  leading: const Icon(AppIcons.lock),
+                  title: const Text('Appen behöver aktiveras'),
+                  subtitle: Text(licenseStatusText(license)),
+                  onTap: () => Navigator.of(context)
+                      .push(MaterialPageRoute(builder: (_) => const ActivationPage())),
+                ),
+              ),
             if (unpaid.isNotEmpty) _UnpaidCard(unpaid),
             const SizedBox(height: 8),
             GridView.count(

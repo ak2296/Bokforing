@@ -16,6 +16,7 @@ import '../scan/scan_flow.dart';
 import '../theme.dart';
 import '../widgets/fields.dart';
 import 'ai_assist.dart';
+import '../settings/activation_page.dart';
 import 'review_common.dart';
 
 /// One editable row: a line from the report (or a category for manual entry)
@@ -176,6 +177,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
   }
 
   Future<void> _save() async {
+    if (!await requireLicense(context) || !mounted) return;
     final valid = _form.currentState?.validate() ?? false;
     if (!valid) {
       setState(() => _editing = true);

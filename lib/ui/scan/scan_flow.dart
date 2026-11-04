@@ -22,6 +22,7 @@ import '../review/invoice_review_page.dart';
 import '../review/z_review_page.dart';
 import 'camera_page.dart';
 import 'scan_context.dart';
+import '../settings/activation_page.dart';
 
 /// The states of one scan, shown to the user so it is always clear what is
 /// happening and that nothing has been saved yet.
@@ -42,6 +43,7 @@ enum ScanState {
 
 /// Starts the camera and walks through processing to the review screen.
 Future<void> startScan(BuildContext context, {bool online = false}) async {
+  if (!await requireLicense(context) || !context.mounted) return;
   final paths = await Navigator.of(context)
       .push<List<String>>(MaterialPageRoute(builder: (_) => CameraPage(online: online)));
   if (paths == null || paths.isEmpty || !context.mounted) return;

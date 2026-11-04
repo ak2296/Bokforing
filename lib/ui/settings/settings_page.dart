@@ -4,11 +4,13 @@ import '../app_icons.dart';
 
 import '../../app/app_controller.dart';
 import '../../app/settings_keys.dart';
+import '../../domain/license.dart';
 import '../../domain/models.dart';
 import '../../domain/vat.dart';
 import '../../notify/reminders.dart';
 import '../history_page.dart';
 import '../theme.dart';
+import 'activation_page.dart';
 import 'ai_settings_page.dart';
 import 'backup_page.dart';
 import 'category_editor.dart';
@@ -28,6 +30,7 @@ class _SettingsPageState extends State<SettingsPage> {
   int _reminderDays = Reminders.defaultDays;
   BusinessProfile _profile = const BusinessProfile();
   CompanyForm? _form;
+  LicenseState? _license;
 
   @override
   void didChangeDependencies() {
@@ -39,6 +42,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final repo = AppScope.read(context).repo;
     final p = await repo.profile();
     final form = await repo.companyForm();
+    final license = await repo.licenseState();
     final keep = await repo.boolSetting(SettingsKeys.keepImages);
     final reminders = await Reminders.enabled(repo);
     final days = await Reminders.days(repo);
@@ -46,6 +50,7 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       _profile = p;
       _form = form;
+      _license = license;
       _keepImages = keep;
       _reminders = reminders;
       _reminderDays = days;
@@ -77,6 +82,15 @@ class _SettingsPageState extends State<SettingsPage> {
                   ].join(' · ').ifEmpty('Tryck för att ändra')),
                   onTap: () async {
                     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CompanyPage()));
+                    _load();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(AppIcons.lock),
+                  title: const Text('Aktivering'),
+                  subtitle: Text(_license == null ? '' : licenseStatusText(_license!)),
+                  onTap: () async {
+                    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ActivationPage()));
                     _load();
                   },
                 ),
@@ -208,6 +222,9 @@ class _CompanyPageState extends State<CompanyPage> {
   int _savedFiscalMonth = 1;
   List<String> _ownNames = const [];
 
+  /// A customer's code fixes the company name and org number.
+  bool _locked = false;
+
   static const _months = [
     'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni', 'Juli', 'Augusti', 'September', 'Oktober', 'November',
     'December',
@@ -230,8 +247,10 @@ class _CompanyPageState extends State<CompanyPage> {
     final form = await repo.companyForm();
     final month = await repo.fiscalStartMonth();
     final names = await repo.ownNames();
+    final license = await repo.licenseState();
     if (!mounted) return;
     setState(() {
+      _locked = license.license?.locksCompany ?? false;
       _name.text = p.name;
       _org.text = p.orgNumber;
       _address.text = p.address;
@@ -266,10 +285,11 @@ class _CompanyPageState extends State<CompanyPage> {
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            TextField(controller: _name, decoration: const InputDecoration(labelText: 'Företagsnamn')),
+            TextField(controller: _name, enabled: !_locked, decoration: const InputDecoration(labelText: 'Företagsnamn')),
             const SizedBox(height: 12),
             TextField(
                 controller: _org,
+                enabled: !_locked,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'Organisationsnummer (valfritt)')),
             const SizedBox(height: 12),
