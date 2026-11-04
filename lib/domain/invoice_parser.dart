@@ -17,6 +17,19 @@ class TotalCandidate {
   const TotalCandidate(this.value, this.score, this.row, this.reasons);
 }
 
+/// A name on the paper that may be the owner's own company.
+class OwnNameQuestion {
+  final String name;
+
+  /// The supplier if [name] is the owner's company; null when the paper shows
+  /// no other company.
+  final String? otherSupplier;
+
+  /// Start with "Mitt företag" selected: another company is the seller.
+  final bool assumeMine;
+  const OwnNameQuestion(this.name, this.otherSupplier, {required this.assumeMine});
+}
+
 class InvoiceDraft {
   final Extracted<String> date;
   final Extracted<String> dueDate;
@@ -46,7 +59,11 @@ class InvoiceDraft {
   /// Printed payment date or the date beside a BETALD stamp.
   final String? paidDate;
 
+  /// Asked on the review screen when a name may be the owner's own.
+  final OwnNameQuestion? ownNameQuestion;
+
   const InvoiceDraft({
+    this.ownNameQuestion,
     this.paidDate,
     this.bankgiro = const Extracted.none(),
     this.plusgiro = const Extracted.none(),
@@ -78,7 +95,18 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
 
   /// The owner's company, which is never the supplier.
   final String ownName;
-  const InvoiceParser({this.knownSuppliers = const [], this.ownName = ''});
+
+  /// Other names of the owner's company, as confirmed on earlier papers.
+  final List<String> ownNames;
+  final String ownOrgNumber;
+  final String ownAddress;
+  const InvoiceParser({
+    this.knownSuppliers = const [],
+    this.ownName = '',
+    this.ownNames = const [],
+    this.ownOrgNumber = '',
+    this.ownAddress = '',
+  });
 
   /// Printed labels for the amount paid, Swedish and English, with a score.
   static const _totalLabels = <String, double>{
@@ -272,6 +300,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     }
 
     final dates = _dates(rows, norm);
+    final supplier = _resolveSupplier(rows, norm);
     final ocrNumber = _labelledValue(rows, norm, ['ocr-nummer', 'ocr nr', 'ocrnr', 'ocr'], RegExp(r'\d(?: ?\d){1,24}'));
     final ocrReference = ocrNumber.hasValue
         ? Extracted(ocrNumber.value!.replaceAll(' ', ''), ocrNumber.confidence, source: ocrNumber.source)
@@ -290,7 +319,8 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       dateOptions: dates.options,
       date: dates.invoice,
       dueDate: dates.due,
-      supplier: _supplier(rows, norm),
+      supplier: supplier.$1,
+      ownNameQuestion: supplier.$2,
       invoiceNumber: invoiceNumber,
       ocrReference: ocrReference,
       total: total,
@@ -845,10 +875,79 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
 
   static String _squeeze(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9åäö]'), '');
 
-  Extracted<String> _supplier(List<TextRow> rows, List<String> norm) {
+  /// The supplier, and a question when a name may be the owner's own company.
+  /// The org number and address decide first; only a close name with no such
+  /// proof is asked about.
+  (Extracted<String>, OwnNameQuestion?) _resolveSupplier(List<TextRow> rows, List<String> norm) {
+    final mine = _namesAtOwnAddress(rows);
+    final first = _supplier(rows, norm, mine);
+    final name = first.value;
+    if (name == null || knownSuppliers.contains(name) || !_closeToOwn(name)) return (first, null);
+    // A different org number beside the name: a real supplier with a similar name.
+    final at = rows.indexWhere((r) => r.text.contains(name));
+    if (at >= 0 && _otherOrgNear(rows, at)) return (first, null);
+    final other = _supplier(rows, norm, {...mine, _squeeze(name)});
+    final otherName = other.value;
+    if (otherName == null) return (first, OwnNameQuestion(name, null, assumeMine: false));
+    if (_ownOrgOnPaper(rows)) return (other, null);
+    return (other, OwnNameQuestion(name, otherName, assumeMine: true));
+  }
+
+  /// Names printed directly above the owner's street and number, in the same
+  /// column. The number matters: the seller can be on the same street.
+  Set<String> _namesAtOwnAddress(List<TextRow> rows) {
+    final m = RegExp(r'^\s*([A-Za-zÅÄÖåäö]{4,})\.?\s*(\d+)').firstMatch(ownAddress);
+    final found = <String>{};
+    if (m == null) return found;
+    final street = m[1]!.toLowerCase();
+    bool isStreet(String column) => RegExp(r'([A-Za-zÅÄÖåäö]{4,})\.?\s*(\d+)').allMatches(column).any(
+        (w) => w[2] == m[2] && TextPatterns.similarity(w[1]!.toLowerCase(), street) >= 0.8);
+    final split = RegExp(r'\s{3,}');
+    for (var i = 1; i < rows.length; i++) {
+      final columns = rows[i].text.split(split);
+      final k = columns.indexWhere(isStreet);
+      if (k < 0) continue;
+      final above = rows[i - 1].text.split(split);
+      final name = _squeeze(above[k < above.length ? k : above.length - 1]);
+      if (name.length >= 3) found.add(name);
+    }
+    return found;
+  }
+
+  bool _closeToOwn(String name) {
+    String firstWord(String s) => s.trim().split(RegExp(r'\s+')).first.toLowerCase();
+    return [ownName, ...ownNames].where((o) => o.trim().isNotEmpty).any((o) {
+      final a = firstWord(name);
+      if (a.length >= 4 && TextPatterns.similarity(a, firstWord(o)) >= 0.8) return true;
+      return TextPatterns.similarity(_squeeze(name), _squeeze(o)) >= 0.7;
+    });
+  }
+
+  String get _ownOrgDigits => ownOrgNumber.replaceAll(RegExp(r'\D'), '');
+
+  bool _ownOrgOnPaper(List<TextRow> rows) =>
+      _ownOrgDigits.length == 10 && rows.any((r) => r.text.replaceAll(RegExp(r'\D'), '').contains(_ownOrgDigits));
+
+  bool _otherOrgNear(List<TextRow> rows, int at) {
+    for (var i = at - 1; i <= at + 1; i++) {
+      if (i < 0 || i >= rows.length) continue;
+      for (final m in RegExp(r'(?<!\d)\d{6}-?\d{4}(?!\d)').allMatches(rows[i].text)) {
+        if (m[0]!.replaceAll('-', '') != _ownOrgDigits) return true;
+      }
+    }
+    return false;
+  }
+
+  /// [skip] holds squeezed names that are the owner's own on this paper.
+  Extracted<String> _supplier(List<TextRow> rows, List<String> norm, Set<String> skip) {
+    final mine = {
+      for (final o in [ownName, ...ownNames]) _squeeze(o),
+      ...skip,
+    }.where((o) => o.length >= 3);
+    bool isOwn(String t) => mine.any(_squeeze(t).contains);
     // A supplier the owner already has, even if OCR split the name
     // ("CENTRUMGROSS ISTEN AB"). Longest name first, so "ICA Maxi" beats "ICA".
-    final known = knownSuppliers.where((s) => _squeeze(s).length >= 4).toList()
+    final known = knownSuppliers.where((s) => _squeeze(s).length >= 4 && !isOwn(s)).toList()
       ..sort((a, b) => b.length.compareTo(a.length));
     for (final s in known) {
       final key = _squeeze(s);
@@ -874,17 +973,16 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         return Extracted(_clean(m.group(2)!), Confidence.medium, source: rows[i].text);
       }
     }
-    final own = _squeeze(ownName);
-    bool isOwn(String t) => own.length >= 3 && _squeeze(t).contains(own);
     final top = rows.take((rows.length * 0.35).ceil().clamp(1, 12)).where((r) => !isOwn(r.text)).toList();
     // A company name: first at the top, then anywhere (often in the footer).
     // The buyer's own block ("Betalare ANKAN RESTAURANG AB") is not the supplier.
     final company = RegExp(r'\b(AB|HB|KB|Aktiebolag|Handelsbolag|Ltd|Oy|AS|ApS)\b');
     for (final r in [...top, ...rows]) {
       final n = TextPatterns.normalize(r.text);
-      if (!company.hasMatch(r.text) || n.contains('faktura') || isOwn(r.text)) continue;
+      if (!company.hasMatch(r.text) || n.contains('faktura')) continue;
       final columns = r.text.split(RegExp(r'\s{3,}'));
-      final at = columns.indexWhere(company.hasMatch);
+      final at = columns.indexWhere((c) => company.hasMatch(c) && !isOwn(c));
+      if (at < 0) continue;
       // A buyer label counts only before the name: "Axfood AB   Kund: 123" is
       // the seller, "Betalare   ANKAN AB" is the buyer.
       final upToName = columns.take(at + 1).join(' ').toLowerCase();

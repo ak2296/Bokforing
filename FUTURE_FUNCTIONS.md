@@ -19,3 +19,8 @@ Possible additions to the app. Nothing here is built yet. The owner picks what c
 - Each day's sales and each invoice become bookkeeping entries on BAS accounts (sales per VAT rate, input/output VAT, costs).
 - The accountant's program then produces the official resultaträkning and balansräkning.
 
+## 4. Balansrapport and analysis report
+- Uses the company form and financial year already set under Inställningar → Företag.
+- Needs figures the app does not have yet: bank balance, assets, loans and opening balances.
+- Clearly marked as based only on what is registered in the app, not as an official balansräkning.
+

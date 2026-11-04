@@ -8,6 +8,7 @@ import '../../domain/models.dart';
 import '../../domain/vat.dart';
 import '../../notify/reminders.dart';
 import '../history_page.dart';
+import '../theme.dart';
 import 'ai_settings_page.dart';
 import 'backup_page.dart';
 import 'category_editor.dart';
@@ -26,6 +27,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _reminders = true;
   int _reminderDays = Reminders.defaultDays;
   BusinessProfile _profile = const BusinessProfile();
+  CompanyForm? _form;
 
   @override
   void didChangeDependencies() {
@@ -36,12 +38,14 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _load() async {
     final repo = AppScope.read(context).repo;
     final p = await repo.profile();
+    final form = await repo.companyForm();
     final keep = await repo.boolSetting(SettingsKeys.keepImages);
     final reminders = await Reminders.enabled(repo);
     final days = await Reminders.days(repo);
     if (!mounted) return;
     setState(() {
       _profile = p;
+      _form = form;
       _keepImages = keep;
       _reminders = reminders;
       _reminderDays = days;
@@ -67,6 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   leading: const Icon(AppIcons.store),
                   title: Text(_profile.name.isEmpty ? 'Företagsnamn saknas' : _profile.name),
                   subtitle: Text([
+                    if (_form != null) _form!.label,
                     if (_profile.orgNumber.isNotEmpty) 'Org.nr ${_profile.orgNumber}',
                     if (_profile.address.isNotEmpty) _profile.address,
                   ].join(' · ').ifEmpty('Tryck för att ändra')),
@@ -196,22 +201,63 @@ class _CompanyPageState extends State<CompanyPage> {
   final _name = TextEditingController();
   final _org = TextEditingController();
   final _address = TextEditingController();
+  final _newName = TextEditingController();
   bool _loaded = false;
+  CompanyForm? _form;
+  int _fiscalMonth = 1;
+  int _savedFiscalMonth = 1;
+  List<String> _ownNames = const [];
+
+  static const _months = [
+    'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni', 'Juli', 'Augusti', 'September', 'Oktober', 'November',
+    'December',
+  ];
+
+  String _fiscalLabel(int start) => '${_months[start - 1]} – ${_months[(start + 10) % 12]}';
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_loaded) {
       _loaded = true;
-      AppScope.read(context).repo.profile().then((p) {
-        if (!mounted) return;
-        setState(() {
-          _name.text = p.name;
-          _org.text = p.orgNumber;
-          _address.text = p.address;
-        });
-      });
+      _load();
     }
+  }
+
+  Future<void> _load() async {
+    final repo = AppScope.read(context).repo;
+    final p = await repo.profile();
+    final form = await repo.companyForm();
+    final month = await repo.fiscalStartMonth();
+    final names = await repo.ownNames();
+    if (!mounted) return;
+    setState(() {
+      _name.text = p.name;
+      _org.text = p.orgNumber;
+      _address.text = p.address;
+      _form = form;
+      _fiscalMonth = month;
+      _savedFiscalMonth = month;
+      _ownNames = names;
+    });
+  }
+
+  Future<void> _addName() async {
+    final repo = AppScope.read(context).repo;
+    await repo.addOwnName(_newName.text);
+    final names = await repo.ownNames();
+    if (!mounted) return;
+    setState(() {
+      _newName.clear();
+      _ownNames = names;
+    });
+  }
+
+  Future<void> _removeName(String name) async {
+    final repo = AppScope.read(context).repo;
+    await repo.removeOwnName(name);
+    final names = await repo.ownNames();
+    if (mounted) setState(() => _ownNames = names);
   }
 
   @override
@@ -230,13 +276,63 @@ class _CompanyPageState extends State<CompanyPage> {
             TextField(
                 controller: _address,
                 maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Adress (valfritt)')),
+                decoration: const InputDecoration(labelText: 'Adress (valfritt)', hintText: 'Storgatan 1')),
+            const SizedBox(height: 16),
+            const Text('Företagsform'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final f in CompanyForm.values)
+                  ChoiceChip(label: Text(f.label), selected: _form == f, onSelected: (_) => setState(() => _form = f)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<int>(
+              initialValue: _fiscalMonth,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Räkenskapsår'),
+              items: [
+                for (var m = 1; m <= 12; m++) DropdownMenuItem(value: m, child: Text(_fiscalLabel(m))),
+              ],
+              onChanged: (v) => setState(() => _fiscalMonth = v ?? 1),
+            ),
+            if (_fiscalMonth != _savedFiscalMonth)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text('Årsrapporter kommer att grupperas annorlunda. Sparade papper ändras inte.',
+                    style: TextStyle(color: AppTheme.warning)),
+              ),
+            const SizedBox(height: 16),
+            const Text('Mina företagsnamn'),
+            const SizedBox(height: 4),
+            Text('Andra namn som ditt företag har på papperen. De blir aldrig leverantör.',
+                style: Theme.of(context).textTheme.bodySmall),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final n in _ownNames) InputChip(label: Text(n), onDeleted: () => _removeName(n)),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _newName,
+                    decoration: const InputDecoration(labelText: 'Lägg till namn', isDense: true),
+                  ),
+                ),
+                IconButton(tooltip: 'Lägg till namn', icon: const Icon(AppIcons.add), onPressed: _addName),
+              ],
+            ),
             const SizedBox(height: 20),
             FilledButton(
               onPressed: () async {
                 final controller = AppScope.read(context);
                 await controller.repo.saveProfile(
                     BusinessProfile(name: _name.text, orgNumber: _org.text, address: _address.text));
+                if (_form != null) await controller.repo.setCompanyForm(_form!);
+                await controller.repo.setFiscalStartMonth(_fiscalMonth);
                 controller.dataChanged();
                 if (context.mounted) Navigator.pop(context);
               },

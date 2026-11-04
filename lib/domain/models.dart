@@ -41,6 +41,17 @@ class RecordMeta {
       );
 }
 
+/// The company's legal form. Reports differ, e.g. how equity is shown.
+enum CompanyForm {
+  enskildFirma('Enskild firma'),
+  aktiebolag('Aktiebolag');
+
+  final String label;
+  const CompanyForm(this.label);
+
+  static CompanyForm? parse(String? name) => values.where((f) => f.name == name).firstOrNull;
+}
+
 class BusinessProfile {
   final String name;
   final String orgNumber;

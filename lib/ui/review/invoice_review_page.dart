@@ -59,6 +59,9 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   bool? _paid;
   String? _paidReason;
   PaymentKind _kind = PaymentKind.unknown;
+
+  /// The answer to [InvoiceDraft.ownNameQuestion]; null until answered.
+  late bool? _nameIsMine = (widget.draft?.ownNameQuestion?.assumeMine ?? false) ? true : null;
   final _dateKey = GlobalKey();
   final _totalKey = GlobalKey();
   late final TextEditingController _paidDate, _bankgiro, _plusgiro;
@@ -279,6 +282,8 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       final scanId = await widget.scan?.persist(controller);
       final toSave = scanId == null ? inv : inv.copyWith(meta: inv.meta.copyWith(scanId: scanId));
       await controller.repo.saveInvoice(toSave);
+      final question = _d?.ownNameQuestion;
+      if (question != null && _nameIsMine == true) await controller.repo.addOwnName(question.name);
       if (!toSave.paid && toSave.dueDate != null) await controller.reminders?.requestPermission();
       controller.dataChanged();
       if (!mounted) return;
@@ -354,6 +359,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
             ),
             const SizedBox(height: 4),
             PlainField(controller: _supplier, label: 'Leverantör', confidence: conf(d?.supplier), enabled: _editing, onChanged: _changed),
+            if (d?.ownNameQuestion != null) _ownNameCard(d!.ownNameQuestion!),
             const SizedBox(height: 12),
             KeyedSubtree(
               key: _totalKey,
@@ -394,6 +400,35 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
               const Text('Fyll i datum och summa för att kontrollera beloppen.')
             else
               ValidationList(checks),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Asks whether a name on the paper is the owner's own company. The answer
+  /// is remembered only when the paper is saved.
+  Widget _ownNameCard(OwnNameQuestion q) {
+    void answer(bool mine) => setState(() {
+          _nameIsMine = mine;
+          _supplier.text = mine ? (q.otherSupplier ?? '') : q.name;
+          _edited = true;
+        });
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Är "${q.name}" ditt företag?', style: Theme.of(context).textTheme.bodyLarge),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                ChoiceChip(label: const Text('Mitt företag'), selected: _nameIsMine == true, onSelected: (_) => answer(true)),
+                ChoiceChip(label: const Text('Leverantör'), selected: _nameIsMine == false, onSelected: (_) => answer(false)),
+              ],
+            ),
           ],
         ),
       ),

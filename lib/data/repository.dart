@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
+import '../app/settings_keys.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
 import '../domain/vat.dart';
@@ -32,6 +33,32 @@ class Repository {
   }
 
   Future<void> setBoolSetting(String key, bool value) => setSetting(key, value ? '1' : '0');
+
+  /// Enskild firma or aktiebolag; null until chosen.
+  Future<CompanyForm?> companyForm() async => CompanyForm.parse(await setting(SettingsKeys.companyForm));
+
+  Future<void> setCompanyForm(CompanyForm form) => setSetting(SettingsKeys.companyForm, form.name);
+
+  /// First month of the financial year, 1 = January (January to December).
+  Future<int> fiscalStartMonth() async => int.tryParse(await setting(SettingsKeys.fiscalStartMonth) ?? '') ?? 1;
+
+  Future<void> setFiscalStartMonth(int month) => setSetting(SettingsKeys.fiscalStartMonth, '$month');
+
+  /// Other names the owner's company has on papers ("TWINS").
+  Future<List<String>> ownNames() async =>
+      (await setting(SettingsKeys.ownNames) ?? '').split('\n').where((n) => n.trim().isNotEmpty).toList();
+
+  Future<void> addOwnName(String name) async {
+    final n = name.trim();
+    final names = await ownNames();
+    if (n.isEmpty || names.any((x) => x.toLowerCase() == n.toLowerCase())) return;
+    await setSetting(SettingsKeys.ownNames, [...names, n].join('\n'));
+  }
+
+  Future<void> removeOwnName(String name) async {
+    final names = await ownNames();
+    await setSetting(SettingsKeys.ownNames, names.where((x) => x != name).join('\n'));
+  }
 
   // ---------- Business profile ----------
 

@@ -224,7 +224,13 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
       final suppliers = await controller.repo.knownSuppliers();
       final profile = await controller.repo.profile();
       page = InvoiceReviewPage(
-          draft: InvoiceParser(knownSuppliers: suppliers, ownName: profile.name).parse(ocr, paperAspect: aspect),
+          draft: InvoiceParser(
+            knownSuppliers: suppliers,
+            ownName: profile.name,
+            ownNames: await controller.repo.ownNames(),
+            ownOrgNumber: profile.orgNumber,
+            ownAddress: profile.address,
+          ).parse(ocr, paperAspect: aspect),
           scan: ctx);
     } else {
       final cats = await controller.repo.categories();

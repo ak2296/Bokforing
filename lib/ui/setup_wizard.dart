@@ -22,6 +22,9 @@ class SetupWizard extends StatefulWidget {
 class _SetupWizardState extends State<SetupWizard> {
   int _step = 0;
   final _name = TextEditingController();
+  final _org = TextEditingController();
+  final _address = TextEditingController();
+  CompanyForm? _form;
   final List<CategoryDraft> _drafts = [];
   List<VatRate> _rates = VatRuleSet.current.rates;
   final List<VatRate> _addedRates = [];
@@ -32,14 +35,14 @@ class _SetupWizardState extends State<SetupWizard> {
   static const _stepCount = 6;
 
   bool get _canContinue => switch (_step) {
-        1 => _name.text.trim().isNotEmpty,
+        1 => _name.text.trim().isNotEmpty && _form != null,
         2 => _template != null,
         3 => _drafts.every((d) => d.vat != null),
         _ => true,
       };
 
   String? get _blockedReason => switch (_step) {
-        1 => 'Skriv företagets namn för att fortsätta.',
+        1 => 'Skriv företagets namn och välj företagsform för att fortsätta.',
         2 => 'Välj en utgångspunkt för kategorierna.',
         3 => 'Välj momssats för alla kategorier.',
         _ => null,
@@ -60,7 +63,8 @@ class _SetupWizardState extends State<SetupWizard> {
     for (final r in _addedRates) {
       await repo.addVatRate(r);
     }
-    await repo.saveProfile(BusinessProfile(name: _name.text));
+    await repo.saveProfile(BusinessProfile(name: _name.text, orgNumber: _org.text, address: _address.text));
+    await repo.setCompanyForm(_form!);
     await repo.saveCategories([for (var i = 0; i < _drafts.length; i++) _drafts[i].toCategory(i)]);
     // Categories now have ids; they are saved in the same order as drafts.
     final saved = await repo.categories();
@@ -146,6 +150,29 @@ class _SetupWizardState extends State<SetupWizard> {
               decoration: const InputDecoration(labelText: 'Företagsnamn'),
               onChanged: (_) => setState(() {}),
             ),
+            const SizedBox(height: 16),
+            const Text('Företagsform'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final f in CompanyForm.values)
+                  ChoiceChip(label: Text(f.label), selected: _form == f, onSelected: (_) => setState(() => _form = f)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _org,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Organisationsnummer (valfritt)'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _address,
+              decoration: const InputDecoration(labelText: 'Gatuadress (valfritt)', hintText: 'Storgatan 1'),
+            ),
+            const SizedBox(height: 8),
+            Text('Med organisationsnummer och adress känner appen igen ditt företag på papperen.', style: t.bodySmall),
           ],
         ),
       2 => Column(
