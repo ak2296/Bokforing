@@ -44,6 +44,17 @@ void main() {
     expect(checker.statusOf(l, '2099-12-31'), LicenseStatus.active);
   });
 
+  test('0000 is the test code until it is ended, then never again', () async {
+    final l = await const LicenseChecker().read(' 0000 ');
+    expect(l!.id, LicenseChecker.testCodeId);
+    expect(l.until, isNull);
+    expect(l.locksCompany, isFalse);
+    expect(const LicenseChecker().statusOf(l, '2099-12-31'), LicenseStatus.active);
+    const ended = LicenseChecker(revoked: {LicenseChecker.testCodeId});
+    expect(ended.statusOf(await ended.read('0000'), '2026-11-05'), LicenseStatus.revoked);
+    expect(await const LicenseChecker().read('0001'), isNull);
+  });
+
   test('an ended code never works again', () async {
     final ended = LicenseChecker(publicKey: _testKey, revoked: const {'test-1'});
     expect(ended.statusOf(await ended.read(_noEnd), '2026-11-05'), LicenseStatus.revoked);
