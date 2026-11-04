@@ -28,6 +28,9 @@ jobs:
             rm -f test/widget_test.dart
           fi
 
+      - name: App-ikon
+        run: cp -r android_icon/res/. android/app/src/main/res/
+
       - name: Android-inställningar
         run: |
           f=$(ls android/app/build.gradle.kts android/app/build.gradle 2>/dev/null | head -1)
