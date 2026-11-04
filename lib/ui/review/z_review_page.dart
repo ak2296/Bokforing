@@ -260,7 +260,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
     try {
       for (final r in _rows) {
         final c = _cat(r.categoryId);
-        if (r.fromReport && r.userAssigned && r.remember) {
+        if (r.fromReport && r.userAssigned && r.remember && r.label != ZLine.unnamed) {
           if (c == null) {
             await controller.repo.setZLabelRule(r.label, null);
           } else if (Repository.normalizeLabel(r.label) != Repository.normalizeLabel(c.name)) {
@@ -483,7 +483,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
                 ),
               ),
             ],
-            if (r.fromReport && r.userAssigned &&
+            if (r.fromReport && r.userAssigned && r.label != ZLine.unnamed &&
                 (assigned == null || Repository.normalizeLabel(r.label) != Repository.normalizeLabel(assigned.name)))
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,

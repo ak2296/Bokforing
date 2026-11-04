@@ -3,6 +3,16 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
+/// Turns a JPEG by [PreprocessRotate.degrees]; plain data for an isolate.
+class PreprocessRotate {
+  final Uint8List jpeg;
+  final int degrees;
+  const PreprocessRotate(this.jpeg, this.degrees);
+}
+
+Uint8List rotateJpeg(PreprocessRotate r) =>
+    img.encodeJpg(img.copyRotate(img.decodeJpg(r.jpeg)!, angle: r.degrees), quality: 90);
+
 /// Problems found in a photo. Messages are shown to the user as-is.
 enum QualityIssue { tooDark, tooBright, blurry, skewed, notFound }
 

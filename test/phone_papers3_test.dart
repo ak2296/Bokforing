@@ -279,7 +279,7 @@ void main() {
     expect(d.ocrReference.value, '26589699417');
     expect(d.invoiceNumber.value, '26589699417');
     expect(d.bankgiro.value, '5014-0045');
-    expect(d.supplier.value, 'E.ON Kun dsupport Sverige AB');
+    expect(d.supplier.value, 'E.ON Kundsupport Sverige AB');
     expect(d.payment!.kind, PaymentKind.faktura);
   });
 

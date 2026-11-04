@@ -114,6 +114,18 @@ class OcrResult {
     return c.reduce((a, b) => a + b) / c.length;
   }
 
+  static int _letters(OcrLine l) => l.text.replaceAll(RegExp(r'[^A-Za-zÅÄÖåäö0-9]'), '').length;
+
+  /// Characters in lines that read left to right.
+  int get uprightLetters => lines.where((l) => !isMarginText(l)).fold(0, (n, l) => n + _letters(l));
+
+  /// True when the paper was probably photographed sideways: there is little
+  /// upright text, or most of the text runs up or down the page.
+  bool get looksSideways {
+    final upright = uprightLetters;
+    return upright < 60 || upright * 2 < lines.fold(0, (n, l) => n + _letters(l));
+  }
+
   /// Text printed sideways along the paper edge ("EJ KVITTO PÅ KÖP", print
   /// timestamps) shows up as tall, narrow lines. It is never accounting data.
   bool isMarginText(OcrLine l) {

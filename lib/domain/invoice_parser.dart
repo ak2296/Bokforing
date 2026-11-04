@@ -223,6 +223,11 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         vatCalculated = true;
       }
     }
+    // A giro slip on its own shows no VAT, and that is no fault in the reading.
+    final giroSlip = norm.any((n) => RegExp(r'girering\s*av').hasMatch(n));
+    if (!vatTotal.hasValue && giroSlip) {
+      vatTotal = const Extracted(Money.zero, Confidence.medium, note: 'Inbetalningskort utan moms. Kontrollera.');
+    }
     if (!vatTotal.hasValue) notes.add('Ingen moms hittades på dokumentet. Kontrollera om momsen saknas eller fyll i den.');
     if (vatTotal.value != null && total.value != null && vatTotal.value!.abs() > total.value!.abs()) {
       vatTotal = Extracted(vatTotal.value!, Confidence.low, source: vatTotal.source, note: 'Momsen är större än summan.');
@@ -439,6 +444,17 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         reasons.add('stämmer med kortbetalningen');
       }
       out.add(TotalCandidate(a.value, score, rows[i].text, reasons));
+    }
+    // A giro slip prints kronor and öre apart and no label: "159 00   4 >".
+    if (out.isEmpty) {
+      for (var i = 0; i < rows.length; i++) {
+        final m = RegExp(r'(?<!\d)(\d[\d ]{0,8}?) (\d{2})\s+\d\s*>').firstMatch(rows[i].text);
+        final slip = m == null ? null : Money.parse('${m[1]!.replaceAll(' ', '')},${m[2]}');
+        if (slip != null && !slip.isZero) {
+          out.add(TotalCandidate(slip, 75, rows[i].text, const ['beloppet på inbetalningskortet']));
+          break;
+        }
+      }
     }
     // No labelled row gave net + VAT, but an amount within rounding of it is
     // printed somewhere: a good candidate, to be checked since no label says so.
@@ -802,7 +818,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     final labelled = _labelledValue(
         rows,
         norm,
-        ['fakturanummer', 'fakturanr', 'faktura nr', 'fakturanr.', 'kvittonr', 'kvitto nr', 'kvittonummer', 'löpnr', 'köpnota nr',
+        ['fakturanummer', 'fakturanr', 'faktura nr', 'fakturanr.', 'kvittonr', 'kvitto nr', 'kvittonummer', 'löpnr', 'köpnota nr', 'avinr', 'avi nr', 'avinummer',
          'invoice number', 'invoice no', 'invoice nr', 'invoice #', 'receipt number', 'receipt no', 'receipt #'],
         RegExp(r'[A-Za-z]{0,4}-?\d[\d\-/]{0,19}'));
     if (labelled.hasValue) return labelled;
@@ -842,6 +858,14 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     }
     // A printed label wins: "Leverantör: EVRY". "Säljare" is often the seller's
     // staff member, so it doesn't count.
+    // "Betalningsmottagare" as a heading, the name below it after the number.
+    for (var i = 0; i + 1 < rows.length; i++) {
+      if (!RegExp(r'betalningsmottagare\W*$', caseSensitive: false).hasMatch(rows[i].text)) continue;
+      final name = rows[i + 1].text.split(RegExp(r'\s{3,}')).lastWhere(
+          (c) => RegExp(r'[A-Za-zÅÄÖåäö]{3,}').hasMatch(c),
+          orElse: () => '');
+      if (name.isNotEmpty) return Extracted(_clean(name), Confidence.medium, source: rows[i + 1].text);
+    }
     for (var i = 0; i < rows.length; i++) {
       // "Annan leverantör" on an electricity bill is someone else.
       final m = RegExp(r'(?<!annan\s)(leverantör|avsändare|betalningsmottagare)\s*[:.]?\s*(.+)$', caseSensitive: false)
@@ -881,6 +905,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       final r = top[i];
       final n = TextPatterns.normalize(r.text);
       if (_skipSupplier.any((w) => n.contains(w))) continue;
+      if (RegExp(r'^\W*(kronor|öre)\W*$').hasMatch(n)) continue;
       if (!RegExp(r'[A-Za-zÅÄÖåäö]{3,}').hasMatch(r.text)) continue;
       if (TextPatterns.amounts(r.text).isNotEmpty) continue;
       // A misread logo ("OKEA") is printed again just below ("IKEA MALMÖ").

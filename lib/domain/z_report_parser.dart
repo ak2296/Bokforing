@@ -12,6 +12,9 @@ enum MatchKind { exact, remembered, possible, ignored, none }
 /// categories. Only [exact] and [remembered] matches are assigned
 /// automatically; [possible] needs the user's confirmation.
 class ZLine {
+  /// Label of an amount whose name could not be read on the paper.
+  static const unnamed = 'Rad utan namn';
+
   final String label;
   final Money amount;
   final VatRate? printedRate;
@@ -40,7 +43,12 @@ class ZReportDraft {
   final bool sectionFound;
   final List<String> notes;
 
+  /// Names in the sales section with no amount beside them: a sign that the
+  /// amount column is a line off.
+  final int unlabelled;
+
   const ZReportDraft({
+    this.unlabelled = 0,
     required this.date,
     required this.otherDates,
     required this.zNumber,
@@ -101,7 +109,11 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
   static const _notSales = [
     'org nr', 'org.nr', 'orgnr', 'org. nr', 'organisationsnr', 'organisationsnummer', 'http', 'www', 'tel ',
     'telefon', 'momsreg', 'kvitto på köp', 'kvitto pa kop', 'kassa nr', 'kassanr', 'kassör', 'ej kvitto',
+    '.com', '.se/', 'report',
   ];
+
+  /// The web address and page number at the foot of a printed report.
+  static bool _isFooter(String n) => _notSales.any(n.contains) || RegExp(r'\d\s*/\s*\d\s*$').hasMatch(n);
 
   static const _titleWords = ['z-rapport', 'z rapport', 'zrapport', 'z-report', 'z report', 'dagsrapport', 'kassarapport'];
 
@@ -132,34 +144,73 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
 
   ZReportDraft _bestReading(OcrResult ocr) {
     final base = _parseRows(ocr.rows());
-    if (_difference(base, base) == Money.zero) return base;
+    if (_adds(base, base) && base.unlabelled == 0) return _withoutExtras(base);
 
-    // The rows don't add up. On a curved page the amount column can be a line
-    // off, so try shifting it. The sales rows and the total may need different
-    // shifts, and the one that makes them agree is the evidence.
+    // On a curved page the amount column can be a line off, so try shifting
+    // it. A shift is accepted only if the rows then add up to the total
+    // exactly; being closer proves nothing and has given wrong amounts. The
+    // total as read on its own row comes first.
     final tries = [base, for (final s in ocr.rowShifts()) _parseRows(ocr.rows(rightShift: s))];
-    var bestLines = base;
-    var bestTotal = base;
-    Money? best = _difference(base, base);
-    for (final l in tries) {
-      if (l.lines.length < 2 || l.lines.length < base.lines.length) continue;
-      for (final t in tries) {
-        final diff = _difference(l, t);
-        if (diff != null && (best == null || diff < best)) {
-          best = diff;
-          bestLines = l;
-          bestTotal = t;
-        }
+    for (final t in tries) {
+      ZReportDraft? best;
+      for (final l in tries) {
+        if (!_adds(l, t) || l.lines.length < 2) continue;
+        if (best == null || _doubts(l) < _doubts(best)) best = l;
+      }
+      if (best != null) {
+        return _withoutExtras(ZReportDraft(
+          date: base.date,
+          otherDates: base.otherDates,
+          zNumber: base.zNumber,
+          total: t.total,
+          lines: best.lines,
+          sectionFound: best.sectionFound,
+          notes: base.notes,
+        ));
       }
     }
+    // Nothing adds up: show the rows as read, and the difference to the user.
+    return base;
+  }
+
+  static int _doubts(ZReportDraft d) => d.unlabelled + d.lines.where((l) => l.label == ZLine.unnamed).length;
+
+  static bool _adds(ZReportDraft lines, ZReportDraft total) {
+    final diff = _difference(lines, total);
+    return diff != null && diff < Money.ignoredDifference;
+  }
+
+  /// When the rows with a category already make up the day's total, a row
+  /// that matches nothing can't be a sale.
+  static ZReportDraft _withoutExtras(ZReportDraft d) {
+    final total = d.total.value;
+    final counted = d.lines.where((l) => l.categoryId != null);
+    if (total == null || counted.isEmpty) return d;
+    if ((Money.sum(counted.map((l) => l.amount)) - total).abs() >= Money.ignoredDifference) return d;
     return ZReportDraft(
-      date: base.date,
-      otherDates: base.otherDates,
-      zNumber: base.zNumber,
-      total: bestTotal.total,
-      lines: bestLines.lines,
-      sectionFound: bestLines.sectionFound,
-      notes: base.notes,
+      date: d.date,
+      otherDates: d.otherDates,
+      zNumber: d.zNumber,
+      total: d.total,
+      lines: d.lines.where((l) => l.match != MatchKind.none && l.label != ZLine.unnamed).toList(),
+      sectionFound: d.sectionFound,
+      notes: d.notes,
+    );
+  }
+
+  /// An amount with no readable name: very short names like "Öl" are what OCR
+  /// misses, so the shortest category not yet on the report is suggested. The
+  /// owner confirms it.
+  ZLine _unnamedLine(Money amount, List<ZLine> lines) {
+    final used = {for (final l in lines) l.categoryId ?? l.suggestedCategoryId};
+    final free = categories.where((c) => c.active && c.id != null && !used.contains(c.id)).toList()
+      ..sort((a, b) => a.name.length.compareTo(b.name.length));
+    return ZLine(
+      label: ZLine.unnamed,
+      amount: amount,
+      suggestedCategoryId: free.isEmpty ? null : free.first.id,
+      match: MatchKind.possible,
+      warning: 'Beloppet står på rapporten men namnet gick inte att läsa. Kontrollera mot pappret.',
     );
   }
 
@@ -198,12 +249,26 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
 
     final lines = <ZLine>[];
     final range = start >= 0 ? [for (var i = start; i < end; i++) i] : [for (var i = 0; i < rows.length; i++) i];
+    // When the sales amounts have öre, a whole number is not one of them: it
+    // comes from other text, like "360" in the footer's onslip360.com.
+    final found = [for (final i in range) ...TextPatterns.amounts(rows[i].text).reversed.take(1)];
+    final decimalsOnly = found.where((a) => a.hasDecimals).length * 2 >= found.length;
+    final hasLetters = RegExp(r'[A-Za-zÅÄÖåäö]{2,}');
+    var unlabelled = 0;
+    final nameless = <Money>[];
     for (final i in range) {
       final amounts = TextPatterns.amounts(rows[i].text);
-      if (amounts.isEmpty) continue;
+      if (amounts.isEmpty) {
+        if (start >= 0 && hasLetters.hasMatch(rows[i].text) && !_isFooter(norm[i])) unlabelled++;
+        continue;
+      }
       final amount = amounts.last;
+      if (decimalsOnly && !amount.hasDecimals) continue;
       final label = _label(rows[i].text, amount.start);
-      if (label.isEmpty || !RegExp(r'[A-Za-zÅÄÖåäö]{2,}').hasMatch(label)) continue;
+      if (label.isEmpty || !hasLetters.hasMatch(label)) {
+        if (start >= 0 && amount.hasDecimals && !amount.value.isZero) nameless.add(amount.value);
+        continue;
+      }
       if (_notSales.any((w) => norm[i].contains(w))) continue;
       final m = _match(label, TextPatterns.rate(rows[i].text));
       // Outside a category section only keep rows that look like a category.
@@ -218,6 +283,9 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         match: m.match,
         warning: m.warning,
       ));
+    }
+    for (final a in nameless) {
+      lines.add(_unnamedLine(a, lines));
     }
     if (start < 0) {
       notes.add('Ingen avdelning med försäljning per varugrupp hittades. Raderna matchades mot dina kategorier.');
@@ -237,6 +305,11 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
           label = e.key;
         }
       }
+      // Misread: "Perioderns försåljning".
+      if (score < 100 && RegExp(r'^period\w* f\S*jning').hasMatch(n)) {
+        score = 100;
+        label = 'periodens försäljning';
+      }
       if (label == null) continue;
       if (_notTotal.any((w) => n.contains(w)) && score < 90) continue;
       if (n.contains('grand total') || n.contains('ackumulerad') || n.contains('exkl')) continue;
@@ -249,6 +322,22 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         bestScore = score;
         total = Extracted(amounts.last.value, score >= 90 ? Confidence.high : Confidence.medium,
             source: rows[i].text);
+      }
+    }
+    // Card and cash payments together are also the day's sales.
+    if (!total.hasValue) {
+      Money? paidBy(RegExp word) {
+        for (var i = 0; i < rows.length; i++) {
+          final a = TextPatterns.amounts(rows[i].text);
+          if (word.hasMatch(norm[i]) && a.isNotEmpty && a.last.hasDecimals) return a.last.value;
+        }
+        return null;
+      }
+
+      final card = paidBy(RegExp(r'^kort\b'));
+      final cash = paidBy(RegExp(r'^kontanter?\b'));
+      if (card != null && cash != null) {
+        total = Extracted(card + cash, Confidence.medium, source: 'Kort + kontanter');
       }
     }
     if (!total.hasValue) notes.add('Dagsförsäljningen hittades inte. Fyll i den från rapporten.');
@@ -270,13 +359,17 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     String? title;
     String? titleSrc;
     final titleRow = norm.indexWhere((n) => TextPatterns.containsAny(n, _titleWords));
+    final hasPeriod = rows.any((r) => TextPatterns.dates(r.text).isNotEmpty && RegExp(r'\d\s*[-–]\s*\d{4}-').hasMatch(r.text));
+    // "Tid: 2026-11-04 20:31" is when the report was printed.
+    final printedAt = RegExp(r'\btid\s*:?\s*\d{4}-\d{2}-\d{2}', caseSensitive: false);
     for (var i = 0; i < rows.length; i++) {
       if (_printStamp.any((w) => norm[i].contains(w))) continue;
-      // A bare date above the report title is the browser's print date in
-      // the page margin, never the business date.
-      if (i < titleRow && !RegExp(r'[a-zåäö]{2,}').hasMatch(norm[i])) continue;
+      // A bare date above the report title, or beside a printed period, is the
+      // browser's print date in the page margin, never the business date.
+      final bare = !RegExp(r'[a-zåäö]{2,}').hasMatch(norm[i]);
+      if (bare && (i < titleRow || (hasPeriod && i <= titleRow + 2))) continue;
       // A date far in the future is a misread, never a business date.
-      final d = TextPatterns.dates(rows[i].text).where(plausible).toList();
+      final d = TextPatterns.dates(rows[i].text.replaceAll(printedAt, ' ')).where(plausible).toList();
       dates.addAll(d);
       if (i == titleRow && d.isNotEmpty) {
         title = d.first;
@@ -337,6 +430,7 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       lines: lines,
       sectionFound: start >= 0,
       notes: notes,
+      unlabelled: unlabelled,
     );
   }
 

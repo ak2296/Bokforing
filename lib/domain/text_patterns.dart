@@ -87,6 +87,8 @@ class TextPatterns {
         (m) => _month(m.group(1)!) == null ? m.group(0)! : blank(m));
     s = s.replaceAllMapped(RegExp(r'\b\d{1,2}:\d{2}(:\d{2})?\b'), blank);
     s = s.replaceAllMapped(RegExp(r'\d{1,2}(?:[,.]\d{1,2})?\s?%'), blank);
+    // A page number: "1/2".
+    s = s.replaceAllMapped(RegExp(r'(?<![\d.,/])\d{1,3}/\d{1,3}(?![\d/])'), blank);
     s = s.replaceAllMapped(RegExp(r'\d{9,}'), blank);
     return s;
   }
