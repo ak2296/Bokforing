@@ -124,27 +124,9 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
   @override
   ZReportDraft parse(OcrResult ocr) => _withoutExtras(_bestReading(ocr));
 
-  /// When the rows with a category already make up the day's total, a row
-  /// that matches nothing can't be a sale: it is misread text from the photo.
-  static ZReportDraft _withoutExtras(ZReportDraft d) {
-    final total = d.total.value;
-    final counted = d.lines.where((l) => l.categoryId != null);
-    if (total == null || counted.isEmpty) return d;
-    if ((Money.sum(counted.map((l) => l.amount)) - total).abs() >= Money.ignoredDifference) return d;
-    return ZReportDraft(
-      date: d.date,
-      otherDates: d.otherDates,
-      zNumber: d.zNumber,
-      total: d.total,
-      lines: d.lines.where((l) => l.match != MatchKind.none).toList(),
-      sectionFound: d.sectionFound,
-      notes: d.notes,
-    );
-  }
-
   ZReportDraft _bestReading(OcrResult ocr) {
     final base = _parseRows(ocr.rows());
-    if (_adds(base, base) && base.unlabelled == 0) return _withoutExtras(base);
+    if (_adds(base, base) && base.unlabelled == 0) return base;
 
     // On a curved page the amount column can be a line off, so try shifting
     // it. A shift is accepted only if the rows then add up to the total
@@ -158,7 +140,7 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         if (best == null || _doubts(l) < _doubts(best)) best = l;
       }
       if (best != null) {
-        return _withoutExtras(ZReportDraft(
+        return ZReportDraft(
           date: base.date,
           otherDates: base.otherDates,
           zNumber: base.zNumber,
@@ -166,7 +148,7 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
           lines: best.lines,
           sectionFound: best.sectionFound,
           notes: base.notes,
-        ));
+        );
       }
     }
     // Nothing adds up: show the rows as read, and the difference to the user.
