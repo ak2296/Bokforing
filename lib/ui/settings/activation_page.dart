@@ -72,18 +72,16 @@ class _ActivationPageState extends State<ActivationPage> {
     final error = await controller.repo.activateLicense(_code.text);
     if (!mounted) return;
     if (error == null) {
-      _code.clear();
       controller.dataChanged();
+      // Back to where the owner was: a scan that asked for activation carries on.
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appen är aktiverad.')));
+      Navigator.of(context).pop();
+      return;
     }
-    final s = await controller.repo.licenseState();
-    if (mounted) {
-      setState(() {
-        _busy = false;
-        _error = error;
-        _state = s;
-      });
-    }
+    setState(() {
+      _busy = false;
+      _error = error;
+    });
   }
 
   @override
