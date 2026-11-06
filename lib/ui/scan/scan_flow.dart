@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:printing/printing.dart';
 
 import '../../app/app_controller.dart';
 import '../../domain/classifier.dart';
@@ -51,10 +53,46 @@ Future<void> startScan(BuildContext context, {bool online = false}) async {
       builder: (_) => ScanFlowPage(photoPaths: paths, online: online)));
 }
 
+/// Reads a faktura saved as a PDF or an image, e.g. from an e-mail. A PDF is
+/// turned into page images first; the rest works like a camera scan.
+Future<void> importFile(BuildContext context) async {
+  if (!await requireLicense(context) || !context.mounted) return;
+  final picked = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png']);
+  final source = picked?.files.single.path;
+  if (source == null || !context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final tmp = await getTemporaryDirectory();
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final paths = <String>[];
+    if (source.toLowerCase().endsWith('.pdf')) {
+      // At most four pages: a faktura's totals are on the first pages.
+      await for (final page in Printing.raster(await File(source).readAsBytes(), dpi: 200)) {
+        final out = p.join(tmp.path, 'fil_${stamp}_${paths.length}.png');
+        await File(out).writeAsBytes(await page.toPng());
+        paths.add(out);
+        if (paths.length == 4) break;
+      }
+    } else {
+      final out = p.join(tmp.path, 'fil_$stamp${p.extension(source)}');
+      await File(source).copy(out);
+      paths.add(out);
+    }
+    if (paths.isEmpty || !context.mounted) return;
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => ScanFlowPage(photoPaths: paths, online: false, fromFile: true)));
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text('Filen kunde inte läsas: $e')));
+  }
+}
+
 class ScanFlowPage extends StatefulWidget {
   final List<String> photoPaths;
   final bool online;
-  const ScanFlowPage({super.key, required this.photoPaths, required this.online});
+
+  /// A file, not a photo of paper: no paper edges to find, no photo checks.
+  final bool fromFile;
+  const ScanFlowPage({super.key, required this.photoPaths, required this.online, this.fromFile = false});
 
   @override
   State<ScanFlowPage> createState() => _ScanFlowPageState();
@@ -106,6 +144,11 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
 
   Future<void> _process() async {
     try {
+      if (widget.fromFile) {
+        _processed.addAll(widget.photoPaths);
+        await _recognize();
+        return;
+      }
       final tmp = await getTemporaryDirectory();
       for (final path in widget.photoPaths) {
         final bytes = await File(path).readAsBytes();

@@ -103,29 +103,33 @@ class _BottomBar extends StatelessWidget {
                       child: Semantics(
                         selected: i == index,
                         button: true,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (i == 2)
-                              Container(
-                                width: 42,
-                                height: 42,
-                                decoration: const BoxDecoration(color: AppTheme.seed, shape: BoxShape.circle),
-                                child: Icon(_items[i].$2, color: Colors.white, size: 22),
-                              )
-                            else
-                              Icon(_items[i].$2, size: 22, color: i == index ? AppTheme.seed : AppTheme.muted),
-                            const SizedBox(height: 2),
-                            Text(
-                              _items[i].$1,
-                              maxLines: 1,
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: i == index ? FontWeight.w500 : FontWeight.w400,
-                                color: i == index ? AppTheme.seed : AppTheme.muted,
-                              ),
+                        // Every tab has the same icon and label layout, so the
+                        // labels line up; the scan tab sits in a green tile.
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                            decoration: i == 2
+                                ? BoxDecoration(color: AppTheme.seed, borderRadius: BorderRadius.circular(14))
+                                : null,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(_items[i].$2,
+                                    size: 22,
+                                    color: i == 2 ? Colors.white : (i == index ? AppTheme.seed : AppTheme.muted)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _items[i].$1,
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: i == index || i == 2 ? FontWeight.w500 : FontWeight.w400,
+                                    color: i == 2 ? Colors.white : (i == index ? AppTheme.seed : AppTheme.muted),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),

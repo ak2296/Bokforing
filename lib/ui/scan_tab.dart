@@ -60,6 +60,24 @@ class ScanTab extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text('Foodora och andra partner.', style: t.bodySmall),
+        const SizedBox(height: 16),
+        Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => importFile(context),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(children: [
+                const IconTile(AppIcons.file),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Hämta faktura från fil', style: t.titleSmall)),
+              ]),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text('PDF eller bild, t.ex. från e-post.', style: t.bodySmall),
         const SizedBox(height: 32),
         Text('Fyll i manuellt', style: t.titleSmall),
         const SizedBox(height: 8),
