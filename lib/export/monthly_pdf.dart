@@ -107,7 +107,7 @@ Future<Uint8List> buildMonthlyPdf(MonthlyReport r, BusinessProfile profile, {Dat
         pw.SizedBox(height: 10),
         pw.Text(
           'Beräknad moms utifrån de dokument som registrerats i appen. Detta är inte en momsdeklaration.'
-          '${r.onlineCount > 0 ? ' Onlineförsäljning är utbetalning efter provision och ingår inte i momsberäkningen.' : ''}'
+          '${r.onlineCount > 0 ? ' Onlineförsäljning utan moms på pappret är utbetalning efter provision och ingår inte i momsberäkningen.' : ''}'
           '${r.rows.any((x) => x.hasSalesDifference) ? ' * = dagens försäljningsrader stämmer inte med Z-rapportens total.' : ''}',
           style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey800),
         ),

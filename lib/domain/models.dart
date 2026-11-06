@@ -260,6 +260,11 @@ class OnlineSale {
   final String partner;
   final String documentNumber;
   final Money amount;
+
+  /// Output VAT included in [amount], when the partner's paper shows it
+  /// (a självfaktura). Zero for a payout after commission.
+  final Money vat;
+  final VatRate? vatRate;
   final RecordMeta meta;
 
   const OnlineSale({
@@ -268,6 +273,8 @@ class OnlineSale {
     required this.partner,
     this.documentNumber = '',
     required this.amount,
+    this.vat = Money.zero,
+    this.vatRate,
     required this.meta,
   });
 }

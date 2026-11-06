@@ -233,7 +233,7 @@ class MonthlyTable extends StatelessWidget {
             style: t.bodySmall),
         if (r.onlineCount > 0) ...[
           const SizedBox(height: 4),
-          Text('Onlineförsäljning är utbetalning efter provision och ingår inte i momsberäkningen.', style: t.bodySmall),
+          Text('Onlineförsäljning utan moms på pappret är utbetalning efter provision och ingår inte i momsberäkningen.', style: t.bodySmall),
         ],
       ],
     );

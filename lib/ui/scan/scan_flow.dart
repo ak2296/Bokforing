@@ -206,8 +206,11 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
     }
   }
 
-  Future<void> _openReview(DocumentType type) async {
+  Future<void> _openReview(DocumentType detected) async {
     final ocr = _ocr!;
+    // A självfaktura with the partner's invoice is reviewed as an online sale
+    // first, then as an invoice.
+    final type = OnlineParser.isCombined(ocr.rows().map((r) => r.text).join('\n')) ? DocumentType.onlineSale : detected;
     final ctx = ScanContext(
       imagePaths: List.of(_processed),
       ocrText: ocr.rows().map((r) => r.text).join('\n'),

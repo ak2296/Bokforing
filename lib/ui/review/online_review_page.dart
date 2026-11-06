@@ -6,6 +6,7 @@ import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/online_parser.dart';
 import '../../domain/text_patterns.dart';
+import '../../domain/vat.dart';
 import '../app_icons.dart';
 import '../scan/scan_context.dart';
 import '../scan/scan_flow.dart';
@@ -13,6 +14,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/fields.dart';
 import '../settings/activation_page.dart';
+import 'invoice_review_page.dart';
 import 'review_common.dart';
 
 /// "Kontrollera uppgifterna" for a partner's payout: scan, manual entry or
@@ -31,7 +33,9 @@ class _OnlineReviewPageState extends State<OnlineReviewPage> {
   final _form = GlobalKey<FormState>();
   final _dateKey = GlobalKey();
   final _amountKey = GlobalKey();
-  late final TextEditingController _date, _partner, _number, _amount;
+  final _vatKey = GlobalKey();
+  late final TextEditingController _date, _partner, _number, _amount, _vat;
+  VatRate? _rate;
   late bool _editing;
   bool _edited = false;
   bool _saving = false;
@@ -46,6 +50,9 @@ class _OnlineReviewPageState extends State<OnlineReviewPage> {
     _partner = TextEditingController(text: e?.partner ?? d?.partner.value ?? '');
     _number = TextEditingController(text: e?.documentNumber ?? d?.documentNumber.value ?? '');
     _amount = TextEditingController(text: (e?.amount ?? d?.amount.value)?.toInput() ?? '');
+    final vat = e != null ? (e.vat.isZero ? null : e.vat) : d?.vat.value;
+    _vat = TextEditingController(text: vat?.toInput() ?? '');
+    _rate = e?.vatRate ?? d?.vatRate;
     _editing = widget.scan == null;
     if (_partner.text.isEmpty) {
       // Most owners have one partner: suggest the latest one.
@@ -70,6 +77,11 @@ class _OnlineReviewPageState extends State<OnlineReviewPage> {
       _blocked('Fyll i betalt belopp innan du sparar.', _amountKey);
       return;
     }
+    final vat = _vat.text.trim().isEmpty ? Money.zero : Money.parse(_vat.text);
+    if (vat == null || (!vat.isZero && _rate == null)) {
+      _blocked('Fyll i momsen och välj momssats, eller lämna momsen tom.', _vatKey);
+      return;
+    }
     final controller = AppScope.read(context);
     final sale = OnlineSale(
       id: widget.existing?.id,
@@ -77,6 +89,8 @@ class _OnlineReviewPageState extends State<OnlineReviewPage> {
       partner: _partner.text.trim(),
       documentNumber: _number.text.trim(),
       amount: amount,
+      vat: vat,
+      vatRate: vat.isZero ? null : _rate,
       meta: RecordMeta(
         source: widget.existing?.meta.source ?? (widget.scan == null ? RecordSource.manual : RecordSource.ocr),
         manuallyEdited: _edited,
@@ -103,10 +117,19 @@ class _OnlineReviewPageState extends State<OnlineReviewPage> {
               partner: sale.partner,
               documentNumber: sale.documentNumber,
               amount: sale.amount,
+              vat: sale.vat,
+              vatRate: sale.vatRate,
               meta: sale.meta.copyWith(scanId: scanId),
             ));
       controller.dataChanged();
       if (!mounted) return;
+      final fees = widget.draft?.feesInvoice;
+      if (fees != null && widget.existing == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Försäljningen är sparad. Kontrollera nu partnerns faktura från samma papper.')));
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => InvoiceReviewPage(draft: fees)));
+        return;
+      }
       showSaved(context, date: date);
     } catch (e) {
       if (!mounted) return;
@@ -169,6 +192,40 @@ class _OnlineReviewPageState extends State<OnlineReviewPage> {
                   onChanged: _changed),
             ),
             const SizedBox(height: 12),
+            KeyedSubtree(
+              key: _vatKey,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: MoneyField(
+                        controller: _vat,
+                        label: 'Moms (om pappret visar den)',
+                        confidence: d != null && d.vat.hasValue ? conf(d.vat) : null,
+                        enabled: _editing,
+                        onChanged: _changed),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 110,
+                    child: DropdownButtonFormField<VatRate?>(
+                      initialValue: _rate,
+                      decoration: const InputDecoration(labelText: 'Momssats'),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('Ingen')),
+                        for (final r in const [VatRate.six, VatRate.twelve, VatRate.twentyFive])
+                          DropdownMenuItem(value: r, child: Text(r.label)),
+                      ],
+                      onChanged: _editing ? (v) => setState(() {
+                            _rate = v;
+                            _edited = true;
+                          }) : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             PlainField(
                 controller: _number,
                 label: 'Dokumentnummer',
@@ -177,8 +234,8 @@ class _OnlineReviewPageState extends State<OnlineReviewPage> {
                 onChanged: _changed),
             const SizedBox(height: 12),
             Text(
-              'Beloppet läggs till månadens totala försäljning. Ingen moms räknas på det, '
-              'eftersom det är utbetalningen efter partnerns provision.',
+              'Beloppet läggs till månadens totala försäljning. Visar pappret moms på din försäljning '
+              '(en självfaktura) räknas den som utgående moms. En utbetalning efter provision har ingen moms.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

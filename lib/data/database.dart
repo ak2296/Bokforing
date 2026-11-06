@@ -6,7 +6,7 @@ import 'package:sqflite/sqflite.dart';
 /// except amounts printed on the document itself (e.g. reported Z total).
 class AppDatabase {
   static const fileName = 'bokforing.db';
-  static const version = 4;
+  static const version = 5;
 
   static Future<Database> open({DatabaseFactory? factory, String? path}) async {
     final f = factory ?? databaseFactory;
@@ -23,6 +23,11 @@ class AppDatabase {
           if (oldVersion < 4) {
             final batch = db.batch();
             _v4Tables(batch);
+            await batch.commit(noResult: true);
+          }
+          if (oldVersion < 5) {
+            final batch = db.batch();
+            _v5Changes(batch);
             await batch.commit(noResult: true);
           }
         },
@@ -142,6 +147,7 @@ class AppDatabase {
     _v2Tables(batch);
     _v3Changes(batch);
     _v4Tables(batch);
+    _v5Changes(batch);
     for (final bp in const [0, 600, 1200, 2500]) {
       batch.insert('vat_rates', {'basis_points': bp, 'active': 1});
     }
@@ -188,6 +194,12 @@ class AppDatabase {
   }
 
   /// v4: payouts from delivery partners (online sales).
+  /// v5: moms on an online sale, when the partner's paper shows it.
+  static void _v5Changes(Batch batch) {
+    batch.execute('ALTER TABLE online_sales ADD COLUMN vat_ore INTEGER NOT NULL DEFAULT 0');
+    batch.execute('ALTER TABLE online_sales ADD COLUMN vat_bp INTEGER');
+  }
+
   static void _v4Tables(Batch batch) {
     batch.execute('''
       CREATE TABLE IF NOT EXISTS online_sales (

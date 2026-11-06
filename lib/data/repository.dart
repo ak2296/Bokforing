@@ -484,6 +484,8 @@ class Repository {
           'partner': s.partner.trim(),
           'document_number': s.documentNumber.trim(),
           'amount_ore': s.amount.ore,
+          'vat_ore': s.vat.ore,
+          'vat_bp': s.vatRate?.basisPoints,
           'source': s.meta.source.name,
           'manually_edited': s.meta.manuallyEdited ? 1 : 0,
           'confirmed': 1,
@@ -507,6 +509,8 @@ class Repository {
         partner: r['partner'] as String,
         documentNumber: r['document_number'] as String,
         amount: Money(r['amount_ore'] as int),
+        vat: Money(r['vat_ore'] as int? ?? 0),
+        vatRate: r['vat_bp'] == null ? null : VatRate(r['vat_bp'] as int),
         meta: _meta(r),
       );
 

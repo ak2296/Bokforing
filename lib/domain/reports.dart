@@ -47,12 +47,15 @@ class MonthlyReport {
   final Money totalOutputVat;
   final Money totalInputVat;
 
-  /// Payouts from delivery partners this month; no VAT figure.
+  /// Online sales this month; [onlineVat] is the output VAT printed on
+  /// partners' självfakturor, already part of [totalOutputVat].
   final Money totalOnline;
+  final Money onlineVat;
   final int onlineCount;
 
   const MonthlyReport({
     this.totalOnline = Money.zero,
+    this.onlineVat = Money.zero,
     this.onlineCount = 0,
     required this.year,
     required this.month,
@@ -165,6 +168,7 @@ class ReportGenerator {
 
     return MonthlyReport(
       totalOnline: Money.sum(monthOnline.map((o) => o.amount)),
+      onlineVat: Money.sum(monthOnline.map((o) => o.vat)),
       onlineCount: monthOnline.length,
       year: year,
       month: month,
@@ -173,7 +177,7 @@ class ReportGenerator {
       columnTotals: columnTotals,
       totalSales: Money.sum(rows.map((r) => r.sales)),
       totalExpenses: Money.sum(rows.map((r) => r.expenses)),
-      totalOutputVat: Money.sum(rows.map((r) => r.outputVat)),
+      totalOutputVat: Money.sum(rows.map((r) => r.outputVat)) + Money.sum(monthOnline.map((o) => o.vat)),
       totalInputVat: Money.sum(rows.map((r) => r.inputVat)),
     );
   }
@@ -189,12 +193,13 @@ class ReportGenerator {
       final prefix = '${SwedishDates.monthKey(year, m)}-';
       final s = sales.where((d) => d.businessDate.startsWith(prefix));
       final i = invoices.where((d) => d.invoiceDate.startsWith(prefix));
-      final monthOnline = Money.sum(online.where((o) => o.paymentDate.startsWith(prefix)).map((o) => o.amount));
+      final onlineSales = online.where((o) => o.paymentDate.startsWith(prefix));
+      final monthOnline = Money.sum(onlineSales.map((o) => o.amount));
       rows.add(YearRow(
         m,
         Money.sum(s.map((d) => d.detailedTotal)) + monthOnline,
         Money.sum(i.map((d) => d.total)),
-        Money.sum(s.map((d) => d.outputVat)),
+        Money.sum(s.map((d) => d.outputVat)) + Money.sum(onlineSales.map((o) => o.vat)),
         Money.sum(i.map((d) => d.vatTotal)),
         online: monthOnline,
       ));
