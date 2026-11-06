@@ -259,7 +259,10 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       if (decimalsOnly && !amount.hasDecimals) continue;
       final label = _label(rows[i].text, amount.start);
       if (label.isEmpty || !hasLetters.hasMatch(label)) {
-        if (start >= 0 && amount.hasDecimals && !amount.value.isZero) nameless.add(amount.value);
+        // A row with a rate ("12%  714,29  85,71") is VAT, not a sale.
+        if (start >= 0 && amount.hasDecimals && !amount.value.isZero && !rows[i].text.contains('%')) {
+          nameless.add(amount.value);
+        }
         continue;
       }
       if (_notSales.any((w) => norm[i].contains(w))) continue;
@@ -407,7 +410,8 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       // Also misread: "Fran", "Fràn".
       // Also "Öppnad"/"Opened" for when the day was opened, and Norwegian "Fra".
       final fromIdx =
-          RegExp(r'\b(fr[aåàáâä]n|fr\.?o\.?m\.?|from|fra|opened|öppnad(es)?)\b').firstMatch(norm[i]);
+          // Not \b: it does not see å, ä and ö as letters.
+          RegExp(r'(?<![a-zåäö])(fr[aåàáâä]n|fr\.?o\.?m\.?|from|fra|opened|öppnad(es)?)(?![a-zåäö])').firstMatch(norm[i]);
       if (from == null && fromIdx != null) {
         final after = TextPatterns.dates(rows[i].text.substring(fromIdx.start.clamp(0, rows[i].text.length)))
             .where(plausible)
@@ -468,7 +472,9 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     bool hasLetters(String s) => RegExp(r'[A-Za-zÅÄÖåäö]{2,}').hasMatch(s.replaceAll(RegExp(r'\b(kr|sek)\b', caseSensitive: false), ''));
     bool isHeading(String s) {
       final n = TextPatterns.normalize(s);
-      return _sectionStart.any(n.contains) || _sectionEnd.any((w) => n.startsWith(w));
+      // A heading like "Sales by VAT rate" ends the section wherever the word is.
+      return _sectionStart.any(n.contains) ||
+          _sectionEnd.any((w) => n.startsWith(w) || RegExp('(?<![a-zåäö])${RegExp.escape(w)}(?![a-zåäö])').hasMatch(n));
     }
 
     final out = <TextRow>[];
