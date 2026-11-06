@@ -162,6 +162,23 @@ void main() {
     });
   });
 
+  test('4 November: the print time before the title is not the sales day', () {
+    final d = _z('''
+2026-11-05 16:56   Z-Rapport (2026-11-04 00:00- 2026-11-04 23:59)
+Z-Rapport: Alla kassor (1 st)   2026-11-04 00:00 - 2026-11-04 23:59
+Från:   2026-11-04 11:34 Org.nr: 121212-1212   Företag: Ankan restaurang & pizzeria
+Till:   2026-11-04 22:12 Tid:   2026-11-05 16:55 Adress:   Provvägen 12 A 123 45 Malmö
+Underlag: z1-185
+GENERELLT
+Periodens försäljning   10 091,00 kr
+FÖRSÄLJNING PER VARUGRUPP EXKL RETURER
+Mat   1412,00 kr
+Tobak   422,00 kr''');
+    expect(d.date.value, '2026-11-04');
+    expect(d.date.confidence, Confidence.high);
+    expect(d.otherDates, isEmpty);
+  });
+
   test('the footer address onslip360 is never a sale of 360', () {
     final d = _z('Z-rapport\nPeriodens försäljning 150,00 kr\nFörsäljning per varugrupp\nMat 100,00 kr\nOs /lonslip 360\nslonsip 360\nTobak 50,00 kr');
     expect(d.lines.map((l) => l.label), ['Mat', 'Tobak']);

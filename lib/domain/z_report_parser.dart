@@ -350,8 +350,23 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       // browser's print date in the page margin, never the business date.
       final bare = !RegExp(r'[a-zåäö]{2,}').hasMatch(norm[i]);
       if (bare && (i < titleRow || (hasPeriod && i <= titleRow + 2))) continue;
+      var text = rows[i].text.replaceAll(printedAt, ' ');
+      // The print time can stand before the title on the same line:
+      // "2026-11-05 16:56   Z-Rapport (2026-11-04 00:00 - 2026-11-04 23:59)".
+      if (i == titleRow) {
+        final lower = text.toLowerCase();
+        final at = [for (final w in _titleWords) lower.indexOf(w)].where((x) => x > 0).fold<int?>(null, (a, b) => a == null || b < a ? b : a);
+        if (at != null) text = text.substring(at);
+      }
       // A date far in the future is a misread, never a business date.
-      final d = TextPatterns.dates(rows[i].text.replaceAll(printedAt, ' ')).where(plausible).toList();
+      final d = TextPatterns.dates(text).where(plausible).toList();
+      // A period "2026-11-04 00:00 - 2026-11-04 23:59" starts on the sales day,
+      // also when both ends fall on the same date.
+      final period = RegExp(r'(\d{4}-\d{2}-\d{2})\s+\d{1,2}[:.]\d{2}\s*[-–]\s*\d{4}-\d{2}-\d{2}').firstMatch(text);
+      if (from == null && period != null && plausible(period[1]!)) {
+        from = period[1];
+        fromSrc = rows[i].text;
+      }
       dates.addAll(d);
       if (i == titleRow && d.isNotEmpty) {
         title = d.first;
