@@ -475,10 +475,12 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       }
       out.add(TotalCandidate(a.value, score, rows[i].text, reasons));
     }
-    // A giro slip prints kronor and öre apart and no label: "159 00   4 >".
+    // A giro slip prints kronor and öre apart and no label: "159 00   4 >",
+    // read as "4 >   159 00" when the slip was upside down.
     if (out.isEmpty) {
       for (var i = 0; i < rows.length; i++) {
-        final m = RegExp(r'(?<!\d)(\d[\d ]{0,8}?) (\d{2})\s+\d\s*>').firstMatch(rows[i].text);
+        final m = RegExp(r'(?<!\d)(\d[\d ]{0,8}?) (\d{2})\s+\d\s*>').firstMatch(rows[i].text) ??
+            RegExp(r'(?<!\d)\d\s*>\s+(\d[\d ]{0,8}?) (\d{2})(?!\d)').firstMatch(rows[i].text);
         final slip = m == null ? null : Money.parse('${m[1]!.replaceAll(' ', '')},${m[2]}');
         if (slip != null && !slip.isZero) {
           out.add(TotalCandidate(slip, 75, rows[i].text, const ['beloppet på inbetalningskortet']));

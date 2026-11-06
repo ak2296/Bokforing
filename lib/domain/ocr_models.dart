@@ -119,6 +119,21 @@ class OcrResult {
   /// Characters in lines that read left to right.
   int get uprightLetters => lines.where((l) => !isMarginText(l)).fold(0, (n, l) => n + _letters(l));
 
+  /// True when the paper was photographed upside down: lines turned half a
+  /// circle, or words that follow each other from right to left.
+  bool get looksUpsideDown {
+    var reversed = 0, forward = 0;
+    for (final l in lines) {
+      final angle = l.angle;
+      if (angle != null && angle.abs() > 150) {
+        reversed++;
+      } else if (l.words.length >= 2) {
+        l.words.first.box.left > l.words.last.box.left ? reversed++ : forward++;
+      }
+    }
+    return reversed >= 3 && reversed > forward;
+  }
+
   /// True when the paper was probably photographed sideways: there is little
   /// upright text, or most of the text runs up or down the page.
   bool get looksSideways {

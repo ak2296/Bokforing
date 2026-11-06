@@ -248,6 +248,42 @@ Tobak   422,00 kr''');
     });
   });
 
+  group('Upside-down paper', () {
+    OcrLine line(List<String> words, {required bool reversed, double? angle}) {
+      final elements = [
+        for (var i = 0; i < words.length; i++)
+          OcrElement(words[i], OcrBox(reversed ? 400.0 - i * 60 : i * 60.0, 0, reversed ? 450.0 - i * 60 : i * 60.0 + 50, 20)),
+      ];
+      return OcrLine(words.join(' '), OcrBox(0, 0, 450, 20), words: elements, angle: angle);
+    }
+
+    OcrResult result(List<OcrLine> lines) =>
+        OcrResult(text: '', blocks: [for (final l in lines) OcrBlock(l.text, l.box, [l])]);
+
+    test('words running right to left are noticed', () {
+      final words = ['Oss', 'tillhanda', 'senast'];
+      expect(result([for (var i = 0; i < 4; i++) line(words, reversed: true)]).looksUpsideDown, isTrue);
+      expect(result([for (var i = 0; i < 4; i++) line(words, reversed: false)]).looksUpsideDown, isFalse);
+    });
+
+    test('lines turned half a circle are noticed', () {
+      expect(result([for (var i = 0; i < 4; i++) line(['OCR'], reversed: false, angle: 179)]).looksUpsideDown, isTrue);
+    });
+
+    test('rotating half a circle keeps the size', () {
+      final jpeg = img.encodeJpg(img.Image(width: 40, height: 20));
+      final turned = img.decodeJpg(rotateJpeg(PreprocessRotate(jpeg, 180)))!;
+      expect((turned.width, turned.height), (40, 20));
+    });
+
+    test('the slip amount read backwards is still found', () {
+      final d = const InvoiceParser().parse(OcrResult.fromPlainText(
+          '4 >   159 00\n1262500#41#\nOCR:5625620595\nOss tillhanda senast: 2026-12-31\nINBETALNING/GIRERING AVI'));
+      expect(d.total.value, Money.kr(159));
+      expect(d.vatTotal.value, Money.zero);
+    });
+  });
+
   test('giro slip: amount without a label, payee, due date, OCR', () {
     final d = const InvoiceParser().parse(OcrResult.fromPlainText('''
 INBETALNING/GIRERING AVI

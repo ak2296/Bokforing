@@ -11,22 +11,28 @@ import '../imaging/preprocess.dart';
 class OcrService {
   final TextRecognizer _recognizer = TextRecognizer(script: TextRecognitionScript.latin);
 
-  /// Reads [path]. A paper photographed sideways is turned and read again;
-  /// the file is replaced when that reads clearly more, so the review screen
-  /// also shows it upright.
+  /// Reads [path]. A paper photographed sideways or upside down is turned and
+  /// read again; the file is replaced when that reads better, so the review
+  /// screen also shows it upright.
   Future<OcrResult> recognizeFile(String path, {int width = 0, int height = 0}) async {
     final first = await _read(path, width, height);
-    if (!first.looksSideways) return first;
+    final upsideDown = !first.looksSideways && first.looksUpsideDown;
+    if (!first.looksSideways && !upsideDown) return first;
     final original = await File(path).readAsBytes();
     var best = first;
     List<int>? bestBytes;
-    for (final degrees in const [90, 270]) {
+    for (final degrees in upsideDown ? const [180] : const [90, 270]) {
       final turned = await compute(rotateJpeg, PreprocessRotate(original, degrees));
       final tmp = '$path.$degrees.jpg';
       await File(tmp).writeAsBytes(turned);
       final result = await _read(tmp, width, height);
       await File(tmp).delete();
-      if (result.uprightLetters > best.uprightLetters * 1.5) {
+      // Upside down, the same text is read either way; it must now run the
+      // right way round without losing much of it.
+      final better = upsideDown
+          ? !result.looksUpsideDown && result.uprightLetters >= best.uprightLetters * 0.8
+          : result.uprightLetters > best.uprightLetters * 1.5;
+      if (better) {
         best = result;
         bestBytes = turned;
       }
