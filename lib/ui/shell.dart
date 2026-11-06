@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 import '../domain/models.dart';
 import 'app_icons.dart';
@@ -6,6 +9,7 @@ import 'dashboard_page.dart';
 import 'expenses_page.dart';
 import 'reports/reports_page.dart';
 import 'sales_page.dart';
+import 'scan/scan_flow.dart';
 import 'scan_tab.dart';
 import 'settings/settings_page.dart';
 import 'theme.dart';
@@ -20,10 +24,35 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   int _index = 0;
+  StreamSubscription<List<SharedMediaFile>>? _shares;
 
   static const _titles = ['Översikt', 'Försäljning', 'Skanna dokument', 'Utgifter', 'Rapporter'];
 
   void _go(int i) => setState(() => _index = i);
+
+  @override
+  void initState() {
+    super.initState();
+    // A PDF or image shared from another app, e.g. an e-mail attachment:
+    // while the app is open, and the one that started the app.
+    _shares = ReceiveSharingIntent.instance.getMediaStream().listen(_open);
+    ReceiveSharingIntent.instance.getInitialMedia().then((files) {
+      _open(files);
+      ReceiveSharingIntent.instance.reset();
+    });
+  }
+
+  @override
+  void dispose() {
+    _shares?.cancel();
+    super.dispose();
+  }
+
+  void _open(List<SharedMediaFile> files) {
+    if (files.isEmpty || !mounted) return;
+    final f = files.first;
+    readSharedFile(context, f.path, pdf: (f.mimeType ?? '').contains('pdf') || f.path.toLowerCase().endsWith('.pdf'));
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -49,6 +49,26 @@ jobs:
           if ! grep -q 'ScheduledNotificationReceiver' $m; then
             perl -0pi -e 's#</application>#    <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />\n        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">\n            <intent-filter>\n                <action android:name="android.intent.action.BOOT_COMPLETED"/>\n                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>\n                <action android:name="android.intent.action.QUICKBOOT_POWERON" />\n                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>\n            </intent-filter>\n        </receiver>\n    </application>#' $m
           fi
+          # Share to the app: PDFs and images from e-mail and other apps.
+          sed -i 's/android:launchMode="singleTop"/android:launchMode="singleTask"/' $m
+          if ! grep -q 'application/pdf' $m; then
+            perl -0pi -e 's#</intent-filter>#</intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="application/pdf"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="image/*"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:scheme="content" android:mimeType="application/pdf"/>
+            </intent-filter>#' $m
+          fi
           grep -q 'isCoreLibraryDesugaringEnabled' "$f" || perl -0pi -e 's/compileOptions \{/compileOptions {\n        isCoreLibraryDesugaringEnabled = true/' "$f"
           grep -q 'desugar_jdk_libs' "$f" || printf '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n' >> "$f"
           echo "----- $f"; cat "$f"

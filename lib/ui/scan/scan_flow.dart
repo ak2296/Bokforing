@@ -56,16 +56,22 @@ Future<void> startScan(BuildContext context, {bool online = false}) async {
 /// Reads a faktura saved as a PDF or an image, e.g. from an e-mail. A PDF is
 /// turned into page images first; the rest works like a camera scan.
 Future<void> importFile(BuildContext context) async {
-  if (!await requireLicense(context) || !context.mounted) return;
   final picked = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png']);
   final source = picked?.files.single.path;
   if (source == null || !context.mounted) return;
+  await readSharedFile(context, source, pdf: source.toLowerCase().endsWith('.pdf'));
+}
+
+/// Reads a PDF or image from [source]: picked in the app or shared to it from
+/// another app, such as an e-mail attachment.
+Future<void> readSharedFile(BuildContext context, String source, {required bool pdf}) async {
+  if (!await requireLicense(context) || !context.mounted) return;
   final messenger = ScaffoldMessenger.of(context);
   try {
     final tmp = await getTemporaryDirectory();
     final stamp = DateTime.now().microsecondsSinceEpoch;
     final paths = <String>[];
-    if (source.toLowerCase().endsWith('.pdf')) {
+    if (pdf) {
       // At most four pages: a faktura's totals are on the first pages.
       await for (final page in Printing.raster(await File(source).readAsBytes(), dpi: 200)) {
         final out = p.join(tmp.path, 'fil_${stamp}_${paths.length}.png');
@@ -74,7 +80,8 @@ Future<void> importFile(BuildContext context) async {
         if (paths.length == 4) break;
       }
     } else {
-      final out = p.join(tmp.path, 'fil_$stamp${p.extension(source)}');
+      final ext = p.extension(source).isEmpty ? '.jpg' : p.extension(source);
+      final out = p.join(tmp.path, 'fil_$stamp$ext');
       await File(source).copy(out);
       paths.add(out);
     }
