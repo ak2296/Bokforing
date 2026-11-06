@@ -202,6 +202,42 @@ Tobak   422,00 kr''');
     });
   });
 
+  group('Z-reports from other registers', () {
+    test('Swedish register: huvudgrupp, totals with and without moms, betalmedel', () {
+      final d = _z('Z-rapport\nLöpnummer: 412\nDatum: 2026-11-05 23:10\nFörsäljning per huvudgrupp\n'
+          'Mat   1 000,00\nDryck   500,00\nFörsäljning per momssats\n12%   1 000,00   107,14\n25%   500,00   100,00\n'
+          'Dagens totalförsäljning exkl. moms   1 292,86\nDagens totalförsäljning inkl. moms   1 500,00\n'
+          'Summering per betalmedel\nKort   1 200,00\nKontant   300,00\nDricks   40,00\nGrand total   987 654,00');
+      expect(d.total.value, Money.kr(1500));
+      expect(d.total.confidence, Confidence.high);
+      expect(d.lines.map((l) => l.label), ['Mat', 'Dryck']);
+      expect(d.zNumber.value, '412');
+      expect(d.date.value, '2026-11-05');
+    });
+
+    test('English report: product groups, reporting period, sequence number', () {
+      final d = _z('Z-report\nSequence number: 77\nReporting period 2026-11-04 06:00 - 2026-11-05 05:59\n'
+          'Sales by product group\nFood   800.00\nDrinks   200.00\nSales by VAT rate\n12%   714.29   85.71   800.00\n'
+          'Total sales   1,000.00\nPayment methods\nCard   900.00\nCash   100.00\nTips   50.00');
+      expect(d.total.value, Money.kr(1000));
+      expect(d.lines.map((l) => l.amount), [Money.kr(800), Money.kr(200)]);
+      expect(d.zNumber.value, '77');
+      expect(d.date.value, '2026-11-04');
+    });
+
+    test('the labelled total the rows add up to wins', () {
+      final d = _z('Z-rapport\nTotalt   1 250,00\nBruttoförsäljning   1 500,00\nFörsäljning per varugrupp\n'
+          'Mat   1 000,00\nTobak   500,00');
+      expect(d.total.value, Money.kr(1500));
+      expect(d.total.confidence, Confidence.high);
+    });
+
+    test('Öppnad is the start of the day', () {
+      final d = _z('Dagsrapport\nStängd: 2026-11-06 01:30\nÖppnad: 2026-11-05 10:00\nMat 100,00\nTotal försäljning 100,00');
+      expect(d.date.value, '2026-11-05');
+    });
+  });
+
   test('the footer address onslip360 is never a sale of 360', () {
     final d = _z('Z-rapport\nPeriodens försäljning 150,00 kr\nFörsäljning per varugrupp\nMat 100,00 kr\nOs /lonslip 360\nslonsip 360\nTobak 50,00 kr');
     expect(d.lines.map((l) => l.label), ['Mat', 'Tobak']);

@@ -85,11 +85,15 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
   static const _sectionStart = [
     'försäljning per varugrupp', 'per varugrupp', 'varugrupper', 'varugrupp', 'artikelgrupper',
     'per artikelgrupp', 'avdelningar', 'per avdelning', 'kategorier', 'försäljning per kategori',
+    // Other registers and English reports.
+    'huvudgrupp', 'produktgrupp', 'product group', 'by category', 'per category', 'by department', 'departments',
   ];
   static const _sectionEnd = [
     'momsgrupp', 'per moms', 'moms', 'betalning', 'betalsätt', 'betalningsmedel', 'kvitton', 'kvitto',
     'grand total', 'kassalåda', 'växelkassa', 'bokföringsunderlag', 'returer', 'rabatter', 'personal',
     'per timme', 'per säljare', 'summa varugrupper', 'totalt varugrupper',
+    'momssats', 'vat', 'betalmedel', 'betalningssätt', 'payment', 'tips', 'dricks', 'refund', 'discount',
+    'summering', 'summary',
   ];
   static const _totalLabels = <String, int>{
     'total försäljning': 100,
@@ -100,6 +104,11 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     'summa försäljning': 95,
     'försäljning inkl': 95,
     'bruttoförsäljning': 90,
+    'total sales': 100,
+    'sales total': 95,
+    'total turnover': 95,
+    'gross sales': 90,
+    'total omsättning': 90,
     'summa varugrupper': 80,
     'totalt varugrupper': 80,
     'totalt': 50,
@@ -110,6 +119,8 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     'org nr', 'org.nr', 'orgnr', 'org. nr', 'organisationsnr', 'organisationsnummer', 'http', 'www', 'tel ',
     'telefon', 'momsreg', 'kvitto på köp', 'kvitto pa kop', 'kassa nr', 'kassanr', 'kassör', 'ej kvitto',
     '.com', '.se/', 'report',
+    // Amounts that are not sales.
+    'dricks', 'tips', 'växelkassa', 'change float', 'presentkort', 'gift card', 'kvittokopi', 'lådöppning',
   ];
 
   /// The web address and page number at the foot of a printed report.
@@ -276,6 +287,7 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     // Total.
     Extracted<Money> total = const Extracted.none();
     var bestScore = 0;
+    final candidates = <(int, Money, String)>[];
     for (var i = 0; i < rows.length; i++) {
       if (i >= start && i < end && start >= 0) continue;
       final n = norm[i];
@@ -300,11 +312,20 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         amounts = TextPatterns.amounts(rows[i + 1].text);
       }
       if (amounts.isEmpty) continue;
+      candidates.add((score, amounts.last.value, rows[i].text));
       if (score > bestScore) {
         bestScore = score;
         total = Extracted(amounts.last.value, score >= 90 ? Confidence.high : Confidence.medium,
             source: rows[i].text);
       }
+    }
+    // Registers word the total differently and may print it with and without
+    // moms. The labelled total the sales rows add up to is the one.
+    if (lines.isNotEmpty) {
+      final rowSum = Money.sum(lines.map((l) => l.amount));
+      final fits = candidates.where((c) => (c.$2 - rowSum).abs() < Money.ignoredDifference).toList()
+        ..sort((a, b) => b.$1.compareTo(a.$1));
+      if (fits.isNotEmpty) total = Extracted(fits.first.$2, Confidence.high, source: fits.first.$3);
     }
     // Card and cash payments together are also the day's sales.
     if (!total.hasValue) {
@@ -384,7 +405,9 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         periodSrc = rows[i].text;
       }
       // Also misread: "Fran", "Fràn".
-      final fromIdx = RegExp(r'\b(fr[aåàáâä]n|fr\.?o\.?m\.?|from)\b').firstMatch(norm[i]);
+      // Also "Öppnad"/"Opened" for when the day was opened, and Norwegian "Fra".
+      final fromIdx =
+          RegExp(r'\b(fr[aåàáâä]n|fr\.?o\.?m\.?|from|fra|opened|öppnad(es)?)\b').firstMatch(norm[i]);
       if (from == null && fromIdx != null) {
         final after = TextPatterns.dates(rows[i].text.substring(fromIdx.start.clamp(0, rows[i].text.length)))
             .where(plausible)
@@ -549,7 +572,8 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
   }
 
   Extracted<String> _zNumber(List<TextRow> rows, List<String> norm) {
-    final re = RegExp(r'(?:z[-\s]?(?:nr|nummer|rapport\s*(?:nr|nummer)?)|rapport\s*nr|löpnummer)\s*[:.#]?\s*(\d{1,8})',
+    final re = RegExp(
+        r'(?:z[-\s]?(?:nr|nummer|rapport\s*(?:nr|nummer)?)|rapport\s*nr|rapportnummer|löpnummer|l[øo]penummer|sequence\s*number|report\s*number)\s*[:.#]?\s*(\d{1,8})',
         caseSensitive: false);
     for (var i = 0; i < rows.length; i++) {
       final m = re.firstMatch(rows[i].text);
