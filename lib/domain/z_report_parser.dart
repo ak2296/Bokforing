@@ -336,8 +336,12 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     final dates = <String>[];
     String? labelled;
     String? labelledSrc;
+    // The report belongs to the day it starts: the date after "Från"/"From".
+    // "Till" is only when recording ended. A printed period is the fallback.
     String? from;
     String? fromSrc;
+    String? periodStart;
+    String? periodSrc;
     String? title;
     String? titleSrc;
     final titleRow = norm.indexWhere((n) => TextPatterns.containsAny(n, _titleWords));
@@ -363,9 +367,9 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       // A period "2026-11-04 00:00 - 2026-11-04 23:59" starts on the sales day,
       // also when both ends fall on the same date.
       final period = RegExp(r'(\d{4}-\d{2}-\d{2})\s+\d{1,2}[:.]\d{2}\s*[-–]\s*\d{4}-\d{2}-\d{2}').firstMatch(text);
-      if (from == null && period != null && plausible(period[1]!)) {
-        from = period[1];
-        fromSrc = rows[i].text;
+      if (periodStart == null && period != null && plausible(period[1]!)) {
+        periodStart = period[1];
+        periodSrc = rows[i].text;
       }
       dates.addAll(d);
       if (i == titleRow && d.isNotEmpty) {
@@ -373,13 +377,14 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         titleSrc = rows[i].text;
       }
       // A period "2026-10-30 06:00 – 2026-10-31 05:59": the first is Från.
-      if (from == null &&
+      if (periodStart == null &&
           d.length >= 2 &&
           RegExp(r'(period|\s[-–]\s|\btill\b|\bto\b|\btom\b|t\.o\.m)').hasMatch(norm[i])) {
-        from = d.first;
-        fromSrc = rows[i].text;
+        periodStart = d.first;
+        periodSrc = rows[i].text;
       }
-      final fromIdx = RegExp(r'\b(från|fr\.?o\.?m\.?|from)\b').firstMatch(norm[i]);
+      // Also misread: "Fran", "Fràn".
+      final fromIdx = RegExp(r'\b(fr[aåàáâä]n|fr\.?o\.?m\.?|from)\b').firstMatch(norm[i]);
       if (from == null && fromIdx != null) {
         final after = TextPatterns.dates(rows[i].text.substring(fromIdx.start.clamp(0, rows[i].text.length)))
             .where(plausible)
@@ -406,6 +411,8 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     Extracted<String> date;
     if (from != null) {
       date = Extracted(from, Confidence.high, source: fromSrc, note: 'Från-datum i rapportens period');
+    } else if (periodStart != null) {
+      date = Extracted(periodStart, Confidence.high, source: periodSrc, note: 'Första dagen i rapportens period');
     } else if (title != null) {
       date = Extracted(title, unique.length == 1 ? Confidence.high : Confidence.medium, source: titleSrc);
     } else if (labelled != null) {

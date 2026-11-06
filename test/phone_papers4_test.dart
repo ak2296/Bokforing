@@ -179,6 +179,29 @@ Tobak   422,00 kr''');
     expect(d.otherDates, isEmpty);
   });
 
+  group('The sales day is the Från date', () {
+    test('Från wins over Till, also misread as Fràn', () {
+      final d = _z('Z-rapport\nTill: 2026-11-05 02:10\nFràn: 2026-11-04 11:34\nPeriodens försäljning 100,00 kr');
+      expect(d.date.value, '2026-11-04');
+      expect(d.date.confidence, Confidence.high);
+    });
+
+    test('From in English', () {
+      final d = _z('Z-report\nFrom: 2026-11-04 11:34   To: 2026-11-05 02:10\nPeriodens försäljning 100,00 kr');
+      expect(d.date.value, '2026-11-04');
+    });
+
+    test('Från wins over a printed period that starts on another day', () {
+      final d = _z('Z-rapport (2026-11-03 06:00 - 2026-11-04 05:59)\nFrån: 2026-11-04 11:34\nTill: 2026-11-04 22:12');
+      expect(d.date.value, '2026-11-04');
+    });
+
+    test('with no Från, the first day of the period', () {
+      final d = _z('Z-rapport\nPeriod 2026-10-30 06:00 - 2026-10-31 05:59\nPeriodens försäljning 100,00 kr');
+      expect(d.date.value, '2026-10-30');
+    });
+  });
+
   test('the footer address onslip360 is never a sale of 360', () {
     final d = _z('Z-rapport\nPeriodens försäljning 150,00 kr\nFörsäljning per varugrupp\nMat 100,00 kr\nOs /lonslip 360\nslonsip 360\nTobak 50,00 kr');
     expect(d.lines.map((l) => l.label), ['Mat', 'Tobak']);
