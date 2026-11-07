@@ -3,6 +3,10 @@ name: Bygg Android-APK
 on:
   workflow_dispatch:
   push:
+    # User guide, card and package designs need no new APK.
+    paths-ignore:
+      - 'dokument/**'
+      - '*.md'
 
 jobs:
   build:
