@@ -111,7 +111,7 @@ class AppStorage {
   static Future<int> compactImages({void Function(int done, int total)? progress}) async {
     final dir = await imagesDir();
     if (!await dir.exists()) return 0;
-    final files = await dir.list().where((e) => e is File && _isScanFile(e as File)).cast<File>().toList();
+    final files = await dir.list().where((e) => e is File).cast<File>().where(_isScanFile).toList();
     var saved = 0;
     for (var i = 0; i < files.length; i++) {
       final f = files[i];
