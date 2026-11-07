@@ -3,13 +3,17 @@ import 'package:flutter/material.dart';
 import '../app_icons.dart';
 
 import '../../app/app_controller.dart';
+import '../../domain/comparison.dart';
 import '../../domain/dates.dart';
+import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/reports.dart';
+import '../../export/table_export.dart';
 import '../export_actions.dart';
 import '../record_details.dart';
 import '../review/online_review_page.dart';
 import '../theme.dart';
+import '../widgets/charts.dart';
 import '../widgets/common.dart';
 
 class ReportsPage extends StatefulWidget {
@@ -20,7 +24,7 @@ class ReportsPage extends StatefulWidget {
 }
 
 class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 2, vsync: this);
+  late final TabController _tabs = TabController(length: 3, vsync: this);
   YearMonth _ym = YearMonth.now();
   int _year = DateTime.now().year;
 
@@ -46,7 +50,7 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                 labelColor: AppTheme.ink,
                 unselectedLabelColor: AppTheme.muted,
                 labelStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 13),
-                tabs: const [Tab(text: 'Månad'), Tab(text: 'Årsöversikt')],
+                tabs: const [Tab(text: 'Månad'), Tab(text: 'År'), Tab(text: 'Jämför')],
               ),
             ),
           ),
@@ -63,6 +67,7 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                     _tabs.animateTo(0);
                   },
                 ),
+                const _CompareView(),
               ],
             ),
           ),
@@ -151,24 +156,10 @@ class MonthlyTable extends StatelessWidget {
         Text(data.profile.name.toUpperCase(), style: t.titleMedium),
         Text(r.title.toUpperCase(), style: t.titleSmall),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                icon: const Icon(AppIcons.pdf),
-                label: const Text('Exportera PDF'),
-                onPressed: () => exportMonthlyPdf(context, data),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                icon: const Icon(AppIcons.print),
-                label: const Text('Skriv ut'),
-                onPressed: () => printMonthly(context, data),
-              ),
-            ),
-          ],
+        ExportButtons(
+          onPdf: () => exportMonthlyPdf(context, data),
+          onExcel: () => exportTableCsv(context, monthlyTable(r)),
+          onPrint: () => printMonthly(context, data),
         ),
         const SizedBox(height: 12),
         if (r.rows.isEmpty && r.onlineCount == 0)
@@ -329,21 +320,31 @@ class _YearView extends StatelessWidget {
             ],
           ),
           Expanded(
-            child: Reloading<YearReport>(
+            child: Reloading<(YearReport, BusinessProfile)>(
               deps: year,
-              loader: (AppController c) async => const ReportGenerator().yearly(
-                year: year,
-                sales: await c.repo.dailySalesBetween('$year-01-01', '$year-12-31'),
-                invoices: await c.repo.invoicesBetween('$year-01-01', '$year-12-31'),
-                online: await c.repo.onlineSalesBetween('$year-01-01', '$year-12-31'),
+              loader: (AppController c) async => (
+                const ReportGenerator().yearly(
+                  year: year,
+                  sales: await c.repo.dailySalesBetween('$year-01-01', '$year-12-31'),
+                  invoices: await c.repo.invoicesBetween('$year-01-01', '$year-12-31'),
+                  online: await c.repo.onlineSalesBetween('$year-01-01', '$year-12-31'),
+                ),
+                await c.repo.profile(),
               ),
-              builder: (context, y) {
+              builder: (context, data) {
+                final (y, profile) = data;
                 final bold = moneyStyle.copyWith(fontWeight: FontWeight.bold);
                 DataCell money(Money v, {bool strong = false}) => DataCell(
                     Text(v.format(unit: false), style: strong ? bold : moneyStyle));
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    ExportButtons(
+                      onPdf: () => exportTablePdf(context, yearTable(y), profile),
+                      onExcel: () => exportTableCsv(context, yearTable(y)),
+                      onPrint: () => printTable(context, yearTable(y), profile),
+                    ),
+                    const SizedBox(height: 12),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
@@ -397,4 +398,144 @@ class _YearView extends StatelessWidget {
           ),
         ],
       );
+}
+
+/// "Jämför": one year against another, month by month, for sales, expenses
+/// or moms, as a chart and a table.
+class _CompareView extends StatefulWidget {
+  const _CompareView();
+
+  @override
+  State<_CompareView> createState() => _CompareViewState();
+}
+
+class _CompareViewState extends State<_CompareView> {
+  int _year = DateTime.now().year;
+  late int _other = _year - 1;
+  CompareMetric _metric = CompareMetric.sales;
+
+  static Future<YearReport> _load(AppController c, int y) async => const ReportGenerator().yearly(
+        year: y,
+        sales: await c.repo.dailySalesBetween('$y-01-01', '$y-12-31'),
+        invoices: await c.repo.invoicesBetween('$y-01-01', '$y-12-31'),
+        online: await c.repo.onlineSalesBetween('$y-01-01', '$y-12-31'),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Reloading<(YearReport, YearReport, BusinessProfile)>(
+      deps: '$_year $_other',
+      loader: (c) async => (await _load(c, _year), await _load(c, _other), await c.repo.profile()),
+      builder: (context, data) {
+        final (a, b, profile) = data;
+        final cmp = Comparison.of(a, b, _metric);
+        final table = comparisonTable(cmp);
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Row(children: [
+              IconButton(
+                  tooltip: 'Föregående år',
+                  icon: const Icon(AppIcons.chevronLeft),
+                  onPressed: () => setState(() {
+                        _year--;
+                        _other = _year - 1;
+                      })),
+              Text('$_year', style: t.titleMedium),
+              IconButton(
+                  tooltip: 'Nästa år',
+                  icon: const Icon(AppIcons.chevronRight),
+                  onPressed: () => setState(() {
+                        _year++;
+                        _other = _year - 1;
+                      })),
+              const Spacer(),
+              const Text('mot '),
+              DropdownButton<int>(
+                value: _other,
+                underline: const SizedBox.shrink(),
+                items: [
+                  for (var y = _year - 1; y >= _year - 5; y--) DropdownMenuItem(value: y, child: Text('$y')),
+                ],
+                onChanged: (v) => setState(() => _other = v ?? _other),
+              ),
+            ]),
+            Wrap(spacing: 8, children: [
+              for (final m in CompareMetric.values)
+                ChoiceChip(label: Text(m.label), selected: m == _metric, onSelected: (_) => setState(() => _metric = m)),
+            ]),
+            const SizedBox(height: 12),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('${_metric.label} per månad', style: t.bodySmall),
+                  const SizedBox(height: 10),
+                  CompareLineChart(
+                    current: [for (final r in cmp.rows) r.a.ore / 100],
+                    previous: [for (final r in cmp.rows) r.b.ore / 100],
+                    semanticLabel: '${_metric.label} per månad $_year jämfört med $_other',
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(spacing: 14, children: [
+                    LegendDot(AppTheme.seed, '$_year'),
+                    LegendDot(chartPrevious, '$_other', dashed: true),
+                  ]),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                child: Column(children: [
+                  _compareRow(context, 'Månad', '$_year', '$_other', 'Skillnad', header: true),
+                  for (final r in cmp.rows)
+                    _compareRow(context, SwedishDates.capitalize(SwedishDates.months[r.month - 1]), r.a.format(unit: false),
+                        r.b.format(unit: false), formatChange(r.changePercent), change: r.changePercent),
+                  const Divider(),
+                  _compareRow(context, 'Totalt', cmp.totalA.format(unit: false), cmp.totalB.format(unit: false),
+                      formatChange(cmp.total.changePercent),
+                      change: cmp.total.changePercent, strong: true),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ExportButtons(
+              onPdf: () => exportTablePdf(context, table, profile),
+              onExcel: () => exportTableCsv(context, table),
+              onPrint: () => printTable(context, table, profile),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// For expenses a rise is shown as a warning, for sales and moms as normal.
+  Widget _compareRow(BuildContext context, String month, String a, String b, String diff,
+      {double? change, bool header = false, bool strong = false}) {
+    final t = Theme.of(context).textTheme;
+    final base = header ? t.bodySmall : (strong ? moneyStyle.copyWith(fontWeight: FontWeight.w600) : moneyStyle);
+    final worse = change != null &&
+        change.round() != 0 &&
+        ((change > 0) == (_metric == CompareMetric.expenses));
+    final diffColor = header || change == null || change.round() == 0
+        ? null
+        : worse
+            ? AppTheme.warning
+            : AppTheme.seed;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(children: [
+        Expanded(flex: 3, child: Text(month, style: header ? t.bodySmall : t.bodyMedium)),
+        Expanded(flex: 3, child: Text(a, textAlign: TextAlign.right, style: base)),
+        Expanded(flex: 3, child: Text(b, textAlign: TextAlign.right, style: base)),
+        Expanded(flex: 2, child: Text(diff, textAlign: TextAlign.right, style: base?.copyWith(color: diffColor))),
+      ]),
+    );
+  }
 }

@@ -1,24 +1,35 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_controller.dart';
+import '../domain/comparison.dart';
 import '../domain/dates.dart';
 import '../domain/license.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
+import '../domain/reports.dart';
 import 'app_icons.dart';
 import 'history_page.dart';
 import 'record_details.dart';
 import 'settings/activation_page.dart';
 import 'theme.dart';
 import 'unpaid_page.dart';
+import 'widgets/charts.dart';
 import 'widgets/common.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
+  static Future<YearReport> _year(AppController c, int y) async => const ReportGenerator().yearly(
+        year: y,
+        sales: await c.repo.dailySalesBetween('$y-01-01', '$y-12-31'),
+        invoices: await c.repo.invoicesBetween('$y-01-01', '$y-12-31'),
+        online: await c.repo.onlineSalesBetween('$y-01-01', '$y-12-31'),
+      );
+
   @override
   Widget build(BuildContext context) {
     final ym = YearMonth.now();
-    return Reloading<(MonthData, List<RegistrationSummary>, int, List<Invoice>, LicenseState)>(
+    return Reloading<(MonthData, List<RegistrationSummary>, int, List<Invoice>, LicenseState, YearReport, YearReport)>(
       deps: ym.title,
       loader: (c) async => (
         await MonthData.load(c, ym),
@@ -26,10 +37,26 @@ class DashboardPage extends StatelessWidget {
         await c.repo.documentCount(fromIso: ym.firstDay, toIso: ym.lastDay),
         await c.repo.unpaidInvoices(),
         await c.repo.licenseState(),
+        await _year(c, ym.year),
+        await _year(c, ym.year - 1),
       ),
       builder: (context, data) {
-        final (month, recent, count, unpaid, license) = data;
+        final (month, recent, count, unpaid, license, thisYear, lastYear) = data;
         final r = month.report;
+        final t = Theme.of(context).textTheme;
+        // The last six months, oldest first, across the turn of the year.
+        final months = [
+          for (var back = 5; back >= 0; back--)
+            ym.month - back > 0
+                ? (ym.month - back, thisYear.rows[ym.month - back - 1])
+                : (ym.month - back + 12, lastYear.rows[ym.month - back + 11]),
+        ];
+        final previous = months[months.length - 2].$2;
+        final categories = [
+          for (final c in r.columns) (c.name, r.columnTotals[c.key] ?? Money.zero),
+          if (!r.totalOnline.isZero) ('Online', r.totalOnline),
+        ]..sort((a, b) => b.$2.ore.compareTo(a.$2.ore));
+        final topCategory = categories.isEmpty ? Money.zero : categories.first.$2;
         final diff = r.vatDifference;
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
@@ -46,27 +73,73 @@ class DashboardPage extends StatelessWidget {
               ),
             if (unpaid.isNotEmpty) _UnpaidCard(unpaid),
             const SizedBox(height: 8),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 1.7,
-              children: [
-                _StatCard('Försäljning denna månad', r.totalAllSales),
-                _StatCard('Utgifter denna månad', r.totalExpenses),
-                _StatCard(diff.isNegative ? 'Momsskillnad (att få tillbaka)' : 'Momsskillnad (att betala)', diff),
-                _CountCard('Antal skannade dokument', count),
-              ],
-            ),
+            Row(children: [
+              Expanded(child: _KeyFigure('Försäljning', r.totalAllSales, previous.sales, higherIsGood: true)),
+              const SizedBox(width: 8),
+              Expanded(child: _KeyFigure('Utgifter', r.totalExpenses, previous.expenses, higherIsGood: false)),
+            ]),
             const SizedBox(height: 8),
-            Text('Beräknad moms. Ersätter inte momsdeklarationen.',
-                style: Theme.of(context).textTheme.bodySmall),
+            _Panel(
+              title: 'Försäljning och utgifter, 6 månader',
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                PairedBarChart(
+                  labels: [for (final m in months) SwedishDates.shortMonths[m.$1 - 1]],
+                  first: [for (final m in months) m.$2.sales.ore / 100],
+                  second: [for (final m in months) m.$2.expenses.ore / 100],
+                  semanticLabel: 'Försäljning och utgifter för de senaste sex månaderna',
+                ),
+                const SizedBox(height: 6),
+                const Wrap(spacing: 14, children: [
+                  LegendDot(AppTheme.seed, 'Försäljning'),
+                  LegendDot(chartSecond, 'Utgifter'),
+                ]),
+              ]),
+            ),
+            if (categories.isNotEmpty)
+              _Panel(
+                title: 'Försäljning per kategori',
+                child: Column(children: [
+                  for (final c in categories.take(5))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        Row(children: [
+                          Expanded(child: Text(c.$1, style: t.bodyMedium)),
+                          Text(c.$2.format(compact: true), style: moneyStyle),
+                        ]),
+                        const SizedBox(height: 4),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: LinearProgressIndicator(
+                            value: topCategory.ore <= 0 ? 0 : (c.$2.ore / topCategory.ore).clamp(0.0, 1.0),
+                            minHeight: 6,
+                            backgroundColor: AppTheme.hairline,
+                            color: AppTheme.seed,
+                          ),
+                        ),
+                      ]),
+                    ),
+                ]),
+              ),
+            _Panel(
+              child: Row(children: [
+                const Icon(AppIcons.vat, color: AppTheme.seed),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(diff.isNegative ? 'Moms att få tillbaka (beräknad)' : 'Moms att betala (beräknad)',
+                        style: t.bodySmall),
+                    Text(diff.abs().format(), style: t.titleMedium?.merge(moneyStyle)),
+                  ]),
+                ),
+                Text('$count dokument', style: t.bodySmall),
+              ]),
+            ),
+            Text('Beräknad moms. Ersätter inte momsdeklarationen.', style: t.bodySmall),
             const SizedBox(height: 20),
             Row(
               children: [
-                Expanded(child: Text('Senaste registreringar', style: Theme.of(context).textTheme.titleMedium)),
+                Expanded(child: Text('Senaste registreringar', style: t.titleMedium)),
                 TextButton(
                   onPressed: () =>
                       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryPage())),
@@ -85,51 +158,69 @@ class DashboardPage extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final Money value;
-  const _StatCard(this.label, this.value);
+/// A rounded white panel with an optional small title.
+class _Panel extends StatelessWidget {
+  final String? title;
+  final Widget child;
+  const _Panel({this.title, required this.child});
 
   @override
   Widget build(BuildContext context) => Card(
-        margin: EdgeInsets.zero,
+        margin: const EdgeInsets.only(bottom: 8),
         child: Padding(
-          padding: const EdgeInsets.all(13),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: Theme.of(context).textTheme.bodySmall, maxLines: 2),
-              FittedBox(
-                child: Text(value.format(compact: true),
-                    style: Theme.of(context).textTheme.titleLarge?.merge(moneyStyle)),
-              ),
+          padding: const EdgeInsets.all(14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            if (title != null) ...[
+              Text(title!, style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 10),
             ],
-          ),
+            child,
+          ]),
         ),
       );
 }
 
-class _CountCard extends StatelessWidget {
+/// This month's figure and how it changed since last month.
+class _KeyFigure extends StatelessWidget {
   final String label;
-  final int value;
-  const _CountCard(this.label, this.value);
+  final Money value;
+  final Money previous;
+
+  /// For sales a rise is good news; for expenses it is not.
+  final bool higherIsGood;
+  const _KeyFigure(this.label, this.value, this.previous, {required this.higherIsGood});
 
   @override
-  Widget build(BuildContext context) => Card(
-        margin: EdgeInsets.zero,
-        child: Padding(
-          padding: const EdgeInsets.all(13),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: Theme.of(context).textTheme.bodySmall, maxLines: 2),
-              Text('$value', style: Theme.of(context).textTheme.titleLarge),
-            ],
-          ),
-        ),
-      );
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final change = CompareRow(0, value, previous).changePercent;
+    final up = change != null && change > 0;
+    final good = change == null || change == 0 || up == higherIsGood;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: t.bodySmall),
+          const SizedBox(height: 2),
+          FittedBox(child: Text(value.format(compact: true), style: t.titleLarge?.merge(moneyStyle))),
+          const SizedBox(height: 2),
+          if (change == null)
+            Text('Ingen jämförelse', style: t.bodySmall)
+          else
+            Row(children: [
+              Icon(up ? AppIcons.trendUp : AppIcons.trendDown,
+                  size: 14, color: good ? AppTheme.seed : AppTheme.warning),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text('${formatChange(change)} mot förra månaden',
+                    style: t.bodySmall?.copyWith(color: good ? AppTheme.seed : AppTheme.warning)),
+              ),
+            ]),
+        ]),
+      ),
+    );
+  }
 }
 
 class RegistrationTile extends StatelessWidget {

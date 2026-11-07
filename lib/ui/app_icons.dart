@@ -52,6 +52,10 @@ class AppIcons {
   static const IconData searchOff = TablerIcons.search_off;
   static const IconData settings = TablerIcons.settings;
   static const IconData store = TablerIcons.building_store;
+  static const IconData table = TablerIcons.table;
+  static const IconData trendUp = TablerIcons.trending_up;
+  static const IconData trendDown = TablerIcons.trending_down;
+  static const IconData vat = TablerIcons.receipt_tax;
   static const IconData text = TablerIcons.file_text;
   static const IconData visibility = TablerIcons.eye;
   static const IconData visibilityOff = TablerIcons.eye_off;
