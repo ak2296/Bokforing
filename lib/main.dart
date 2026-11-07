@@ -5,6 +5,7 @@ import 'app/app_controller.dart';
 import 'app/settings_keys.dart';
 import 'data/database.dart';
 import 'data/storage.dart';
+import 'export/auto_backup.dart';
 import 'data/repository.dart';
 import 'notify/reminders.dart';
 import 'ui/setup_wizard.dart';
@@ -21,7 +22,11 @@ Future<void> main() async {
   final reminders = Reminders();
   await reminders.init();
   reminders.reschedule(repo);
-  runApp(BokforingApp(controller: AppController(repo, reminders: reminders), setupDone: setupDone));
+  final autoBackup = AutoBackup(repo);
+  // Catches up on changes made just before the app was closed last time.
+  autoBackup.runQuietly(onlyIfPending: true);
+  runApp(BokforingApp(
+      controller: AppController(repo, reminders: reminders, autoBackup: autoBackup), setupDone: setupDone));
 }
 
 class BokforingApp extends StatefulWidget {

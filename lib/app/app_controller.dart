@@ -1,13 +1,17 @@
 import 'package:flutter/widgets.dart';
 
 import '../data/repository.dart';
+import '../export/auto_backup.dart';
 import '../notify/reminders.dart';
 
 /// Holds the repository and tells screens to reload after data changes.
 class AppController extends ChangeNotifier {
   final Repository repo;
   final Reminders? reminders;
-  AppController(this.repo, {this.reminders});
+
+  /// Writes the automatic backup after changes, when it is turned on.
+  final AutoBackup? autoBackup;
+  AppController(this.repo, {this.reminders, this.autoBackup});
 
   int _revision = 0;
   int get revision => _revision;
@@ -17,6 +21,7 @@ class AppController extends ChangeNotifier {
     notifyListeners();
     // Payment reminders follow the unpaid invoices.
     reminders?.reschedule(repo);
+    autoBackup?.schedule();
   }
 }
 

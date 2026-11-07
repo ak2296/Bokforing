@@ -27,7 +27,7 @@ class StorageUsage {
 class AppStorage {
   const AppStorage._();
 
-  static const _scanFiles = ['.jpg', '.jpeg', '.png', '.pdf'];
+  static const _scanFiles = ['.jpg', '.jpeg', '.png', '.pdf', '.bkp'];
 
   static Future<Directory> imagesDir() async =>
       Directory(p.join((await getApplicationDocumentsDirectory()).path, 'skanningar'));

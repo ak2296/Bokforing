@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io' show GZipCodec, ZLibDecoder;
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -6,6 +8,23 @@ import 'package:cryptography/cryptography.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../data/database.dart';
+
+/// A key derived from the backup password, with its salt.
+class BackupKey {
+  final SecretKey key;
+  final List<int> salt;
+  final int iterations;
+  const BackupKey(this.key, this.salt, this.iterations);
+
+  static Future<BackupKey> derive(String password) async {
+    final random = Random.secure();
+    final salt = List<int>.generate(16, (_) => random.nextInt(256));
+    const iterations = Backup._iterations;
+    // A few seconds of work by design; kept off the screen's thread.
+    final bytes = await Isolate.run(() async => (await Backup._key(password, salt, iterations)).extractBytes());
+    return BackupKey(SecretKey(bytes), salt, iterations);
+  }
+}
 
 class BackupException implements Exception {
   final String message;
@@ -21,7 +40,8 @@ class Backup {
   const Backup._();
 
   static const format = 'bokforing-sakerhetskopia';
-  static const version = 1;
+  /// 2: the content is gzip-compressed before it is encrypted.
+  static const version = 2;
   static const _iterations = 120000;
 
   /// Parent tables first; restoring inserts in this order and deletes in
@@ -61,15 +81,19 @@ class Backup {
     };
   }
 
-  static Future<Uint8List> encrypt(Map<String, dynamic> backup, String password) async {
-    final random = Random.secure();
-    final salt = List<int>.generate(16, (_) => random.nextInt(256));
-    final key = await _key(password, salt, _iterations);
-    final box = await AesGcm.with256bits().encrypt(utf8.encode(jsonEncode(backup)), secretKey: key);
+  static Future<Uint8List> encrypt(Map<String, dynamic> backup, String password) async =>
+      encryptWith(backup, await BackupKey.derive(password));
+
+  /// Encrypts with a key derived earlier, so automatic backups need not
+  /// derive it again each time (it takes a few seconds by design).
+  static Future<Uint8List> encryptWith(Map<String, dynamic> backup, BackupKey key) async {
+    final packed = GZipCodec(level: 9).encode(utf8.encode(jsonEncode(backup)));
+    final box = await AesGcm.with256bits().encrypt(packed, secretKey: key.key);
     final envelope = {
       'format': format,
       'version': version,
-      'kdf': {'name': 'PBKDF2-HMAC-SHA256', 'iterations': _iterations, 'salt': base64Encode(salt)},
+      'compression': 'gzip',
+      'kdf': {'name': 'PBKDF2-HMAC-SHA256', 'iterations': key.iterations, 'salt': base64Encode(key.salt)},
       'cipher': 'AES-256-GCM',
       'nonce': base64Encode(box.nonce),
       'mac': base64Encode(box.mac.bytes),
@@ -81,7 +105,7 @@ class Backup {
   static Future<Map<String, dynamic>> decrypt(List<int> bytes, String password) async {
     Map<String, dynamic> env;
     try {
-      env = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+      env = jsonDecode(utf8.decode(unwrap(bytes))) as Map<String, dynamic>;
     } catch (_) {
       throw const BackupException('Filen är inte en säkerhetskopia från appen.');
     }
@@ -102,11 +126,50 @@ class Backup {
     } on SecretBoxAuthenticationError {
       throw const BackupException('Fel lösenord, eller så är filen skadad.');
     }
+    if (env['compression'] == 'gzip') clear = GZipCodec().decode(clear);
     final backup = jsonDecode(utf8.decode(clear)) as Map<String, dynamic>;
     if (backup['format'] != format || backup['tables'] is! Map) {
       throw const BackupException('Säkerhetskopian är ofullständig.');
     }
     return backup;
+  }
+
+  /// The backup file itself, also when it was put in a ZIP file: the first
+  /// ".bkp" in it (or its only file). Anything else is returned unchanged.
+  static List<int> unwrap(List<int> bytes) {
+    if (bytes.length < 22 || bytes[0] != 0x50 || bytes[1] != 0x4B || bytes[2] != 0x03 || bytes[3] != 0x04) return bytes;
+    int u16(int at) => bytes[at] | bytes[at + 1] << 8;
+    int u32(int at) => u16(at) | u16(at + 2) << 16;
+    // End of central directory, searched from the end.
+    var end = -1;
+    for (var i = bytes.length - 22; i >= 0 && i >= bytes.length - 22 - 65535; i--) {
+      if (u32(i) == 0x06054b50) {
+        end = i;
+        break;
+      }
+    }
+    if (end < 0) throw const BackupException('ZIP-filen är skadad.');
+    final count = u16(end + 10);
+    var at = u32(end + 16);
+    final entries = <(String, int, int, int)>[];
+    for (var n = 0; n < count && u32(at) == 0x02014b50; n++) {
+      final method = u16(at + 10), size = u32(at + 20), nameLen = u16(at + 28);
+      final extra = u16(at + 30), comment = u16(at + 32), local = u32(at + 42);
+      final name = utf8.decode(bytes.sublist(at + 46, at + 46 + nameLen), allowMalformed: true);
+      if (!name.endsWith('/')) entries.add((name, method, size, local));
+      at += 46 + nameLen + extra + comment;
+    }
+    final pick = entries.where((e) => e.$1.toLowerCase().endsWith('.bkp')).firstOrNull ??
+        (entries.length == 1 ? entries.single : null);
+    if (pick == null) throw const BackupException('ZIP-filen innehåller ingen säkerhetskopia (.bkp).');
+    final (_, method, size, local) = pick;
+    final start = local + 30 + u16(local + 26) + u16(local + 28);
+    final data = bytes.sublist(start, start + size);
+    return switch (method) {
+      0 => data,
+      8 => ZLibDecoder(raw: true).convert(data),
+      _ => throw const BackupException('ZIP-filen är packad på ett sätt som inte stöds.'),
+    };
   }
 
   static Future<SecretKey> _key(String password, List<int> salt, int iterations) =>
