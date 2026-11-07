@@ -15,6 +15,7 @@ import '../review/online_review_page.dart';
 import '../theme.dart';
 import '../widgets/charts.dart';
 import '../widgets/common.dart';
+import 'result_view.dart';
 
 class ReportsPage extends StatefulWidget {
   const ReportsPage({super.key});
@@ -24,7 +25,7 @@ class ReportsPage extends StatefulWidget {
 }
 
 class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 3, vsync: this);
+  late final TabController _tabs = TabController(length: 4, vsync: this);
   YearMonth _ym = YearMonth.now();
   int _year = DateTime.now().year;
 
@@ -50,7 +51,7 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                 labelColor: AppTheme.ink,
                 unselectedLabelColor: AppTheme.muted,
                 labelStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 13),
-                tabs: const [Tab(text: 'Månad'), Tab(text: 'År'), Tab(text: 'Jämför')],
+                tabs: const [Tab(text: 'Månad'), Tab(text: 'År'), Tab(text: 'Jämför'), Tab(text: 'Resultat')],
               ),
             ),
           ),
@@ -68,6 +69,7 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                   },
                 ),
                 const _CompareView(),
+                const ResultView(),
               ],
             ),
           ),

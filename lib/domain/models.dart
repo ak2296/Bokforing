@@ -177,7 +177,11 @@ class Invoice {
   final String bankgiro;
   final String plusgiro;
 
+  /// [CostType.key], or '' when not chosen.
+  final String costType;
+
   const Invoice({
+    this.costType = '',
     this.paid = false,
     this.paidDate,
     this.bankgiro = '',
@@ -248,6 +252,7 @@ extension InvoiceCopy on Invoice {
         paidDate: clearPaidDate ? null : (paidDate ?? this.paidDate),
         bankgiro: bankgiro,
         plusgiro: plusgiro,
+        costType: costType,
       );
 }
 

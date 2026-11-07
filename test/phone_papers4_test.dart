@@ -333,7 +333,9 @@ VAR GOD GÖR INGA ÄNDRINGAR
 5625620595 #   159 00   4 >   1262500#41#
 BG 130 OCR spec'''));
     expect(d.total.value, Money.kr(159));
-    expect(d.total.confidence, Confidence.medium);
+    // The code line's check digit confirms the amount and the bankgiro.
+    expect(d.total.confidence, Confidence.high);
+    expect(d.bankgiro.value, '126-2500');
     expect(d.vatTotal.value, Money.zero);
     expect(d.vatTotal.confidence, Confidence.medium);
     expect(d.notes, isEmpty);

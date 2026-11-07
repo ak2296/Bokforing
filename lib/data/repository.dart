@@ -409,6 +409,7 @@ class Repository {
         'paid_date': inv.paid ? inv.paidDate : null,
         'bankgiro': inv.bankgiro.trim(),
         'plusgiro': inv.plusgiro.trim(),
+        'cost_type': inv.costType,
         'updated_at': _now(),
       };
       int id;
@@ -550,6 +551,18 @@ class Repository {
     return [for (final r in rows) r['partner'] as String];
   }
 
+  /// The cost type last chosen for [supplier], to suggest it again.
+  Future<String?> lastCostType(String supplier) async {
+    if (supplier.trim().isEmpty) return null;
+    final rows = await db.query('invoices',
+        columns: ['cost_type'],
+        where: "lower(supplier) = lower(?) AND cost_type != ''",
+        whereArgs: [supplier.trim()],
+        orderBy: 'id DESC',
+        limit: 1);
+    return rows.isEmpty ? null : rows.first['cost_type'] as String;
+  }
+
   Future<List<String>> knownSuppliers() async {
     final rows = await db.rawQuery("SELECT DISTINCT supplier FROM invoices WHERE supplier != ''");
     return [for (final r in rows) r['supplier'] as String];
@@ -595,6 +608,7 @@ class Repository {
       paidDate: r['paid_date'] as String?,
       bankgiro: r['bankgiro'] as String? ?? '',
       plusgiro: r['plusgiro'] as String? ?? '',
+      costType: r['cost_type'] as String? ?? '',
       vatLines: [
         for (final v in vat)
           InvoiceVatLine(

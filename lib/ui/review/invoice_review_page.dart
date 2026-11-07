@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../app_icons.dart';
 
 import '../../app/app_controller.dart';
+import '../../domain/cost_types.dart';
 import '../../domain/dates.dart';
 import '../../domain/invoice_parser.dart';
 import '../../domain/models.dart';
@@ -66,6 +67,10 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   final _dateKey = GlobalKey();
   final _totalKey = GlobalKey();
   late final TextEditingController _paidDate, _bankgiro, _plusgiro;
+
+  /// [CostType.key]; '' until chosen. Suggested from the supplier's last one.
+  late String _costType = widget.existing?.costType ?? '';
+  bool _costSuggested = false;
 
   /// Also true before a total is filled in, when the paper says Kreditnota.
   late bool _isCredit =
@@ -133,6 +138,18 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     final repo = AppScope.read(context).repo;
     repo.vatRates().then((r) {
       if (mounted) setState(() => _rates = r);
+    });
+    _suggestCostType();
+  }
+
+  /// The supplier's cost type from earlier invoices, when none is chosen yet.
+  Future<void> _suggestCostType() async {
+    if (_costType.isNotEmpty) return;
+    final last = await AppScope.read(context).repo.lastCostType(_supplier.text);
+    if (!mounted || last == null || _costType.isNotEmpty) return;
+    setState(() {
+      _costType = last;
+      _costSuggested = true;
     });
   }
 
@@ -227,6 +244,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       paidDate: _paid == true && SwedishDates.isValidIso(_paidDate.text.trim()) ? _paidDate.text.trim() : null,
       bankgiro: _bankgiro.text.trim(),
       plusgiro: _plusgiro.text.trim(),
+      costType: _costType,
     );
   }
 
@@ -362,6 +380,27 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
             const SizedBox(height: 4),
             PlainField(controller: _supplier, label: 'Leverantör', confidence: conf(d?.supplier), enabled: _editing, onChanged: _changed),
             if (d?.ownNameQuestion != null) _ownNameCard(d!.ownNameQuestion!),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              key: ValueKey('kostnadstyp-$_costSuggested'),
+              initialValue: _costType,
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: 'Kostnadstyp',
+                helperText: _costSuggested ? 'Samma som förra fakturan från leverantören' : 'Används i resultatrapporten',
+              ),
+              items: [
+                const DropdownMenuItem(value: '', child: Text('Ej vald')),
+                for (final c in CostType.all) DropdownMenuItem(value: c.key, child: Text(c.label)),
+              ],
+              onChanged: !_editing
+                  ? null
+                  : (v) => setState(() {
+                        _costType = v ?? '';
+                        _costSuggested = false;
+                        _edited = true;
+                      }),
+            ),
             const SizedBox(height: 12),
             KeyedSubtree(
               key: _totalKey,

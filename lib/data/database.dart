@@ -6,7 +6,7 @@ import 'package:sqflite/sqflite.dart';
 /// except amounts printed on the document itself (e.g. reported Z total).
 class AppDatabase {
   static const fileName = 'bokforing.db';
-  static const version = 5;
+  static const version = 6;
 
   static Future<Database> open({DatabaseFactory? factory, String? path}) async {
     final f = factory ?? databaseFactory;
@@ -28,6 +28,11 @@ class AppDatabase {
           if (oldVersion < 5) {
             final batch = db.batch();
             _v5Changes(batch);
+            await batch.commit(noResult: true);
+          }
+          if (oldVersion < 6) {
+            final batch = db.batch();
+            _v6Changes(batch);
             await batch.commit(noResult: true);
           }
         },
@@ -148,6 +153,7 @@ class AppDatabase {
     _v3Changes(batch);
     _v4Tables(batch);
     _v5Changes(batch);
+    _v6Changes(batch);
     for (final bp in const [0, 600, 1200, 2500]) {
       batch.insert('vat_rates', {'basis_points': bp, 'active': 1});
     }
@@ -198,6 +204,11 @@ class AppDatabase {
   static void _v5Changes(Batch batch) {
     batch.execute('ALTER TABLE online_sales ADD COLUMN vat_ore INTEGER NOT NULL DEFAULT 0');
     batch.execute('ALTER TABLE online_sales ADD COLUMN vat_bp INTEGER');
+  }
+
+  /// v6: cost type of an invoice, for the resultatrapport and SIE export.
+  static void _v6Changes(Batch batch) {
+    batch.execute("ALTER TABLE invoices ADD COLUMN cost_type TEXT NOT NULL DEFAULT ''");
   }
 
   static void _v4Tables(Batch batch) {
