@@ -133,7 +133,11 @@ class PaymentDetector {
     // This paper itself says it is paid, even with bankgiro and OCR printed on
     // it: "Kontantnota", "Betald med kort". The same supplier can send a
     // faktura next time, so a word like "Köpnota" decides nothing.
-    final statedPaid = RegExp(r'kontantnota|betal[dt] med (kort|kontant|swish)').hasMatch(text);
+    // So is a card receipt for "Betalning av faktura": the invoice was paid at
+    // the counter.
+    final cardSlip = RegExp(r'kortnr|\*{4}|godkänd|terminal|kontaktlös|contactless').hasMatch(text);
+    final statedPaid = RegExp(r'kontantnota|betal[dt] med (kort|kontant|swish)').hasMatch(text) ||
+        (text.contains('betalning av faktura') && cardSlip);
     if (statedPaid) reasons.add('betalt enligt pappret');
 
     final margin = (receipt - invoice).abs();

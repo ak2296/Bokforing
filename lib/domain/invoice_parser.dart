@@ -207,14 +207,16 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     final rows = ocr.rows();
     final norm = [for (final r in rows) TextPatterns.normalize(r.text)];
     final notes = <String>[];
-    final isCredit = norm.any((n) => _creditWords.any((w) => n.contains(w)));
+    // Whole words only: "Rabatter & Krediteringar" on a specification page
+    // lists credits, it is no kreditnota.
+    final isCredit = norm.any((n) => _creditWords.any((w) => RegExp('(?<![a-zåäö])$w(?![a-zåäö])').hasMatch(n)));
 
     var vat = _vat(rows, norm);
     final payment = _payment(rows, norm);
     var candidates = _totalCandidates(rows, norm, vat, payment, allowNegative: isCredit);
     // Rows can shift, but the sums on the paper still hold. When the labels
     // give numbers that don't fit, the numbers that add up win.
-    final fit = _readingFits(vat, candidates) ? null : _sumCheck(rows, norm, candidates);
+    final fit = _readingFits(vat, candidates) ? null : _sumCheck(rows, norm, candidates, vat);
     if (fit != null) {
       vat = fit;
       candidates = _totalCandidates(rows, norm, vat, payment, allowNegative: isCredit);
@@ -301,13 +303,11 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
 
     final dates = _dates(rows, norm);
     final supplier = _resolveSupplier(rows, norm);
-    final ocrNumber = _labelledValue(rows, norm, ['ocr-nummer', 'ocr nr', 'ocrnr', 'ocr'], RegExp(r'\d(?: ?\d){1,24}'));
-    final ocrReference = ocrNumber.hasValue
-        ? Extracted(ocrNumber.value!.replaceAll(' ', ''), ocrNumber.confidence, source: ocrNumber.source)
-        : ocrNumber;
+    final ocrReference = _ocrNumber(rows, norm);
     var invoiceNumber = _invoiceNumber(rows, norm);
     // "Faktura/OCR-nummer 265 896 994 17" is both numbers.
-    if (!invoiceNumber.hasValue && (ocrReference.source ?? '').toLowerCase().contains('faktura/ocr')) {
+    if (!invoiceNumber.hasValue &&
+        RegExp(r'faktura(nummer|nr)?\s*/\s*ocr').hasMatch((ocrReference.source ?? '').toLowerCase())) {
       invoiceNumber = ocrReference;
     }
     return InvoiceDraft(
@@ -345,13 +345,14 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     if (vat.net != null) {
       return (vat.net!.abs() + vatSum.abs() - total).abs() < AccountingValidationEngine.ignoredDifference;
     }
-    return vatSum.abs().ore * 5 <= total.ore + 100;
+    // Nor can it be a crumb of the total ("Moms 0,02" on an 18 261 kr bill).
+    return vatSum.abs().ore * 5 <= total.ore + 100 && vatSum.abs().ore * 100 >= total.ore;
   }
 
   /// Looks for three printed numbers that fit together: net × rate = VAT and
   /// net + VAT = total within rounding. Totals with a label are tried first.
   /// Only one VAT rate; a paper with several keeps what the labels gave.
-  _VatInfo? _sumCheck(List<TextRow> rows, List<String> norm, List<TotalCandidate> candidates) {
+  _VatInfo? _sumCheck(List<TextRow> rows, List<String> norm, List<TotalCandidate> candidates, _VatInfo vat) {
     final printed = <int>{};
     final vats = <int>{};
     // A separator can be lost: "58,50" read as "5850". Only digits with no
@@ -377,7 +378,11 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         for (final rate in const [VatRate.twentyFive, VatRate.twelve, VatRate.six]) {
           final expected = VatCalculator.vatFromNet(Money(net), rate).ore;
           for (final v in vats) {
-            if ((v - expected).abs() > 3 || v == net) continue;
+            if (v == net) continue;
+            // A few öre off the rate, or up to 1 % when net + VAT is the total
+            // to the öre (VAT summed from rounded item lines).
+            final slack = net + v == total ? (v ~/ 100).clamp(3, 1 << 30) : 3;
+            if ((v - expected).abs() > slack) continue;
             if ((net + v - total).abs() >= Money.ignoredDifference.ore) continue;
             final gross = Money(net + v);
             final asRead = printed.contains(v) ? null : withoutSeparator[v];
@@ -389,6 +394,58 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
           }
         }
       }
+    }
+    return _twoRates(sorted, candidates) ?? _vatFromNetAndTotal(vat, candidates);
+  }
+
+  /// Two VAT rates: pairs (net, VAT) at different rates whose four amounts
+  /// add up to a total within rounding. The paper must also print the sum of
+  /// the nets or of the VATs, so four unrelated numbers can't fit by chance.
+  _VatInfo? _twoRates(List<int> printed, List<TotalCandidate> candidates) {
+    final set = printed.toSet();
+    final pairs = <(int, int, VatRate)>[];
+    for (final net in printed) {
+      if (net < 100) continue;
+      for (final rate in const [VatRate.twentyFive, VatRate.twelve, VatRate.six]) {
+        final expected = VatCalculator.vatFromNet(Money(net), rate).ore;
+        for (final v in printed) {
+          if (v != net && v > 0 && (v - expected).abs() <= 3) pairs.add((net, v, rate));
+        }
+      }
+    }
+    final totals = [for (final c in candidates) c.value.abs().ore, ...printed];
+    for (var a = 0; a < pairs.length; a++) {
+      for (var b = a + 1; b < pairs.length; b++) {
+        final p = pairs[a], q = pairs[b];
+        if (p.$3 == q.$3) continue;
+        final values = {p.$1, p.$2, q.$1, q.$2};
+        if (values.length < 4) continue;
+        final sumNet = p.$1 + q.$1, sumVat = p.$2 + q.$2;
+        if (!set.contains(sumNet) && !set.contains(sumVat)) continue;
+        final total = totals.where((t) => (sumNet + sumVat - t).abs() < Money.ignoredDifference.ore).firstOrNull;
+        if (total == null) continue;
+        return _VatInfo([
+          for (final x in [p, q]) InvoiceVatLine(rate: x.$3, vat: Money(x.$2), net: Money(x.$1), gross: Money(x.$1 + x.$2)),
+        ], (Money(sumVat), 'Summa av moms per momssats'), Money(sumNet), Money(sumNet + sumVat), true);
+      }
+    }
+    return null;
+  }
+
+  /// The VAT amount could not be read, but a printed net and a printed total
+  /// fit one rate: the VAT is the difference, to be checked.
+  _VatInfo? _vatFromNetAndTotal(_VatInfo vat, List<TotalCandidate> candidates) {
+    final net = vat.net;
+    if (net == null || net.isZero || candidates.isEmpty) return null;
+    final total = candidates.first.value.abs();
+    for (final rate in const [VatRate.twentyFive, VatRate.twelve, VatRate.six]) {
+      final v = VatCalculator.vatFromNet(net.abs(), rate);
+      if ((net.abs() + v - total).abs() >= Money.ignoredDifference) continue;
+      final diff = total - net.abs();
+      return _VatInfo([InvoiceVatLine(rate: rate, vat: diff, net: net.abs(), gross: total, calculated: true)], null, net.abs(),
+          total, false,
+          note: 'Momsen kunde inte läsas säkert. Den räknades fram som summan minus nettot '
+              '(${rate.label} av ${net.abs().format()}). Kontrollera mot pappret.');
     }
     return null;
   }
@@ -403,40 +460,65 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     final expected = vat.net != null && vatSum != null ? vat.net! + vatSum : null;
     for (var i = 0; i < rows.length; i++) {
       final n = norm[i];
+      // Positions are taken in the row as printed: collapsing its spaces
+      // would join "3   125,00" into one number.
+      final lower = rows[i].text.toLowerCase();
       String? label;
       double base = 0;
+      var labelAt = -1, labelEnd = -1;
       for (final e in _totalLabels.entries) {
-        if (n.contains(e.key) && e.value > base) {
-          label = e.key;
-          base = e.value;
+        if (e.value <= base || !n.contains(e.key)) continue;
+        // The last place the label is printed: "SUBTOTAL 1891,76 ATT BETALA 1892,00".
+        final at = RegExp(e.key.split(' ').map(RegExp.escape).join(r'\s+')).allMatches(lower).lastOrNull;
+        if (at == null) continue;
+        label = e.key;
+        base = e.value;
+        labelAt = at.start;
+        labelEnd = at.end;
+      }
+      // A photo can cut or misread the first letter: "lotalt", "fotalt",
+      // "otaler".
+      if (label == null && n.isNotEmpty) {
+        final first = RegExp(r'\S+').firstMatch(lower);
+        final word = first?[0] ?? '';
+        if (TextPatterns.similarity(word, 'totalt') >= 0.8 || TextPatterns.similarity(word, 'totaler') >= 0.8) {
+          label = 'totalt';
+          base = 75;
+          labelAt = first!.start;
+          labelEnd = first.end;
         }
       }
-      // A photo can cut or misread the first letter: "lotalt", "fotalt".
-      if (label == null && n.isNotEmpty && TextPatterns.similarity(n.split(' ').first, 'totalt') >= 0.8) {
-        label = 'totalt';
-        base = 75;
-      }
       if (label == null) continue;
-      if (_excludedFromTotal(n)) continue;
+
+      // Only the amounts printed after the label belong to it, up to the next
+      // word. Amounts before it belong to other labels on the same row.
+      final run = _amountsAfter(lower, labelEnd);
+      // Words that rule a total out count only next to its label and amount.
+      final windowEnd = run.isNotEmpty ? run.last.end : lower.length;
+      if (_excludedFromTotal(TextPatterns.normalize(lower.substring((labelAt - 15).clamp(0, labelAt), windowEnd)))) continue;
       // "Brutto" is also a VAT-table column header; only a row with one
       // amount counts as a total.
-      if (label == 'brutto' && TextPatterns.amounts(rows[i].text).length > 1) continue;
+      if (label == 'brutto' && run.length > 1) continue;
 
-      var amounts = TextPatterns.amounts(rows[i].text);
-      // Label alone on its row: the amount may be on the next row.
-      if (amounts.isEmpty && i + 1 < rows.length && TextPatterns.amounts(rows[i + 1].text).length == 1) {
+      var amounts = run;
+      var joinSource = rows[i].text.substring(labelEnd);
+      // Label alone on its row: the amount may be on the next row, when that
+      // row is nothing but amounts.
+      if (amounts.isEmpty && i + 1 < rows.length && _onlyAmounts(norm[i + 1])) {
         amounts = TextPatterns.amounts(rows[i + 1].text);
+        joinSource = rows[i + 1].text;
       }
       // On a curved page the amount can be on the row above: only a row that
       // is nothing but an amount counts.
       if (amounts.isEmpty && i > 0 && RegExp(r'^[\d\s.,:\-]+(kr|sek)?$').hasMatch(norm[i - 1])) {
         amounts = TextPatterns.amounts(rows[i - 1].text);
+        joinSource = rows[i - 1].text;
       }
       if (amounts.isEmpty) continue;
       var raw = amounts.last;
       // Digits split by OCR ("4 31 1,30"): joined they must equal net + VAT.
       if (expected != null && amounts.length > 1 && raw.value != expected) {
-        final joined = Money.parse(rows[i].text.replaceAll(RegExp(r'(?<=\d)\s+(?=\d)'), '').replaceAll(RegExp(r'[^\d,.\-]'), ''));
+        final joined = Money.parse(joinSource.replaceAll(RegExp(r'(?<=\d)\s+(?=\d)'), '').replaceAll(RegExp(r'[^\d,.\-]'), ''));
         if (joined == expected) raw = AmountToken(expected, raw.start, raw.end, true);
       }
       if (raw.value.isZero || (raw.value.isNegative && !allowNegative)) continue;
@@ -448,6 +530,11 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       var score = base;
       final reasons = <String>['etikett "$label"'];
       if (!a.hasDecimals) score -= 10;
+      // Nor smaller than the printed net amount.
+      if (vat.net != null && a.value < vat.net!.abs() - Money.ignoredDifference) {
+        score -= 40;
+        reasons.add('mindre än nettobeloppet');
+      }
       if (rows[i].box.centerY > pageBottom * 0.4) score += 5;
       if (vat.net != null && vatSum != null) {
         final d = (vat.net! + vatSum - a.value).abs();
@@ -488,6 +575,24 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         }
       }
     }
+    // "159 00" alone on its row, beside the slip's "#" or ">" code line.
+    if (out.isEmpty) {
+      bool nearCodeLine(int i) {
+        for (var j = i - 2; j <= i + 2; j++) {
+          if (j != i && j >= 0 && j < rows.length && RegExp(r'[#>]').hasMatch(rows[j].text)) return true;
+        }
+        return false;
+      }
+
+      for (var i = 0; i < rows.length; i++) {
+        final m = RegExp(r'^\s*(\d{1,3}(?: \d{3})*) (\d{2})\s*$').firstMatch(rows[i].text);
+        final slip = m == null ? null : Money.parse('${m[1]!.replaceAll(' ', '')},${m[2]}');
+        if (slip != null && !slip.isZero && nearCodeLine(i)) {
+          out.add(TotalCandidate(slip, 65, rows[i].text, const ['beloppet på inbetalningskortet']));
+          break;
+        }
+      }
+    }
     // No labelled row gave net + VAT, but an amount within rounding of it is
     // printed somewhere: a good candidate, to be checked since no label says so.
     bool near(Money v) => (v - expected!).abs() < Money.ignoredDifference;
@@ -503,6 +608,27 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     out.sort((x, y) => y.score.compareTo(x.score));
     return out;
   }
+
+  /// The amounts printed right after [from] in [n]: the first one, and the
+  /// ones that follow it with no word between them ("Summa 1 124,20 233,55
+  /// 1357,75"). A word ends the run: "Totalt 450,00 Moms 90,00".
+  static List<AmountToken> _amountsAfter(String n, int from) {
+    final after = TextPatterns.amounts(n).where((t) => t.start >= from).toList();
+    final run = <AmountToken>[];
+    for (final t in after) {
+      if (run.isNotEmpty) {
+        final gap = n.substring(run.last.end, t.start).toLowerCase().replaceAll(RegExp(r'\b(kr|sek|kronor)\b'), '');
+        if (RegExp(r'[a-zåäö]{3,}').hasMatch(gap)) break;
+      }
+      run.add(t);
+    }
+    return run;
+  }
+
+  /// A row that is nothing but amounts ("kr", "sek", "kronor" allowed).
+  static bool _onlyAmounts(String n) =>
+      TextPatterns.amounts(n).isNotEmpty &&
+      !RegExp(r'[a-zåäö]{2,}').hasMatch(n.replaceAll(RegExp(r'\b(kr|sek|kronor)\b'), ''));
 
   _Payment _payment(List<TextRow> rows, List<String> norm) {
     Money? cash, change, card;
@@ -631,10 +757,40 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       final looksLikeAmount = a.length == 1 && (a.single.hasDecimals || a.single.value >= Money.kr(30));
       if (isVatTotal && looksLikeAmount) explicitTotal ??= (a.single.value, rows[i].text);
     }
+    // A sum row with net, VAT and gross that add up to the öre ("Summa
+    // 1 124,20 233,55 1 357,75") is the strongest VAT source on the page.
+    final triple = _sumRow(rows, norm);
+    if (triple != null && explicitTotal?.$1 != triple.vat) {
+      explicitTotal = (triple.vat, triple.row);
+      net = triple.net;
+      grossSum = triple.gross;
+      if (lines.isNotEmpty && Money.sum(lines.map((l) => l.vat)) != triple.vat) {
+        lines.clear();
+        fromTable = false;
+      }
+    }
     if (net == null && lines.isNotEmpty && lines.every((l) => l.net != null)) {
       net = Money.sum(lines.map((l) => l.net!));
     }
     return _VatInfo(lines, explicitTotal, net, grossSum, fromTable);
+  }
+
+  ({Money net, Money vat, Money gross, String row})? _sumRow(List<TextRow> rows, List<String> norm) {
+    for (var i = 0; i < rows.length; i++) {
+      final n = norm[i];
+      if (!RegExp(r'\b(summa|totalt?|totaler|total amount)\b').hasMatch(n)) continue;
+      if (n.contains('delsumma') || n.contains('subtotal') || n.contains('rabatt')) continue;
+      final a = [for (final t in TextPatterns.amounts(rows[i].text)) if (t.hasDecimals && !t.value.isNegative) t.value];
+      if (a.length < 3) continue;
+      for (var k = 0; k + 2 < a.length; k++) {
+        final net = a[k], vat = a[k + 1], gross = a[k + 2];
+        if (net + vat != gross || vat.isZero) continue;
+        // 6 % to 25 % of the net, the Swedish rates and their mixes.
+        if (vat.ore * 1000 < net.ore * 56 || vat.ore * 1000 > net.ore * 251) continue;
+        return (net: net, vat: vat, gross: gross, row: rows[i].text);
+      }
+    }
+    return null;
   }
 
   /// The VAT on a printed base, taken from a neighbouring row when one has the
@@ -656,13 +812,18 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
   /// column order. Returns null when the numbers do not fit together.
   InvoiceVatLine? _tableRow(String row) {
     var rate = TextPatterns.rate(row);
-    final amounts = TextPatterns.amounts(row).map((t) => t.value).toList();
-    if (rate == null && amounts.isNotEmpty) {
-      // A rate printed without "%" ("6,00") parses as 600 öre = 600 bp.
-      final first = amounts.first.ore;
-      if (const [600, 1200, 2500].contains(first)) {
-        rate = VatRate(first);
-        amounts.removeAt(0);
+    final tokens = TextPatterns.amounts(row);
+    var amounts = tokens.map((t) => t.value).toList();
+    if (rate == null && tokens.isNotEmpty) {
+      // A rate printed without "%" ("6,00"), first in the row, possibly glued
+      // to dots ("Stan..25,00").
+      final m = RegExp(r'(?<![\d,])(6|12|25)[,.]00(?!\d)').firstMatch(row);
+      if (m != null && tokens.every((t) => t.end <= m.start || t.start >= m.start)) {
+        final others = tokens.where((t) => t.start >= m.end || t.end <= m.start).toList();
+        if (others.isNotEmpty && others.first.start >= m.end) {
+          rate = VatRate(int.parse(m[1]!) * 100);
+          amounts = others.map((t) => t.value).toList();
+        }
       }
     }
     if (rate == null || amounts.length < 2) return null;
@@ -681,8 +842,12 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         final base = amounts[bi];
         if (base.isZero) continue;
         final fromNet = VatCalculator.vatFromNet(base, rate);
-        if ((fromNet - vat).abs() <= const Money(3)) {
-          final gross = base + vat;
+        final gross = base + vat;
+        // Rows summed from rounded item VAT can be a few öre off; up to 1 %
+        // of the VAT is accepted when net + VAT = gross is printed exactly.
+        final exactGross = amounts.any((x) => x == gross && x != vat && x != base);
+        final slack = exactGross ? Money((vat.abs().ore ~/ 100).clamp(3, 1 << 30)) : const Money(3);
+        if ((fromNet - vat).abs() <= slack) {
           final printedGross = amounts.where((x) => (x - gross).abs() <= const Money(2)).firstOrNull;
           return InvoiceVatLine(rate: rate, vat: vat, net: base, gross: printedGross ?? gross);
         }
@@ -701,13 +866,23 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
   // ---------- Dates ----------
 
   static const _invoiceDateLabels = [
-    'fakturadatum', 'köpdatum', 'kvittodatum', 'utfärdad', 'invoice date', 'date of issue', 'issue date',
-    'receipt date', 'datum', 'date',
+    'fakturadatum', 'faktureringsdag', 'faktureringsdatum', 'köpdatum', 'kvittodatum', 'utfärdad', 'invoice date',
+    'date of issue', 'issue date', 'receipt date', 'datum', 'date',
   ];
   static const _dueDateLabels = [
-    'förfallodatum', 'förfallodag', 'förfaller', 'betalas senast', 'betala senast', 'sista betalningsdag', 'oss tillhanda',
-    'due date', 'payment due', 'due by', 'pay by',
+    'förfallodatum', 'forfallodatum', 'förfallodag', 'forfallodag', 'förfaller', 'betalas senast', 'betala senast',
+    'sista betalningsdag', 'oss tillhanda', 'due date', 'payment due', 'due by', 'pay by',
   ];
+
+  /// "Förtallodatum", "Forfallodatun": a misread due-date label.
+  static int? _fuzzyDueLabel(String n) {
+    for (final m in RegExp(r'[a-zåäö]{9,}').allMatches(n)) {
+      if (TextPatterns.similarity(m[0]!, 'förfallodatum') >= 0.8 || TextPatterns.similarity(m[0]!, 'förfallodag') >= 0.8) {
+        return m.start;
+      }
+    }
+    return null;
+  }
   static const _paymentDateLabels = [
     'betalningsdatum', 'betaldatum', 'betalt den', 'betald den', 'inbetalningsdatum', 'payment date', 'paid on',
     'date paid',
@@ -718,44 +893,65 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
   /// True when a row names a due or payment date, so a bare "datum"/"date"
   /// in it is not the invoice date.
   static bool _otherDateLabel(String n) =>
-      _dueDateLabels.any(n.contains) || _paymentDateLabels.any(n.contains) || n.contains('leverans');
+      _dueDateLabels.any(n.contains) || _paymentDateLabels.any(n.contains) || n.contains('leverans') ||
+      _fuzzyDueLabel(n) != null;
+
+  /// The date labels in a row, in the order they are printed.
+  static List<(String, int)> _dateGroups(String n) {
+    final dueIdx = _firstIndex(n, _dueDateLabels) ?? _fuzzyDueLabel(n);
+    final payIdx = _firstIndex(n, _paymentDateLabels);
+    // "datum" alone must not match inside "förfallodatum"/"betalningsdatum".
+    final invIdx = _firstIndex(n, _invoiceDateLabels.where((l) => (l != 'datum' && l != 'date') || !_otherDateLabel(n)));
+    return <(String, int)>[
+      if (invIdx != null) ('invoice', invIdx),
+      if (dueIdx != null) ('due', dueIdx),
+      if (payIdx != null) ('payment', payIdx),
+    ]..sort((a, b) => a.$2.compareTo(b.$2));
+  }
 
   ({Extracted<String> invoice, Extracted<String> due, Extracted<String> payment, List<({String label, String date})> options})
       _dates(List<TextRow> rows, List<String> norm) {
     final found = <String, (String, String)>{}; // group -> (date, source)
     final options = <({String label, String date})>[];
-    final unlabelled = <String>[];
+    final unlabelled = <(int, String)>[];
     final consumed = <int>{};
     const names = {'invoice': 'Fakturadatum', 'due': 'Förfallodatum', 'payment': 'Betalningsdatum'};
+    bool skipped(int j) => _notDocumentDate.any(norm[j].contains);
+    // A row with a date and no date label of its own, free to lend its date.
+    bool lone(int j) =>
+        j >= 0 && j < rows.length && !consumed.contains(j) && !skipped(j) && _dateGroups(norm[j]).isEmpty &&
+        TextPatterns.dates(rows[j].text).isNotEmpty;
+    bool blank(int j) => j < rows.length && _dateGroups(norm[j]).isEmpty && TextPatterns.dates(rows[j].text).isEmpty;
 
     for (var i = 0; i < rows.length; i++) {
       final n = norm[i];
       // "Sista dagen för återköp" and similar are never bookkeeping dates.
-      if (_notDocumentDate.any(n.contains)) continue;
+      if (skipped(i)) continue;
       final here = TextPatterns.dates(rows[i].text);
-      final dueIdx = _firstIndex(n, _dueDateLabels);
-      final payIdx = _firstIndex(n, _paymentDateLabels);
-      // "datum" alone must not match inside "förfallodatum"/"betalningsdatum".
-      final invIdx = _firstIndex(
-          n,
-          _invoiceDateLabels.where(
-              (l) => (l != 'datum' && l != 'date') || !_otherDateLabel(n)));
-      final groups = <(String, int)>[
-        if (invIdx != null) ('invoice', invIdx),
-        if (dueIdx != null) ('due', dueIdx),
-        if (payIdx != null) ('payment', payIdx),
-      ]..sort((a, b) => a.$2.compareTo(b.$2));
+      final groups = _dateGroups(n);
       if (groups.isEmpty) {
-        if (!consumed.contains(i)) unlabelled.addAll(here);
+        if (!consumed.contains(i)) unlabelled.addAll([for (final d in here) (i, d)]);
         continue;
       }
 
       var values = here;
       var src = rows[i].text;
-      if (values.isEmpty && i + 1 < rows.length) {
-        values = TextPatterns.dates(rows[i + 1].text);
-        src = '${rows[i].text} / ${rows[i + 1].text}';
-        if (values.isNotEmpty) consumed.add(i + 1);
+      // A label alone: its date is on the row below, or one further down past
+      // a row with no date, or on the row above when a curved page lifted it.
+      if (values.isEmpty) {
+        final j = lone(i + 1)
+            ? i + 1
+            : lone(i - 1)
+                ? i - 1
+                : blank(i + 1) && lone(i + 2)
+                    ? i + 2
+                    : null;
+        if (j != null) {
+          values = TextPatterns.dates(rows[j].text);
+          src = '${rows[i].text} / ${rows[j].text}';
+          consumed.add(j);
+          unlabelled.removeWhere((u) => u.$1 == j);
+        }
       }
       if (values.isEmpty) continue;
 
@@ -777,7 +973,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     var inv = pick('invoice');
     if (!inv.hasValue) {
       // An unlabelled date counts even when it equals the due date.
-      final unique = unlabelled.toSet().toList();
+      final unique = unlabelled.map((u) => u.$2).toSet().toList();
       if (unique.isNotEmpty) {
         inv = Extracted(unique.first, unique.length == 1 ? Confidence.high : Confidence.low,
             note: unique.length == 1 ? null : 'Flera datum hittades');
@@ -785,7 +981,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         inv = Extracted(found.values.first.$1, Confidence.low, note: 'Inget fakturadatum hittades. Kontrollera datumet.');
       }
     }
-    for (final d in unlabelled.toSet()) {
+    for (final d in unlabelled.map((u) => u.$2).toSet()) {
       if (!options.any((o) => o.date == d)) options.add((label: 'Datum', date: d));
     }
     // "25.10.26" can be two recent dates; only a full date elsewhere settles it.
@@ -823,21 +1019,31 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     return null;
   }
 
-  static final _bankgiro = RegExp(r'\b(bankgiro|bankgironr|bg)\b\.?\s*(nr|nummer)?\s*[:.]?\s*(\d{3,4}-\d{4})\b',
-      caseSensitive: false);
-  static final _plusgiro = RegExp(r'\b(plusgiro|postgiro|pg)\b\.?\s*(nr|nummer)?\s*[:.]?\s*((?:\d ?){1,7}-\d)\b',
-      caseSensitive: false);
+  static final _bankgiro = (
+    RegExp(r'\b(bank[gq]iro(?:nr|nummer)?|bg)\b', caseSensitive: false),
+    RegExp(r'(?<![\d-])\d{3,4}-\d{4}(?![\d-])'),
+  );
+  static final _plusgiro = (
+    RegExp(r'\b(plus[gq]iro(?:nr|nummer)?|post[gq]iro(?:nr|nummer)?|pg)\b', caseSensitive: false),
+    RegExp(r'(?<![\d-])(?:\d ?){1,7}-\d(?![\d-])'),
+  );
 
   /// Bankgiro "123-4567"/"1234-5678", plusgiro "12 34 56-7"; label required.
-  Extracted<String> _giro(List<TextRow> rows, RegExp re) {
+  /// The number follows the label on its row, or is on one of the two rows
+  /// below a label that stands alone ("Till bankgironr").
+  Extracted<String> _giro(List<TextRow> rows, (RegExp, RegExp) re) {
+    final (label, number) = re;
     for (var i = 0; i < rows.length; i++) {
-      final m = re.firstMatch(rows[i].text);
-      if (m != null) return Extracted(m.group(3)!.replaceAll(' ', ''), Confidence.medium, source: rows[i].text);
-      // Label alone, number on the next row.
-      if (i + 1 < rows.length && re.firstMatch(rows[i + 1].text) == null) {
-        final m2 = re.firstMatch('${rows[i].text} ${rows[i + 1].text}');
-        if (m2 != null) {
-          return Extracted(m2.group(3)!.replaceAll(' ', ''), Confidence.low, source: '${rows[i].text} / ${rows[i + 1].text}');
+      final l = label.allMatches(rows[i].text).lastOrNull;
+      if (l == null) continue;
+      final m = number.firstMatch(rows[i].text.substring(l.end));
+      if (m != null) return Extracted(m[0]!.replaceAll(' ', ''), Confidence.medium, source: rows[i].text);
+      if (number.hasMatch(rows[i].text)) continue;
+      for (var j = i + 1; j <= i + 2 && j < rows.length; j++) {
+        if (label.hasMatch(rows[j].text)) break;
+        final below = number.firstMatch(rows[j].text);
+        if (below != null) {
+          return Extracted(below[0]!.replaceAll(' ', ''), Confidence.low, source: '${rows[i].text} / ${rows[j].text}');
         }
       }
     }
@@ -852,10 +1058,12 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         norm,
         ['fakturanummer', 'fakturanr', 'faktura nr', 'fakturanr.', 'kvittonr', 'kvitto nr', 'kvittonummer', 'löpnr', 'köpnota nr', 'avinr', 'avi nr', 'avinummer',
          'invoice number', 'invoice no', 'invoice nr', 'invoice #', 'receipt number', 'receipt no', 'receipt #'],
-        RegExp(r'[A-Za-z]{0,4}-?\d[\d\-/]{0,19}'));
+        RegExp(r'[A-Za-z]{0,4}-?\d[\d\-/]{0,19}'),
+        below: RegExp(r'(?<![\d\-,.])\d{4,12}(?![\d\-,.])'),
+        fuzzy: 'fakturanummer');
     if (labelled.hasValue) return labelled;
     // A plain "Nr:" in the title box, with the number on the row or the next.
-    const notInvoice = ['moms', 'order', 'konto', 'leverans', 'org', 'kassa', 'tel', 'artikel', 'po '];
+    const notInvoice = ['moms', 'vat', 'order', 'konto', 'leverans', 'org', 'kassa', 'tel', 'artikel', 'po '];
     final long = RegExp(r'(?<![\d-])\d{7,12}(?![\d-])');
     for (var i = 0; i < rows.length; i++) {
       final m = RegExp(r'\bnr\s*:').firstMatch(norm[i]);
@@ -871,8 +1079,9 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
   }
 
   static const _skipSupplier = [
-    'faktura', 'kvitto', 'datum', 'org', 'tel', 'www', 'http', '@', 'kund', 'sida', 'kopia', 'betald', 'ocr',
-    'bankgiro', 'plusgiro', 'att betala', 'adress', 'box ', 'inbetalning', 'girering',
+    'faktura', 'kvitto', 'datum', 'org', 'organisation', 'tel', 'telefon', 'www', 'http', '@', 'kund', 'kundnr',
+    'kundnummer', 'sida', 'kopia', 'betald', 'ocr', 'bankgiro', 'plusgiro', 'att betala', 'adress', 'box ',
+    'inbetalning', 'girering',
   ];
 
   static String _squeeze(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9åäö]'), '');
@@ -910,7 +1119,12 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       final k = columns.indexWhere(isStreet);
       if (k < 0) continue;
       final above = rows[i - 1].text.split(split);
-      final name = _squeeze(above[k < above.length ? k : above.length - 1]);
+      final printed = above[k < above.length ? k : above.length - 1];
+      // A company form names a company; it is the owner's only if it is close
+      // to the owner's name ("Axfood Snabbgross AB" on the same street number
+      // is the seller).
+      if (RegExp(r'\b(AB|HB|KB|Aktiebolag|Handelsbolag)\b').hasMatch(printed) && !_closeToOwn(printed)) continue;
+      final name = _squeeze(printed);
       if (name.length >= 3) found.add(name);
     }
     return found;
@@ -959,19 +1173,23 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     }
     // A printed label wins: "Leverantör: EVRY". "Säljare" is often the seller's
     // staff member, so it doesn't count.
+    // "Betalningsmottagare (endast namn)": the note in brackets is no name.
+    String unbracketed(String s) => s.replaceAll(RegExp(r'\([^)]*\)'), ' ');
+    final letters = RegExp(r'[A-Za-zÅÄÖåäö]{3,}');
+    bool giroWord(String s) => RegExp(r'giro|girering', caseSensitive: false).hasMatch(s);
     // "Betalningsmottagare" as a heading, the name below it after the number.
     for (var i = 0; i + 1 < rows.length; i++) {
-      if (!RegExp(r'betalningsmottagare\W*$', caseSensitive: false).hasMatch(rows[i].text)) continue;
+      if (!RegExp(r'(betalningsmottagare|utställare)\W*$', caseSensitive: false).hasMatch(unbracketed(rows[i].text))) continue;
       final name = rows[i + 1].text.split(RegExp(r'\s{3,}')).lastWhere(
-          (c) => RegExp(r'[A-Za-zÅÄÖåäö]{3,}').hasMatch(c),
+          (c) => letters.hasMatch(c) && !giroWord(c),
           orElse: () => '');
       if (name.isNotEmpty) return Extracted(_clean(name), Confidence.medium, source: rows[i + 1].text);
     }
     for (var i = 0; i < rows.length; i++) {
       // "Annan leverantör" on an electricity bill is someone else.
-      final m = RegExp(r'(?<!annan\s)(leverantör|avsändare|betalningsmottagare)\s*[:.]?\s*(.+)$', caseSensitive: false)
-          .firstMatch(rows[i].text);
-      if (m != null && RegExp(r'[A-Za-zÅÄÖåäö]{2,}').hasMatch(m.group(2)!)) {
+      final m = RegExp(r'(?<!annan\s)(leverantör|avsändare|betalningsmottagare|utställare)\s*[:.]?\s*(.+)$', caseSensitive: false)
+          .firstMatch(unbracketed(rows[i].text));
+      if (m != null && RegExp(r'[A-Za-zÅÄÖåäö]{2,}').hasMatch(m.group(2)!) && !giroWord(m.group(2)!)) {
         return Extracted(_clean(m.group(2)!), Confidence.medium, source: rows[i].text);
       }
     }
@@ -979,35 +1197,74 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     // A company name: first at the top, then anywhere (often in the footer).
     // The buyer's own block ("Betalare ANKAN RESTAURANG AB") is not the supplier.
     final company = RegExp(r'\b(AB|HB|KB|Aktiebolag|Handelsbolag|Ltd|Oy|AS|ApS)\b');
+    // A company named inside a sentence ("avtal med Svensk Scen & Film AB
+    // (org.nr …)") is not the sender.
+    bool inSentence(String column) {
+      final m = company.firstMatch(column);
+      if (m == null) return true;
+      final before = column.substring(0, m.start).trim();
+      final words = before.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+      if (words.length > 5 || (words.isNotEmpty && RegExp(r'^[a-zåäö]{3,}$').hasMatch(words.first) && words.length > 2)) {
+        return true;
+      }
+      // The sentence goes on after the name and its bracket.
+      final after = unbracketed(column.substring(m.end)).split(RegExp(r'\s+')).where((w) => letters.hasMatch(w));
+      return after.length > 3;
+    }
+
+    String fold(String s) => _squeeze(s).replaceAll(RegExp('[åä]'), 'a').replaceAll('ö', 'o');
     for (final r in [...top, ...rows]) {
       final n = TextPatterns.normalize(r.text);
       if (!company.hasMatch(r.text) || n.contains('faktura')) continue;
       final columns = r.text.split(RegExp(r'\s{3,}'));
-      final at = columns.indexWhere((c) => company.hasMatch(c) && !isOwn(c));
+      final at = columns.indexWhere((c) => company.hasMatch(c) && !isOwn(c) && !inSentence(c));
       if (at < 0) continue;
       // A buyer label counts only before the name: "Axfood AB   Kund: 123" is
       // the seller, "Betalare   ANKAN AB" is the buyer.
       final upToName = columns.take(at + 1).join(' ').toLowerCase();
       if (upToName.contains('betalare') || upToName.contains('mottagare') || RegExp(r'\bkund\b').hasMatch(upToName)) continue;
-      return Extracted(_clean(columns[at]), Confidence.medium, source: r.text);
-    }
-    // A receipt's address block: name, street, "232 37 ARLÖV". The name sits
-    // two rows above the postal code; a web page title above it is skipped.
-    for (var i = 2; i < top.length; i++) {
-      if (RegExp(r'^\d{3} ?\d{2}\s+[A-ZÅÄÖa-zåäö]').hasMatch(top[i].text.trim())) {
-        final name = top[i - 2].text;
-        if (RegExp(r'[A-Za-zÅÄÖåäö]{3,}').hasMatch(name) && TextPatterns.amounts(name).isEmpty) {
-          return Extracted(_clean(name), Confidence.low, source: name);
+      var name = _clean(columns[at].split('(').first);
+      // A cut name at the top ("osT AB") printed whole in the footer
+      // ("Rest Lillebror Öst AB").
+      final key = fold(name);
+      if (key.length >= 3) {
+        for (final other in rows) {
+          for (final c in other.text.split(RegExp(r'\s{3,}'))) {
+            final whole = _clean(c.split('(').first);
+            if (company.hasMatch(whole) && !inSentence(whole) && !isOwn(whole) &&
+                fold(whole).length > key.length && fold(whole).endsWith(key)) {
+              name = whole;
+            }
+          }
         }
+      }
+      return Extracted(name, Confidence.medium, source: r.text);
+    }
+    // A short skip word counts only as a word of its own: "tel" skips "Tel:",
+    // never "Telenor".
+    bool skipWord(String n) => _skipSupplier.any((w) => RegExp(r'^[a-zåäö]{1,4}$').hasMatch(w)
+        ? RegExp('(?<![a-zåäö])$w(?![a-zåäö])').hasMatch(n)
+        : n.contains(w));
+    // A receipt's address block: name, street, "232 37 ARLÖV". The name sits
+    // above the street, in the first column; labels and a web page title
+    // above it are skipped.
+    for (var i = 2; i < top.length; i++) {
+      if (!RegExp(r'^\d{3} ?\d{2}\s+[A-ZÅÄÖa-zåäö]').hasMatch(top[i].text.trim())) continue;
+      for (var k = i - 2; k >= 0 && k >= i - 4; k--) {
+        final name = top[k].text.split(RegExp(r'\s{3,}')).first;
+        if (!letters.hasMatch(name) || TextPatterns.amounts(name).isNotEmpty) continue;
+        if (skipWord(TextPatterns.normalize(name)) || _closeToOwn(name)) continue;
+        return Extracted(_clean(name), Confidence.low, source: top[k].text);
       }
     }
     for (var i = 0; i < top.length; i++) {
       final r = top[i];
       final n = TextPatterns.normalize(r.text);
-      if (_skipSupplier.any((w) => n.contains(w))) continue;
+      if (skipWord(n)) continue;
       if (RegExp(r'^\W*(kronor|öre)\W*$').hasMatch(n)) continue;
-      if (!RegExp(r'[A-Za-zÅÄÖåäö]{3,}').hasMatch(r.text)) continue;
+      if (!letters.hasMatch(r.text)) continue;
       if (TextPatterns.amounts(r.text).isNotEmpty) continue;
+      if (!letters.hasMatch(_clean(r.text))) continue;
       // A misread logo ("OKEA") is printed again just below ("IKEA MALMÖ").
       final logo = r.text.trim();
       if (!logo.contains(' ')) {
@@ -1033,14 +1290,29 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     return t;
   }
 
-  Extracted<String> _labelledValue(List<TextRow> rows, List<String> norm, List<String> labels, RegExp value) {
+  /// Where [label] is printed in [row], spaces as printed. [fuzzy] also
+  /// accepts a misread word close to it ("Fakturanummner").
+  static Match? _findLabel(String row, String label, {String? fuzzy}) {
+    final lower = row.toLowerCase();
+    final exact = RegExp(label.split(' ').map(RegExp.escape).join(r'\s+')).firstMatch(lower);
+    if (exact != null || fuzzy == null) return exact;
+    return RegExp(r'[a-zåäö]{6,}')
+        .allMatches(lower)
+        .where((w) => TextPatterns.similarity(w[0]!, fuzzy) >= 0.8)
+        .firstOrNull;
+  }
+
+  /// The value after a label on its row; for a label alone, the value at the
+  /// start of the next row, or anywhere in it when it matches [below].
+  Extracted<String> _labelledValue(List<TextRow> rows, List<String> norm, List<String> labels, RegExp value,
+      {RegExp? below, String? fuzzy}) {
     for (var i = 0; i < rows.length; i++) {
       final n = norm[i];
-      for (final l in labels) {
-        final idx = n.indexOf(l);
-        if (idx < 0) continue;
+      for (final l in [...labels, if (fuzzy != null) fuzzy]) {
         if (l == 'ocr' && (n.contains('ocr-nummer') || n.contains('ocr nr'))) continue;
-        final after = rows[i].text.substring((idx + l.length).clamp(0, rows[i].text.length));
+        final at = _findLabel(rows[i].text, l, fuzzy: l == fuzzy ? fuzzy : null);
+        if (at == null) continue;
+        final after = rows[i].text.substring(at.end);
         final m = value.firstMatch(after.replaceFirst(RegExp(r'^[\s:.#]*'), ''));
         if (m != null && RegExp(r'\d').hasMatch(m.group(0)!)) {
           return Extracted(m.group(0)!, Confidence.high, source: rows[i].text);
@@ -1050,10 +1322,69 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
           if (next != null && next.start == 0 && RegExp(r'\d').hasMatch(next.group(0)!)) {
             return Extracted(next.group(0)!, Confidence.low, source: '${rows[i].text} / ${rows[i + 1].text}');
           }
+          final anywhere = below?.firstMatch(rows[i + 1].text);
+          if (anywhere != null) {
+            return Extracted(anywhere.group(0)!, Confidence.low, source: '${rows[i].text} / ${rows[i + 1].text}');
+          }
         }
       }
     }
     return const Extracted.none();
+  }
+
+  /// The OCR reference: five digits or more after an OCR label, never an
+  /// amount ("17396,00") or a bankgiro check line ("1185#41#").
+  Extracted<String> _ocrNumber(List<TextRow> rows, List<String> norm) {
+    final value = RegExp(r'(?<![\d,.])\d(?: ?\d){4,24}(?![\d]|\s?[,.]\d|\s*#\d)');
+    const labels = [
+      'ocr-nummer', 'ocr nr', 'ocrnr', 'ocr', 'meddelande anges', 'referensnummer', 'fakturareferens',
+    ];
+    Extracted<String>? found;
+    for (var i = 0; i < rows.length && found == null; i++) {
+      final n = norm[i];
+      for (final l in labels) {
+        if (l == 'ocr' && (n.contains('ocr-nummer') || n.contains('ocr nr'))) continue;
+        final at = _findLabel(rows[i].text, l);
+        if (at == null) continue;
+        final m = value.firstMatch(rows[i].text.substring(at.end));
+        if (m != null) {
+          found = Extracted(m[0]!, Confidence.high, source: rows[i].text);
+          break;
+        }
+        // Alone on its row: the number one or two rows below; a long one there
+        // need not be first ("grunden för …   526730297326").
+        for (var j = i + 1; j <= i + 2 && j < rows.length; j++) {
+          final next = value.firstMatch(rows[j].text);
+          if (next == null) continue;
+          final digits = next[0]!.replaceAll(' ', '').length;
+          if ((j == i + 1 && next.start <= 1) || digits >= 10) {
+            found = Extracted(next[0]!, Confidence.low, source: '${rows[i].text} / ${rows[j].text}');
+            break;
+          }
+        }
+        if (found != null) break;
+      }
+    }
+    // The slip's code line: "# 4005628761 #".
+    if (found == null) {
+      for (final r in rows) {
+        final m = RegExp(r'(?<!\d)(\d{5,25})\s*#\s').firstMatch(r.text);
+        if (m != null) {
+          found = Extracted(m[1]!, Confidence.low, source: r.text);
+          break;
+        }
+      }
+    }
+    if (found == null) return const Extracted.none();
+    var digits = found.value!.replaceAll(' ', '');
+    // A digit cut off at the edge: the same number printed whole elsewhere.
+    for (final r in rows) {
+      for (final m in RegExp(r'\d{5,25}').allMatches(r.text.replaceAll(RegExp(r'(?<=\d) (?=\d)'), ''))) {
+        final other = m[0]!;
+        if (other.length > digits.length && other.length <= digits.length + 2 && other.startsWith(digits)) digits = other;
+      }
+    }
+    return Extracted(digits, found.confidence, source: found.source);
   }
 }
 

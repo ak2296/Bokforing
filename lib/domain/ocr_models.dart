@@ -131,7 +131,19 @@ class OcrResult {
         l.words.first.box.left > l.words.last.box.left ? reversed++ : forward++;
       }
     }
-    return reversed >= 3 && reversed > forward;
+    if (reversed >= 3 && reversed > forward) return true;
+    // Rows read right to left put the amounts before their labels:
+    // "5443,92   376,53   5067,39   TOTALER".
+    var amountFirst = 0, labelFirst = 0;
+    for (final r in rows()) {
+      final columns = r.text.split(RegExp(r'\s{3,}'));
+      if (columns.length < 2) continue;
+      final firstIsAmount = _isAmountOnly(columns.first), lastIsAmount = _isAmountOnly(columns.last);
+      final word = RegExp(r'[A-Za-zÅÄÖåäö]{3,}');
+      if (firstIsAmount && !lastIsAmount && word.hasMatch(columns.last)) amountFirst++;
+      if (lastIsAmount && !firstIsAmount && word.hasMatch(columns.first)) labelFirst++;
+    }
+    return amountFirst >= 3 && amountFirst > labelFirst * 2;
   }
 
   /// True when the paper was probably photographed sideways: there is little
@@ -195,6 +207,8 @@ class OcrResult {
           // The letter O for zero after a decimal comma: "198, OO".
           .replaceAllMapped(RegExp(r'(\d[,.]\s?)[Oo]{2}\b'), (m) => '${m[1]}00')
           .replaceAllMapped(RegExp(r'(?<=\d)\|(?=[\d,])'), (m) => '1')
+          // A dot read for the decimal comma after a thousands dot: "4.309.27".
+          .replaceAllMapped(RegExp(r'(?<![\d.,])(\d{1,3})\.(\d{3})\.(\d{2})(?![\d.,])'), (m) => '${m[1]}.${m[2]},${m[3]}')
           // Two amounts stuck together: "492,00123,00".
           .replaceAllMapped(RegExp(r'(\d,\d{2})(?=\d{2,}[,.]\d{2}(?!\d))'), (m) => '${m[1]} ')
           .replaceAllMapped(RegExp(r'(\d)\s?([,.])\s(\d{2})(?![\d,.])'), (m) => '${m[1]}${m[2]}${m[3]}')
