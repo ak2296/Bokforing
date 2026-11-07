@@ -37,7 +37,7 @@ class _BokforingAppState extends State<BokforingApp> {
   Widget build(BuildContext context) => AppScope(
         controller: widget.controller,
         child: MaterialApp(
-          title: 'Bokföringsassistent',
+          title: 'Bokföring',
           debugShowCheckedModeBanner: false,
           locale: const Locale('sv', 'SE'),
           supportedLocales: const [Locale('sv', 'SE')],

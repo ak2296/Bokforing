@@ -3,6 +3,7 @@ import 'payment_detector.dart';
 import 'models.dart';
 import 'money.dart';
 import 'ocr_models.dart';
+import 'slip_code_line.dart';
 import 'text_patterns.dart';
 import 'validation.dart';
 import 'vat.dart';
@@ -302,18 +303,53 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     }
 
     final dates = _dates(rows, norm);
-    final supplier = _resolveSupplier(rows, norm);
-    final ocrReference = _ocrNumber(rows, norm);
+    var supplier = _resolveSupplier(rows, norm);
+    final logo = _logoName(ocr);
+    if (logo != null) supplier = (_checkWithLogo(supplier.$1, logo), supplier.$2);
+    var ocrReference = _ocrNumber(rows, norm);
     var invoiceNumber = _invoiceNumber(rows, norm);
     // "Faktura/OCR-nummer 265 896 994 17" is both numbers.
     if (!invoiceNumber.hasValue &&
         RegExp(r'faktura(nummer|nr)?\s*/\s*ocr').hasMatch((ocrReference.source ?? '').toLowerCase())) {
       invoiceNumber = ocrReference;
     }
+    var bankgiro = _giro(rows, _bankgiro);
+    var plusgiro = _giro(rows, _plusgiro);
+
+    // The slip's machine line at the bottom (OCR-B font) has a check digit in
+    // every part: what passes the check is printed right, and wins over the
+    // rest of the page. Checked in order: OCR, amount, bankgiro/plusgiro.
+    final code = isCredit ? null : SlipCodeLine.find([for (final r in rows) r.text]);
+    if (code != null) {
+      if (code.ocr != null) {
+        if (ocrReference.value != null && ocrReference.value != code.ocr) {
+          notes.add('OCR-numret ändrades från ${ocrReference.value} till ${code.ocr} enligt inbetalningskortets kodrad.');
+        }
+        ocrReference = Extracted(code.ocr, Confidence.high, source: code.source, note: 'Kontrollerat mot kodraden');
+      }
+      final amount = code.amount;
+      if (amount != null && !amount.isZero && (code.amountChecked || amount == total.value)) {
+        if (total.value != null && total.value != amount) {
+          notes.add('Summan ändrades från ${total.value!.format()} till ${amount.format()} enligt inbetalningskortets kodrad.');
+        }
+        total = Extracted(amount, Confidence.high, source: code.source, note: 'Kontrollerat mot kodraden');
+      }
+      final account = code.account;
+      if (account != null) {
+        String digits(String? s) => (s ?? '').replaceAll(RegExp(r'\D'), '');
+        final isPlusgiro = digits(plusgiro.value) == account ||
+            (digits(bankgiro.value) != account && code.accountCode != '41' && plusgiro.hasValue && !bankgiro.hasValue);
+        if (isPlusgiro) {
+          plusgiro = Extracted(SlipCodeLine.plusgiroFormat(account), Confidence.high, source: code.source);
+        } else if (account.length >= 7) {
+          bankgiro = Extracted(SlipCodeLine.bankgiroFormat(account), Confidence.high, source: code.source);
+        }
+      }
+    }
     return InvoiceDraft(
       paidDate: dates.payment.value ?? _stampDate(rows),
-      bankgiro: _giro(rows, _bankgiro),
-      plusgiro: _giro(rows, _plusgiro),
+      bankgiro: bankgiro,
+      plusgiro: plusgiro,
       payment: const PaymentDetector().detect([for (final r in rows) r.text], paperAspect: paperAspect),
       isCredit: isCredit,
       dateOptions: dates.options,
@@ -1105,6 +1141,55 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     if (otherName == null) return (first, OwnNameQuestion(name, null, assumeMine: false));
     if (_ownOrgOnPaper(rows)) return (other, null);
     return (other, OwnNameQuestion(name, otherName, assumeMine: true));
+  }
+
+  /// The company name printed as a logo: the tallest text in the top third of
+  /// the page, clearly taller than ordinary text. Null when nothing stands out.
+  String? _logoName(OcrResult ocr) {
+    final lines = ocr.lines.where((l) => !ocr.isMarginText(l)).toList();
+    if (lines.length < 4) return null;
+    final heights = lines.map((l) => l.box.height).toList()..sort();
+    final median = heights[heights.length ~/ 2];
+    if (median <= 0) return null;
+    final top = lines.map((l) => l.box.top).reduce((a, b) => a < b ? a : b);
+    final bottom = lines.map((l) => l.box.bottom).reduce((a, b) => a > b ? a : b);
+    OcrLine? best;
+    for (final l in lines) {
+      if (l.box.top > top + (bottom - top) / 3) continue;
+      if (l.box.height < median * 1.6) continue;
+      final t = l.text.trim();
+      if (!RegExp(r'[A-Za-zÅÄÖåäö]{3,}').hasMatch(t) || TextPatterns.amounts(t).isNotEmpty) continue;
+      final n = TextPatterns.normalize(t);
+      if (const ['faktura', 'kvitto', 'invoice', 'receipt', 'kreditnota', 'specifikation', 'inbetalning', 'kopia']
+          .any(n.contains)) {
+        continue;
+      }
+      if (_closeToOwn(t) || [ownName, ...ownNames].any((o) => _squeeze(o).length >= 3 && _squeeze(t).contains(_squeeze(o)))) {
+        continue;
+      }
+      if (best == null || l.box.height > best.box.height) best = l;
+    }
+    return best?.text.trim();
+  }
+
+  /// Uses the logo name to back up or confirm the supplier read from the text.
+  Extracted<String> _checkWithLogo(Extracted<String> supplier, String logo) {
+    String fold(String s) => _squeeze(s).replaceAll(RegExp('[åä]'), 'a').replaceAll('ö', 'o');
+    final name = supplier.value;
+    if (name == null) return Extracted(logo, Confidence.medium, source: logo, note: 'Namnet i logotypen');
+    final a = fold(name), b = fold(logo);
+    final agree = b.length >= 3 && (a.contains(b) || b.contains(a) || TextPatterns.similarity(a, b) >= 0.8);
+    if (agree) {
+      // Two places on the paper give the same name.
+      return supplier.confidence == Confidence.low
+          ? Extracted(name, Confidence.medium, source: supplier.source, note: 'Stämmer med logotypen')
+          : supplier;
+    }
+    // A guess from the page loses to the logo; a labelled or known name stays.
+    if (supplier.confidence == Confidence.low) {
+      return Extracted(logo, Confidence.medium, source: logo, note: 'Namnet i logotypen');
+    }
+    return supplier;
   }
 
   /// Names printed directly above the owner's street and number, in the same

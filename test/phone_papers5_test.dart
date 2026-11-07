@@ -2,6 +2,7 @@ import 'package:bokforing/domain/invoice_parser.dart';
 import 'package:bokforing/domain/money.dart';
 import 'package:bokforing/domain/ocr_models.dart';
 import 'package:bokforing/domain/payment_detector.dart';
+import 'package:bokforing/domain/slip_code_line.dart';
 import 'package:bokforing/domain/text_patterns.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -233,5 +234,46 @@ SMÅA
 TOTALER   5067,39   376,53   5443,92
 RABATT   42,60
 KORT   1892,00''').looksUpsideDown, isFalse);
+  });
+
+  test('Slip code line: OCR, amount and bankgiro with check digits', () {
+    expect(SlipCodeLine.luhnValid('1234567897'), isTrue);
+    expect(SlipCodeLine.luhnValid('1234567898'), isFalse);
+    final d = _read('''
+Leverantören AB
+OCR   1234567891
+Att betala   195,00
+Bankgiro   5050-1056
+#   1234567897   #   159 00   4 >   50501055#41#''');
+    expect(d.ocrReference.value, '1234567897');
+    expect(d.total.value, Money.parse('159,00'));
+    expect(d.total.confidence, Confidence.high);
+    expect(d.bankgiro.value, '5050-1055');
+  });
+
+  test('Slip code line with a failed check digit changes nothing', () {
+    final d = _read('''
+Leverantören AB
+OCR   1234567897
+Att betala   159,00
+#   1234567890   #   195 00   4 >   50501056#41#''');
+    expect(d.ocrReference.value, '1234567897');
+    expect(d.total.value, Money.parse('159,00'));
+  });
+
+  test('The logo name backs up a guessed supplier', () {
+    OcrLine line(String t, double top, double height) => OcrLine(t, OcrBox(0, top, t.length * 10.0, top + height));
+    final lines = [
+      line('Tack för ditt köp', 0, 14),
+      line('ELKEDJAN', 20, 60),
+      line('Faktura', 80, 16),
+      line('Kund: Ankan restaurang', 100, 16),
+      line('Fakturadatum   2026-10-20', 120, 16),
+      line('Att betala   500,00', 400, 16),
+      line('Varav moms   100,00', 420, 16),
+    ];
+    final r = OcrResult(text: '', blocks: [for (final l in lines) OcrBlock(l.text, l.box, [l])], imageWidth: 1000, imageHeight: 600);
+    final d = const InvoiceParser(ownName: 'Ankan restaurang').parse(r);
+    expect(d.supplier.value, 'ELKEDJAN');
   });
 }

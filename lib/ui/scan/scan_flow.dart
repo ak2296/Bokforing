@@ -159,7 +159,7 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
       final tmp = await getTemporaryDirectory();
       for (final path in widget.photoPaths) {
         final bytes = await File(path).readAsBytes();
-        final result = await compute(preprocessDocument, PreprocessRequest(bytes));
+        final result = await compute(preprocessDocument, PreprocessRequest(bytes, frame: CameraPage.frameFor(path)));
         final out = p.join(tmp.path, 'skanning_${DateTime.now().microsecondsSinceEpoch}.jpg');
         await File(out).writeAsBytes(result.jpeg);
         _processed.add(out);

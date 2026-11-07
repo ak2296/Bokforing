@@ -69,7 +69,7 @@ Future<Uint8List> buildMonthlyPdf(MonthlyReport r, BusinessProfile profile, {Dat
       footer: (context) => pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text('Skapad ${SwedishDates.iso(created)} med Bokföringsassistent. Belopp i kronor.',
+          pw.Text('Skapad ${SwedishDates.iso(created)} med Bokföring. Belopp i kronor.',
               style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),
           pw.Text('Sida ${context.pageNumber} av ${context.pagesCount}',
               style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700)),

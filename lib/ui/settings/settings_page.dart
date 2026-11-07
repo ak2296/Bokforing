@@ -186,7 +186,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const AboutListTile(
                   icon: Icon(AppIcons.info),
-                  applicationName: 'Bokföringsassistent',
+                  applicationName: 'Bokföring',
                   applicationVersion: '0.2.0',
                   aboutBoxChildren: [
                     Text('Lokal bokföringsassistent för småföretag i Sverige. '
