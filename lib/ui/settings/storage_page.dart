@@ -140,9 +140,7 @@ class _StoragePageState extends State<StoragePage> {
                 const SizedBox(height: 12),
                 Text(
                   'Tar bort tillfälliga filer, gör sparade bilder mindre (texten går fortfarande att läsa) och packar '
-                  'databasen. Inga belopp, datum eller registreringar tas bort.
-
-'
+                  'databasen. Inga belopp, datum eller registreringar tas bort.\n\n'
                   'Sparar du papperen behövs inga bilder i appen: stäng av "Behåll originalbilder" under '
                   'Inställningar → Dokument, så tas varje bild bort när du har godkänt uppgifterna.',
                   style: t.bodySmall,
