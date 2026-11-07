@@ -49,6 +49,9 @@ jobs:
           if ! grep -q 'ScheduledNotificationReceiver' $m; then
             perl -0pi -e 's#</application>#    <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />\n        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">\n            <intent-filter>\n                <action android:name="android.intent.action.BOOT_COMPLETED"/>\n                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>\n                <action android:name="android.intent.action.QUICKBOOT_POWERON" />\n                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>\n            </intent-filter>\n        </receiver>\n    </application>#' $m
           fi
+          # The share plugin compiles Java and Kotlin for different JVM targets;
+          # that is harmless on Android, so the strict check is turned off.
+          grep -q 'jvm.target.validation' android/gradle.properties || echo 'kotlin.jvm.target.validation.mode=IGNORE' >> android/gradle.properties
           # Share to the app: PDFs and images from e-mail and other apps.
           sed -i 's/android:launchMode="singleTop"/android:launchMode="singleTask"/' $m
           if ! grep -q 'application/pdf' $m; then
