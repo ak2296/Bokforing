@@ -80,6 +80,21 @@ jobs:
           grep -n "minSdk\|Minify\|Shrink" "$f" || true
           grep -n "permission" $m || true
 
+      - name: Fast signeringsnyckel
+        # The same key for every build, so a new version installs over the old
+        # one and keeps its data. Without the secrets Gradle makes a random key.
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_ENC }}
+          PW: ${{ secrets.ANDROID_KEYSTORE_PW }}
+        run: |
+          if [ -n "$KS" ] && [ -n "$PW" ]; then
+            mkdir -p ~/.android
+            echo "$KS" | base64 -d | openssl enc -d -aes-256-cbc -pbkdf2 -pass env:PW -out ~/.android/debug.keystore
+            echo "::notice title=Signering::Fast nyckel används"
+          else
+            echo "::warning title=Signering::Ingen fast nyckel. Den här versionen kan inte installeras över en tidigare."
+          fi
+
       - name: SQLite för databastester
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libsqlite3-dev
 
