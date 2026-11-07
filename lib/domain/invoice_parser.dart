@@ -436,6 +436,9 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
   /// fit one rate: the VAT is the difference, to be checked.
   _VatInfo? _vatFromNetAndTotal(_VatInfo vat, List<TotalCandidate> candidates) {
     final net = vat.net;
+    // Only when a VAT amount was printed and read wrong; with none printed the
+    // VAT is reconstructed as summa minus netto further on.
+    if (vat.explicitTotal == null && vat.lines.isEmpty) return null;
     if (net == null || net.isZero || candidates.isEmpty) return null;
     final total = candidates.first.value.abs();
     for (final rate in const [VatRate.twentyFive, VatRate.twelve, VatRate.six]) {
