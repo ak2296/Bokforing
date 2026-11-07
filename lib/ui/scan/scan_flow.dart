@@ -57,7 +57,7 @@ Future<void> startScan(BuildContext context, {bool online = false}) async {
 /// turned into page images first; the rest works like a camera scan.
 Future<void> importFile(BuildContext context) async {
   final picked = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png']);
-  final source = picked?.firstOrNull?.path;
+  final source = picked.firstOrNull?.path;
   if (source == null || !context.mounted) return;
   await readSharedFile(context, source, pdf: source.toLowerCase().endsWith('.pdf'));
 }
