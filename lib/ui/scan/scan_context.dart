@@ -1,11 +1,13 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../app/app_controller.dart';
 import '../../app/settings_keys.dart';
 import '../../domain/classifier.dart';
+import '../../imaging/preprocess.dart';
 
 /// What a scan produced, carried to the review screen. Nothing here is in
 /// the database until the user confirms.
@@ -34,14 +36,22 @@ class ScanContext {
       await dir.create(recursive: true);
       for (final path in imagePaths) {
         final target = p.join(dir.path, '${DateTime.now().microsecondsSinceEpoch}_${p.basename(path)}');
-        await File(path).copy(target);
+        // A smaller copy than the one read by OCR: still clear to read, a
+        // fraction of the space.
+        try {
+          await File(target).writeAsBytes(await compute(compactJpeg, await File(path).readAsBytes()));
+        } catch (_) {
+          await File(path).copy(target);
+        }
         kept.add(target);
       }
     }
     final id = await c.repo.saveScan(
       docType: type.name,
       ocrText: ocrText,
-      ocrJson: ocrJson,
+      // The word layout is only needed while reviewing (for the online
+      // analysis); the text is enough afterwards.
+      ocrJson: null,
       imagePath: kept.isEmpty ? null : kept.join(';'),
     );
     await discardImages();

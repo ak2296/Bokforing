@@ -14,6 +14,7 @@ import 'activation_page.dart';
 import 'ai_settings_page.dart';
 import 'backup_page.dart';
 import 'category_editor.dart';
+import 'storage_page.dart';
 import 'z_fields_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -118,6 +119,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     await AppScope.read(context).repo.setBoolSetting(SettingsKeys.keepImages, v);
                     setState(() => _keepImages = v);
                   },
+                ),
+                ListTile(
+                  leading: const Icon(AppIcons.backup),
+                  title: const Text('Lagring'),
+                  subtitle: const Text('Hur mycket plats appen tar och hur du frigör plats'),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StoragePage())),
                 ),
                 header('Påminnelser'),
                 SwitchListTile(

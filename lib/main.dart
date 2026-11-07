@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'app/app_controller.dart';
 import 'app/settings_keys.dart';
 import 'data/database.dart';
+import 'data/storage.dart';
 import 'data/repository.dart';
 import 'notify/reminders.dart';
 import 'ui/setup_wizard.dart';
@@ -14,6 +15,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final db = await AppDatabase.open();
   final repo = Repository(db);
+  // Photos left behind by a scan that was closed without saving.
+  AppStorage.cleanTemp();
   final setupDone = await repo.boolSetting(SettingsKeys.setupDone);
   final reminders = Reminders();
   await reminders.init();

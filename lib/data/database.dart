@@ -6,12 +6,13 @@ import 'package:sqflite/sqflite.dart';
 /// except amounts printed on the document itself (e.g. reported Z total).
 class AppDatabase {
   static const fileName = 'bokforing.db';
-  static const version = 6;
+  static const version = 7;
 
   static Future<Database> open({DatabaseFactory? factory, String? path}) async {
     final f = factory ?? databaseFactory;
     final dbPath = path ?? p.join(await f.getDatabasesPath(), fileName);
-    return f.openDatabase(
+    var shrink = false;
+    final db = await f.openDatabase(
       dbPath,
       options: OpenDatabaseOptions(
         version: version,
@@ -35,9 +36,18 @@ class AppDatabase {
             _v6Changes(batch);
             await batch.commit(noResult: true);
           }
+          if (oldVersion < 7) {
+            // The word layout of each scan was kept but never read again.
+            await db.execute('UPDATE document_scans SET ocr_json = NULL');
+            shrink = true;
+          }
         },
       ),
     );
+    // VACUUM gives the freed space back to the phone; it cannot run inside
+    // the upgrade transaction.
+    if (shrink) await db.execute('VACUUM');
+    return db;
   }
 
   static Future<void> _create(Database db) async {

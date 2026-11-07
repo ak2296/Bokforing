@@ -58,6 +58,21 @@ class PreprocessResult {
   const PreprocessResult(this.jpeg, this.width, this.height, this.quality);
 }
 
+/// A saved copy of a document photo: at most 1600 pixels on the long side,
+/// JPEG quality 70. Text stays readable at about a fifth of the size.
+Uint8List compactJpeg(Uint8List bytes) {
+  var image = img.decodeImage(bytes);
+  if (image == null) return bytes;
+  const maxSide = 1600;
+  if (math.max(image.width, image.height) > maxSide) {
+    image = image.width >= image.height
+        ? img.copyResize(image, width: maxSide, interpolation: img.Interpolation.average)
+        : img.copyResize(image, height: maxSide, interpolation: img.Interpolation.average);
+  }
+  final out = img.encodeJpg(image, quality: 70);
+  return out.length < bytes.length ? out : bytes;
+}
+
 /// Input for [preprocessDocument]; plain data so it can run in an isolate.
 class PreprocessRequest {
   final Uint8List bytes;
