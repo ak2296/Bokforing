@@ -14,8 +14,12 @@ class StorageUsage {
   final int images;
   final int imageCount;
   final int temp;
-  const StorageUsage(this.database, this.images, this.imageCount, this.temp);
-  int get total => database + images + temp;
+
+  /// Everything else in the app's folders: the app's own working files, and
+  /// in a test (debug) version its developer code.
+  final int other;
+  const StorageUsage(this.database, this.images, this.imageCount, this.temp, {this.other = 0});
+  int get total => database + images + temp + other;
 }
 
 /// Space on the phone: what the app uses and how to free it. Nothing here
@@ -31,14 +35,18 @@ class AppStorage {
   static Future<int> _size(Directory dir, {bool Function(File)? where}) async {
     if (!await dir.exists()) return 0;
     var n = 0;
-    await for (final e in dir.list(recursive: true, followLinks: false)) {
-      if (e is File && (where == null || where(e))) {
-        try {
-          n += await e.length();
-        } on FileSystemException {
-          // Gone while counting.
+    try {
+      await for (final e in dir.list(recursive: true, followLinks: false)) {
+        if (e is File && (where == null || where(e))) {
+          try {
+            n += await e.length();
+          } on FileSystemException {
+            // Gone while counting.
+          }
         }
       }
+    } on FileSystemException {
+      // A folder the app may not read; count what was reached.
     }
     return n;
   }
@@ -57,8 +65,21 @@ class AppStorage {
     if (await images.exists()) {
       count = await images.list().where((e) => e is File).length;
     }
-    final temp = await _size(await getTemporaryDirectory(), where: _isScanFile);
-    return StorageUsage(db, await _size(images), count, temp);
+    final tempDir = await getTemporaryDirectory();
+    final temp = await _size(tempDir, where: _isScanFile);
+    final imageBytes = await _size(images);
+    // The app's whole data folder, less what is counted above.
+    var all = 0;
+    try {
+      final docs = await getApplicationDocumentsDirectory();
+      all = await _size(docs.parent);
+      if (!p.isWithin(docs.parent.path, tempDir.path)) all += await _size(tempDir);
+      if (!p.isWithin(docs.parent.path, dbPath)) all += db;
+    } catch (_) {
+      all = 0;
+    }
+    final other = all - db - imageBytes - temp;
+    return StorageUsage(db, imageBytes, count, temp, other: other > 0 ? other : 0);
   }
 
   /// Deletes photos and PDF pages left in the cache by scans that were

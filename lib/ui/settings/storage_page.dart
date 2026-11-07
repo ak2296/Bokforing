@@ -112,6 +112,8 @@ class _StoragePageState extends State<StoragePage> {
                       const Divider(indent: 70),
                       row(AppIcons.files, 'Tillfälliga filer', 'Bilder från avbrutna skanningar', u.temp),
                       const Divider(indent: 70),
+                      row(AppIcons.settings, 'Övrigt', 'Appens egna arbetsfiler', u.other),
+                      const Divider(indent: 70),
                       ListTile(
                         title: Text('Totalt', style: t.titleSmall),
                         trailing: Text(AppStorage.format(u.total), style: t.titleMedium?.merge(moneyStyle)),
