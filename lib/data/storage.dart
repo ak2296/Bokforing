@@ -115,6 +115,16 @@ class AppStorage {
     return saved;
   }
 
+  /// Deletes every kept photo and the links to them. The registrations and
+  /// their read text stay; only the pictures go.
+  static Future<int> deleteImages(Database db) async {
+    final dir = await imagesDir();
+    final size = await _size(dir);
+    if (await dir.exists()) await dir.delete(recursive: true);
+    await db.update('document_scans', {'image_path': null});
+    return size;
+  }
+
   /// Gives space freed inside the database back to the phone.
   static Future<void> shrinkDatabase(Database db) => db.execute('VACUUM');
 

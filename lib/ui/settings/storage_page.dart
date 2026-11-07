@@ -56,6 +56,34 @@ class _StoragePageState extends State<StoragePage> {
         content: Text(freed > 0 ? '${AppStorage.format(freed)} frigjort.' : 'Det fanns inget mer att frigöra.')));
   }
 
+  Future<void> _deleteImages() async {
+    final db = AppScope.read(context).repo.db;
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Ta bort sparade bilder?'),
+        content: const Text('Alla sparade bilder tas bort från telefonen. Registreringarna, beloppen och den lästa '
+            'texten finns kvar. Gör det bara om du sparar papperen.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Behåll')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Ta bort bilderna')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _working = true);
+    final freed = await AppStorage.deleteImages(db);
+    await AppStorage.shrinkDatabase(db);
+    final after = await AppStorage.usage();
+    if (!mounted) return;
+    setState(() {
+      _usage = after;
+      _working = false;
+    });
+    messenger.showSnackBar(SnackBar(content: Text('Bilderna är borttagna. ${AppStorage.format(freed)} frigjort.')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final u = _usage;
@@ -99,10 +127,22 @@ class _StoragePageState extends State<StoragePage> {
                   label: Text(_working ? (_progress ?? 'Arbetar…') : 'Frigör utrymme'),
                   onPressed: _working ? null : _free,
                 ),
+                if (u.imageCount > 0) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    icon: const Icon(AppIcons.delete),
+                    label: Text('Ta bort sparade bilder (${AppStorage.format(u.images)})'),
+                    onPressed: _working ? null : _deleteImages,
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Text(
                   'Tar bort tillfälliga filer, gör sparade bilder mindre (texten går fortfarande att läsa) och packar '
-                  'databasen. Inga belopp, datum eller registreringar tas bort.',
+                  'databasen. Inga belopp, datum eller registreringar tas bort.
+
+'
+                  'Sparar du papperen behövs inga bilder i appen: stäng av "Behåll originalbilder" under '
+                  'Inställningar → Dokument, så tas varje bild bort när du har godkänt uppgifterna.',
                   style: t.bodySmall,
                 ),
               ],
