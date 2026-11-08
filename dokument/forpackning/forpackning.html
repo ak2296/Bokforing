@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>Bokföring – förpackning</title>
+<!--
+  Tuck-box för användarguiden (A5) och kortet. Innermått 154 × 216 × 14 mm.
+  Sida 1: tryckfil med stans- och biglinjer (A3 liggande, skala 1:1).
+  Sida 2: förhandsvisning. PDF: python dokument/verktyg/make_docs.py
+  Röd heldragen linje = skär, blå streckad = vik. Tryckeriet lägger själva
+  till utfallande kant runt bilden; färgfälten går redan 3 mm utanför skärlinjen.
+-->
+<style>
+@font-face { font-family: Inter; src: url(../../assets/fonts/Inter-Regular.otf); font-weight: 400; }
+@font-face { font-family: Inter; src: url(../../assets/fonts/Inter-Medium.otf); font-weight: 500; }
+@page { size: 420mm 297mm; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { font-family: Inter, Arial, sans-serif; color: #10201B; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.sheet { width: 420mm; height: 297mm; position: relative; overflow: hidden; page-break-after: always; background: #fff; }
+.sheet:last-child { page-break-after: auto; }
+.abs { position: absolute; }
+.green { background: #0B6B4E; color: #fff; }
+svg.die { position: absolute; left: 0; top: 0; width: 420mm; height: 297mm; }
+.label { position: absolute; font-size: 3.2mm; color: #62706A; }
+
+/* Front panel art */
+.front-art { left: 210mm; top: 40mm; width: 154mm; height: 216mm; overflow: hidden; }
+.front-art .logo { position: absolute; left: 14mm; top: 16mm; width: 24mm; height: 24mm; border-radius: 6mm; background: #fff; display: flex; align-items: center; justify-content: center; }
+.front-art .logo img { width: 21mm; height: 21mm; }
+.front-art h1 { position: absolute; left: 14mm; top: 46mm; margin: 0; font-size: 21mm; line-height: 1; font-weight: 500; letter-spacing: -0.6mm; }
+.front-art .sub { position: absolute; left: 14mm; top: 72mm; width: 74mm; font-size: 4.4mm; line-height: 1.4; opacity: .92; }
+.front-art .bottom { position: absolute; left: 14mm; right: 14mm; bottom: 14mm; display: flex; justify-content: space-between; align-items: flex-end; font-size: 3.4mm; opacity: .9; }
+.front-art .badge { border: 0.4mm solid rgba(255,255,255,.7); border-radius: 2mm; padding: 1.2mm 2.4mm; font-weight: 500; letter-spacing: .3mm; }
+.front-art .ring { position: absolute; right: -30mm; top: 36mm; width: 110mm; height: 110mm; border-radius: 50%; background: rgba(255,255,255,.06); }
+.phone { position: absolute; right: 12mm; top: 82mm; width: 50mm; height: 94mm; border-radius: 8mm; background: #16211d; padding: 2mm; transform: rotate(-11deg); box-shadow: 0 3mm 8mm rgba(0,0,0,.3); }
+.tablet { position: absolute; left: 12mm; top: 116mm; width: 96mm; height: 66mm; border-radius: 5mm; background: #16211d; padding: 2.6mm; transform: rotate(7deg); box-shadow: 0 3mm 8mm rgba(0,0,0,.25); }
+.tablet .tscr { width: 100%; height: 100%; border-radius: 3mm; background: #F5F7F4; padding: 3.4mm; overflow: hidden; display: flex; gap: 2.6mm; }
+.tablet .tcol { display: flex; flex-direction: column; gap: 2mm; }
+.tablet .tcol.l { width: 30mm; } .tablet .tcol.r { flex: 1; }
+.tablet .thero { border-radius: 2.2mm; background: #B4553A; color: #fff; padding: 2mm 2.4mm; font-size: 2mm; }
+.tablet .thero b { display: block; font-size: 3.8mm; font-weight: 500; margin-top: .5mm; }
+.tablet .tlist { background: #fff; border: .25mm solid #E8ECE6; border-radius: 2mm; padding: 1.4mm 2mm; font-size: 2.5mm; color: #10201B; }
+.tablet .tlist div { display: flex; justify-content: space-between; padding: .8mm 0; border-bottom: .2mm solid #E8ECE6; }
+.tablet .tlist div:last-child { border: 0; }
+.tablet .tchart { flex: 1; background: #fff; border: .25mm solid #E8ECE6; border-radius: 2mm; padding: 2mm; font-size: 2.4mm; color: #62706A; display: flex; flex-direction: column; }
+.tablet .tbars { flex: 1; max-height: 70%; display: flex; gap: 1.2mm; align-items: flex-end; margin-top: 1.4mm; }
+.tablet .tbars i { flex: 1; background: #0B6B4E; border-radius: .5mm .5mm 0 0; }
+.tablet .tbars i:nth-child(even) { background: #E8916E; }
+.phone .scr { width: 100%; height: 100%; border-radius: 6.2mm; background: #F5F7F4; overflow: hidden; padding: 6mm 3mm; color: #10201B; }
+.phone .hero { border-radius: 3mm; background: #0B6B4E; color: #fff; padding: 3mm; font-size: 2.4mm; }
+.phone .hero b { display: block; font-size: 5mm; font-weight: 500; margin: 1mm 0; }
+.phone .card { background: #fff; border: 0.25mm solid #E8ECE6; border-radius: 2.4mm; padding: 2mm; margin-top: 2mm; }
+.phone .bars { display: flex; gap: 1.6mm; align-items: flex-end; height: 16mm; }
+.phone .bars i { flex: 1; background: #0B6B4E; border-radius: .6mm .6mm 0 0; }
+.phone .bars i:nth-child(even) { background: #E8916E; }
+.phone .row { display: flex; justify-content: space-between; font-size: 2.3mm; padding: 1mm 0; border-bottom: .2mm solid #E8ECE6; }
+
+/* Back panel art */
+.back-art { left: 42mm; top: 40mm; width: 154mm; height: 216mm; padding: 14mm 13mm; background: #fff; }
+.back-art h2 { margin: 0 0 4mm; font-size: 7mm; font-weight: 500; color: #0B6B4E; }
+.steps { display: flex; gap: 4mm; margin-bottom: 7mm; }
+.steps div { flex: 1; background: #E4F2EC; border-radius: 4mm; padding: 4mm 3mm; text-align: center; font-size: 3.2mm; }
+.steps b { display: block; font-size: 4.2mm; font-weight: 500; color: #0B6B4E; margin: 1.5mm 0 1mm; }
+.steps .n { width: 8mm; height: 8mm; border-radius: 50%; background: #0B6B4E; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 500; font-size: 4mm; }
+.back-art ul { margin: 0 0 6mm; padding-left: 5mm; font-size: 3.5mm; line-height: 1.55; }
+.back-art h3 { margin: 0 0 2mm; font-size: 4.2mm; font-weight: 500; }
+.box-row { display: flex; gap: 4mm; }
+.box-row div { flex: 1; border: .3mm solid #E8ECE6; border-radius: 3mm; padding: 3mm; font-size: 3.2mm; line-height: 1.45; }
+.box-row b { font-weight: 500; display: block; margin-bottom: .8mm; }
+.back-art .legal { position: absolute; left: 13mm; right: 13mm; bottom: 10mm; font-size: 2.6mm; color: #62706A; line-height: 1.4; }
+
+/* Spines, lid */
+.spine { width: 14mm; height: 216mm; top: 40mm; display: flex; align-items: center; justify-content: center; }
+.spine span { transform: rotate(-90deg); white-space: nowrap; font-weight: 500; font-size: 5mm; letter-spacing: .4mm; }
+.lid { left: 42mm; top: 26mm; width: 154mm; height: 14mm; display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 5mm; }
+
+/* Preview sheet */
+.preview { background: #EEF1EC; }
+.preview .ptitle { position: absolute; left: 24mm; top: 20mm; margin: 0; font-size: 9mm; font-weight: 500; }
+.preview .plead { position: absolute; left: 24mm; top: 34mm; width: 150mm; font-size: 4mm; color: #62706A; line-height: 1.5; margin: 0; }
+.stage { position: absolute; left: 200mm; top: 40mm; width: 200mm; height: 240mm; perspective: 900mm; }
+.box3d { position: absolute; left: 30mm; top: 10mm; width: 120mm; height: 168mm; transform-style: preserve-3d; transform: rotateY(-28deg) rotateX(6deg); }
+.box3d .f { position: absolute; inset: 0; overflow: hidden; }
+.box3d .s { position: absolute; top: 0; left: 120mm; width: 11mm; height: 168mm; transform-origin: left; transform: rotateY(90deg); background: #084d38; color: #fff; display: flex; align-items: center; justify-content: center; }
+.box3d .s span { transform: rotate(-90deg); white-space: nowrap; font-size: 4mm; font-weight: 500; }
+.box3d .t { position: absolute; left: 0; top: 0; width: 120mm; height: 11mm; transform-origin: top; transform: rotateX(90deg); background: #0e7a59; }
+.scale { position: absolute; left: 0; top: 0; width: 154mm; height: 216mm; transform: scale(0.779); transform-origin: 0 0; }
+.shadow { position: absolute; left: 34mm; top: 176mm; width: 140mm; height: 14mm; border-radius: 50%; background: radial-gradient(rgba(0,0,0,.22), rgba(0,0,0,0) 70%); }
+.contents { position: absolute; left: 24mm; top: 70mm; width: 160mm; }
+.item { display: flex; gap: 6mm; align-items: center; margin-bottom: 10mm; }
+.thumb-guide { width: 34mm; height: 48mm; background: #0B6B4E; border-radius: 1.5mm; color: #fff; padding: 4mm 3mm; font-size: 4.2mm; font-weight: 500; box-shadow: 0 1.5mm 4mm rgba(0,0,0,.15); }
+.thumb-guide small { display: block; font-weight: 400; font-size: 2.6mm; opacity: .85; margin-top: 1mm; }
+.thumb-card { width: 42mm; height: 27mm; background: #fff; border-radius: 1.6mm; box-shadow: 0 1.5mm 4mm rgba(0,0,0,.15); display: flex; align-items: center; gap: 2mm; padding: 2.5mm; }
+.thumb-card img { width: 20mm; height: 20mm; }
+.thumb-card span { font-size: 2.6mm; color: #0B6B4E; font-weight: 500; }
+.item div.t2 { font-size: 4mm; line-height: 1.45; }
+.item div.t2 b { font-weight: 500; display: block; font-size: 4.6mm; }
+</style>
+</head>
+<body>
+
+<!-- ============ Sida 1: tryckfil ============ -->
+<section class="sheet">
+  <!-- Colour fields, 3 mm past the cut line -->
+  <div class="abs green" style="left:39mm; top:37mm; width:6mm; height:222mm"></div>
+  <div class="abs green" style="left:196mm; top:37mm; width:14mm; height:222mm"></div>
+  <div class="abs green" style="left:207mm; top:37mm; width:160mm; height:222mm"></div>
+  <div class="abs green" style="left:364mm; top:37mm; width:17mm; height:222mm"></div>
+  <div class="abs green" style="left:39mm; top:8mm; width:160mm; height:32mm"></div>
+  <div class="abs green" style="left:207mm; top:256mm; width:160mm; height:32mm"></div>
+
+  <div class="abs back-art">
+    <h2>Bokföringen klar på några minuter om dagen</h2>
+    <div class="steps">
+      <div><span class="n">1</span><b>Skanna</b>Fakturor, kvitton och Z-rapporter med telefonens kamera.</div>
+      <div><span class="n">2</span><b>Kontrollera</b>Appen läser beloppen och visar vad som är säkert.</div>
+      <div><span class="n">3</span><b>Klart</b>Moms, rapporter och SIE-fil till redovisaren.</div>
+    </div>
+    <h3>Det här ingår</h3>
+    <ul>
+      <li>Dagens försäljning från Z-rapporten, per kategori och momssats</li>
+      <li>Fakturor och kvitton med moms, förfallodatum, bankgiro och OCR</li>
+      <li>Påminnelser för fakturor som ska betalas</li>
+      <li>Månads- och årsrapport, jämförelse och resultat – som PDF och Excel</li>
+      <li>Onlineförsäljning från t.ex. Foodora</li>
+      <li>Automatisk, krypterad säkerhetskopia</li>
+    </ul>
+    <div class="box-row">
+      <div><b>I förpackningen</b>Användarguide och kort med nedladdning och aktivering.</div>
+      <div><b>Krav</b>Android-mobil eller surfplatta med Android 7.0 eller senare och kamera.</div>
+      <div><b>Integritet</b>Uppgifterna stannar i din telefon. Ingen inloggning.</div>
+    </div>
+    <div class="legal">Appen är ett hjälpmedel för registrering och beräkning. Beräknad moms ersätter inte momsdeklarationen. Spara originalunderlagen enligt bokföringslagen.</div>
+  </div>
+
+  <div class="abs spine green" style="left:196mm"><span>BOKFÖRING</span></div>
+  <div class="abs spine green" style="left:364mm"><span>BOKFÖRING</span></div>
+  <div class="abs lid green">BOKFÖRING</div>
+
+  <div class="abs front-art green">
+    <div class="ring"></div>
+    <div class="logo"><img src="../bilder/app-ikon.png" alt=""></div>
+    <h1>Bokföring</h1>
+    <div class="sub">Fakturor, kvitton och Z-rapporter – skannade, kontrollerade och klara för moms och rapporter.</div>
+    <div class="tablet"><div class="tscr"><div class="tcol l"><div class="thero">Utgifter<b>21 506 kr</b></div><div class="tlist"><div><span>Snabbgross</span><span>5 443</span></div><div><span>Telenor</span><span>1 433</span></div><div><span>E.ON</span><span>2 180</span></div><div><span>Securitas</span><span>890</span></div></div></div><div class="tcol r"><div class="tchart">Försäljning och utgifter<div class="tbars"><i style="height:45%"></i><i style="height:30%"></i><i style="height:62%"></i><i style="height:38%"></i><i style="height:70%"></i><i style="height:42%"></i><i style="height:84%"></i><i style="height:36%"></i><i style="height:76%"></i><i style="height:40%"></i><i style="height:92%"></i><i style="height:44%"></i></div></div></div></div></div>
+    <div class="phone"><div class="scr">
+      <div class="hero">Försäljning<b>48 312 kr</b>November 2026</div>
+      <div class="card"><div class="bars"><i style="height:50%"></i><i style="height:32%"></i><i style="height:68%"></i><i style="height:40%"></i><i style="height:60%"></i><i style="height:44%"></i><i style="height:90%"></i><i style="height:38%"></i></div></div>
+      <div class="card"><div class="row"><span>Snabbgross</span><span>5 443</span></div><div class="row"><span>Telenor</span><span>1 433</span></div><div class="row" style="border:0"><span>Z-rapport 185</span><span>8 420</span></div></div>
+    </div></div>
+    <div class="bottom"><span>Användarguide<br>Nedladdningskort</span><span class="badge">MOBIL OCH SURFPLATTA · ANDROID</span></div>
+  </div>
+
+  <!-- Dieline: red = cut, blue dashed = fold -->
+  <svg class="die" viewBox="0 0 420 297" xmlns="http://www.w3.org/2000/svg" fill="none">
+    <g stroke="#E0007A" stroke-width="0.35">
+      <!-- glue flap -->
+      <path d="M42 40 L30 46 L30 250 L42 256"/>
+      <!-- top: lid + tuck over the back panel -->
+      <path d="M42 40 L42 26 L48 26 Q48 11 60 11 L178 11 Q190 11 190 26 L196 26 L196 40"/>
+      <!-- top dust flaps -->
+      <path d="M196 40 L198 30 L208 28 L210 40"/>
+      <path d="M364 40 L366 30 L376 28 L378 40"/>
+      <!-- front top edge -->
+      <path d="M210 40 L364 40"/>
+      <!-- bottom: lid + tuck under the front panel -->
+      <path d="M210 256 L210 270 L216 270 Q216 285 228 285 L346 285 Q358 285 358 270 L364 270 L364 256"/>
+      <!-- bottom dust flaps -->
+      <path d="M42 256 L196 256"/>
+      <path d="M196 256 L198 266 L208 268 L210 256"/>
+      <path d="M364 256 L366 266 L376 268 L378 256"/>
+      <!-- right edge -->
+      <path d="M378 40 L378 256"/>
+    </g>
+    <g stroke="#1E63D6" stroke-width="0.3" stroke-dasharray="2 1.4">
+      <path d="M42 40 L42 256"/><path d="M196 40 L196 256"/><path d="M210 40 L210 256"/><path d="M364 40 L364 256"/>
+      <path d="M42 40 L196 40"/><path d="M42 26 L196 26"/><path d="M196 40 L210 40"/><path d="M364 40 L378 40"/>
+      <path d="M210 256 L364 256"/><path d="M210 270 L364 270"/><path d="M196 256 L210 256"/><path d="M364 256 L378 256"/>
+    </g>
+  </svg>
+  <div class="label" style="left:30mm; top:262mm">Lim</div>
+  <div class="label" style="left:120mm; top:290mm">Baksida 154 × 216 mm</div>
+  <div class="label" style="left:250mm; top:3mm">Framsida 154 × 216 mm · djup 14 mm</div>
+  <div class="label" style="left:300mm; top:289mm"><span style="color:#E0007A">━</span> skär &nbsp; <span style="color:#1E63D6">┅</span> vik &nbsp; · skala 1:1 · A3</div>
+</section>
+
+<!-- ============ Sida 2: förhandsvisning ============ -->
+<section class="sheet preview">
+  <h1 class="ptitle">Förpackning – förhandsvisning</h1>
+  <p class="plead">En smal tuck-box i kartong, lagom för användarguiden i A5 och kortet. Den skickas platt till tryckeriet och viks ihop. Framsidan är grön med appens ikon; baksidan berättar hur appen fungerar.</p>
+  <div class="contents">
+    <div class="item"><div class="thumb-guide"><img src="../bilder/app-ikon.png" alt="" style="width:9mm;height:9mm;background:#fff;border-radius:2mm;display:block;margin-bottom:3mm">Bokföring<small>Användarguide</small></div><div class="t2"><b>Användarguide</b>15 sidor i A5 med bilder: installera, skanna, kontrollera, rapporter och säkerhetskopia.</div></div>
+    <div class="item"><div class="thumb-card"><img src="../bilder/qr-ladda-ner.svg" alt=""><span>Ladda ner<br>appen</span></div><div class="t2"><b>Kort med QR-kod</b>Leder till den senaste versionen av appen. Aktiveringskoden skickas separat.</div></div>
+  </div>
+  <div class="stage">
+    <div class="shadow"></div>
+    <div class="box3d">
+      <div class="f green"><div class="scale"><div class="front-art green" style="position:absolute; left:0; top:0; width:154mm; height:216mm; overflow:hidden">
+        <div class="ring"></div>
+        <div class="logo"><img src="../bilder/app-ikon.png" alt=""></div>
+        <h1>Bokföring</h1>
+        <div class="sub">Fakturor, kvitton och Z-rapporter – skannade, kontrollerade och klara för moms och rapporter.</div>
+        <div class="tablet"><div class="tscr"><div class="tcol l"><div class="thero">Utgifter<b>21 506 kr</b></div><div class="tlist"><div><span>Snabbgross</span><span>5 443</span></div><div><span>Telenor</span><span>1 433</span></div><div><span>E.ON</span><span>2 180</span></div><div><span>Securitas</span><span>890</span></div></div></div><div class="tcol r"><div class="tchart">Försäljning och utgifter<div class="tbars"><i style="height:45%"></i><i style="height:30%"></i><i style="height:62%"></i><i style="height:38%"></i><i style="height:70%"></i><i style="height:42%"></i><i style="height:84%"></i><i style="height:36%"></i><i style="height:76%"></i><i style="height:40%"></i><i style="height:92%"></i><i style="height:44%"></i></div></div></div></div></div>
+    <div class="phone"><div class="scr">
+          <div class="hero">Försäljning<b>48 312 kr</b>November 2026</div>
+          <div class="card"><div class="bars"><i style="height:50%"></i><i style="height:32%"></i><i style="height:68%"></i><i style="height:40%"></i><i style="height:60%"></i><i style="height:44%"></i><i style="height:90%"></i><i style="height:38%"></i></div></div>
+          <div class="card"><div class="row"><span>Snabbgross</span><span>5 443</span></div><div class="row"><span>Telenor</span><span>1 433</span></div></div>
+        </div></div>
+        <div class="bottom"><span>Användarguide<br>Nedladdningskort</span><span class="badge">MOBIL OCH SURFPLATTA · ANDROID</span></div>
+      </div></div></div>
+      <div class="s"><span>BOKFÖRING</span></div>
+      <div class="t"></div>
+    </div>
+  </div>
+</section>
+
+<script>
+// Preview: file.html#s2 shows only page 2 (used by dokument/verktyg/preview_pages.py).
+var n = parseInt((location.hash || '').replace('#s', ''), 10);
+if (n) document.querySelectorAll('.page, .side, .sheet').forEach(function (pg, i) { if (i !== n - 1) pg.style.display = 'none'; });
+</script>
+</body>
+</html>

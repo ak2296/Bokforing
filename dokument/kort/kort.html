@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>Bokföring – kort med nedladdning</title>
+<!--
+  Kort i visitkortsformat 85 × 55 mm, med 3 mm utfallande kant (91 × 61 mm).
+  Sida 1 = framsida, sida 2 = baksida. PDF: python dokument/verktyg/make_docs.py
+  QR-koden leder till nedladdningssidan; byt bilden om adressen ändras.
+-->
+<style>
+@font-face { font-family: Inter; src: url(../../assets/fonts/Inter-Regular.otf); font-weight: 400; }
+@font-face { font-family: Inter; src: url(../../assets/fonts/Inter-Medium.otf); font-weight: 500; }
+@page { size: 91mm 61mm; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { font-family: Inter, Arial, sans-serif; color: #10201B; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.side { width: 91mm; height: 61mm; position: relative; overflow: hidden; page-break-after: always; }
+.side:last-child { page-break-after: auto; }
+/* Safe area: 3 mm bleed + 4 mm margin. */
+.safe { position: absolute; inset: 7mm; }
+.front { background: #0B6B4E; color: #fff; }
+.front .ring { position: absolute; right: -16mm; top: -14mm; width: 52mm; height: 52mm; border-radius: 50%; border: 6mm solid rgba(255,255,255,0.07); }
+.front .ring2 { position: absolute; right: 6mm; bottom: -20mm; width: 34mm; height: 34mm; border-radius: 50%; background: rgba(255,255,255,0.06); }
+.front .logo { width: 13mm; height: 13mm; border-radius: 3.2mm; background: #fff; display: flex; align-items: center; justify-content: center; }
+.front .logo img { width: 11.4mm; height: 11.4mm; }
+.front .name { position: absolute; left: 0; top: 17mm; font-size: 17pt; font-weight: 500; letter-spacing: -0.4pt; }
+.front .tag { position: absolute; left: 0; top: 27.5mm; font-size: 7pt; opacity: 0.88; line-height: 1.4; max-width: 50mm; }
+.front .foot { position: absolute; left: 0; bottom: 0; font-size: 5.6pt; opacity: 0.75; letter-spacing: 0.3pt; }
+.back { background: #fff; }
+.back .qr { position: absolute; left: 0; top: 0; width: 25mm; }
+.back .qr img { width: 25mm; height: 25mm; display: block; }
+.back .qr small { display: block; text-align: center; font-size: 4.6pt; color: #62706A; margin-top: 1mm; }
+.back .info { position: absolute; left: 29mm; right: 0; top: 0; }
+.back h2 { margin: 0 0 1.4mm; font-size: 8.6pt; font-weight: 500; color: #0B6B4E; }
+.back ol { margin: 0; padding: 0; list-style: none; counter-reset: s; font-size: 5.8pt; line-height: 1.35; }
+.back li { counter-increment: s; position: relative; padding-left: 4mm; margin-bottom: 1mm; }
+.back li::before { content: counter(s); position: absolute; left: 0; top: 0.1mm; width: 2.8mm; height: 2.8mm; border-radius: 50%; background: #0B6B4E; color: #fff; font-size: 4.6pt; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+.back .code { position: absolute; left: 0; right: 0; bottom: 0; height: 10mm; border: 0.3mm dashed #0B6B4E; border-radius: 2mm; background: #E4F2EC; padding: 1.2mm 2.4mm; }
+.back .code label { display: block; font-size: 4.8pt; color: #0B6B4E; font-weight: 500; letter-spacing: 0.3pt; }
+.back .code .note { font-size: 5.4pt; line-height: 1.35; margin-top: 0.6mm; }
+</style>
+</head>
+<body>
+
+<section class="side front">
+  <div class="ring"></div><div class="ring2"></div>
+  <div class="safe">
+    <div class="logo"><img src="../bilder/app-ikon.png" alt=""></div>
+    <div class="name">Bokföring</div>
+    <div class="tag">Fakturor, kvitton och Z-rapporter – skannade, kontrollerade och klara för moms och rapporter.</div>
+    <div class="foot">FÖR ANDROID</div>
+  </div>
+</section>
+
+<section class="side back">
+  <div class="safe">
+    <div class="qr"><img src="../bilder/qr-ladda-ner.svg" alt="QR-kod för nedladdning"><small>Skanna med kameran</small></div>
+    <div class="info">
+      <h2>Ladda ner appen</h2>
+      <ol>
+        <li>Skanna QR-koden och tryck <b>Ladda ner</b>.</li>
+        <li>Öppna filen och tryck <b>Installera</b>.</li>
+        <li>Öppna appen: Inställningar → Aktivering. Klistra in koden du fått.</li>
+      </ol>
+    </div>
+    <div class="code"><label>AKTIVERINGSKOD</label><div class="note">Koden kommer via e-post eller SMS. Håll in fältet i appen och välj Klistra in.</div></div>
+  </div>
+</section>
+
+<script>
+// Preview: file.html#s2 shows only page 2 (used by dokument/verktyg/preview_pages.py).
+var n = parseInt((location.hash || '').replace('#s', ''), 10);
+if (n) document.querySelectorAll('.page, .side, .sheet').forEach(function (pg, i) { if (i !== n - 1) pg.style.display = 'none'; });
+</script>
+</body>
+</html>
