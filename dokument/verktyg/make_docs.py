@@ -20,6 +20,7 @@ EDGE_PATHS = [
 ]
 DOCS = [
     "dokument/anvandarguide/anvandarguide.html",
+    "dokument/anvandarguide/anvandarguide-tryck.html",
     "dokument/kort/kort.html",
     "dokument/forpackning/forpackning.html",
 ]
@@ -30,6 +31,8 @@ def main() -> int:
     if edge is None:
         print("Microsoft Edge hittades inte.")
         return 1
+    # The print booklet is made from the guide first.
+    subprocess.run([sys.executable, "-I", str(ROOT / "dokument/verktyg/make_booklet.py")], check=True)
     for rel in DOCS:
         src = ROOT / rel
         if not src.exists():
