@@ -335,9 +335,7 @@ Future<bool> restoreBackupFromFile(BuildContext context) async {
     if (!context.mounted) return false;
     final ok = await confirmDialog(context,
         title: 'Ersätta all data?',
-        message: '${Backup.summary(backup)}
-
-All data som finns i appen nu ersätts med säkerhetskopian. '
+        message: '${Backup.summary(backup)}\n\nAll data som finns i appen nu ersätts med säkerhetskopian. '
             'Exportera gärna en säkerhetskopia av nuvarande data först.',
         confirm: 'Ersätt');
     if (!ok) return false;

@@ -325,8 +325,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     final d = _d;
     final scan = widget.scan;
     if (d == null || scan == null || saved.supplier.trim().isEmpty) return;
-    final rows = scan.ocrText.split('
-');
+    final rows = scan.ocrText.split('\n');
     String? money(Money? m) => m?.abs().toInput();
     final pairs = <(HintField, String?, Extracted<Object?>)>[
       (HintField.total, money(saved.total), d.total),
