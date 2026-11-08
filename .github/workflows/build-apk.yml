@@ -139,10 +139,13 @@ jobs:
       - name: Kontrollera signeringen
         # Both APKs must carry the fixed key, or a phone will refuse to update.
         run: |
-          want=$(keytool -list -v -keystore "$QUEE_KEYSTORE" -storepass android -alias androiddebugkey | grep -i "SHA256:" | head -1 | sed 's/.*SHA256: *//')
+          # apksigner reads the v2 signature that apps for Android 7+ use
+          # (keytool only reads the old v1 kind, which these APKs lack).
+          apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          want=$(keytool -list -v -keystore "$QUEE_KEYSTORE" -storepass android -alias androiddebugkey | grep -i "SHA256:" | head -1 | sed 's/.*SHA256: *//' | tr -d ':' | tr 'A-F' 'a-f')
           echo "Fast nyckel: $want"
           for apk in build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-debug.apk; do
-            got=$(keytool -printcert -jarfile "$apk" | grep -i "SHA256:" | head -1 | sed 's/.*SHA256: *//')
+            got=$("$apksigner" verify --print-certs "$apk" | grep -i "certificate SHA-256 digest" | head -1 | sed 's/.*digest: *//' | tr -d ':' | tr 'A-F' 'a-f')
             echo "$apk: $got"
             if [ "$got" != "$want" ]; then
               echo "::error title=Signering::$apk är inte signerad med den fasta nyckeln."
