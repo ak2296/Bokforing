@@ -4,6 +4,7 @@ import 'models.dart';
 import 'money.dart';
 import 'ocr_models.dart';
 import 'slip_code_line.dart';
+import 'supplier_hints.dart';
 import 'text_patterns.dart';
 import 'validation.dart';
 import 'vat.dart';
@@ -84,6 +85,82 @@ class InvoiceDraft {
     required this.totalCandidates,
     required this.notes,
   });
+
+  /// A copy with some values replaced; everything else is kept.
+  InvoiceDraft copyWith({
+    Extracted<String>? date,
+    Extracted<String>? dueDate,
+    Extracted<String>? invoiceNumber,
+    Extracted<String>? ocrReference,
+    Extracted<Money>? total,
+    Extracted<Money>? vatTotal,
+    List<String>? notes,
+  }) =>
+      InvoiceDraft(
+        ownNameQuestion: ownNameQuestion,
+        paidDate: paidDate,
+        bankgiro: bankgiro,
+        plusgiro: plusgiro,
+        payment: payment,
+        isCredit: isCredit,
+        dateOptions: dateOptions,
+        date: date ?? this.date,
+        dueDate: dueDate ?? this.dueDate,
+        supplier: supplier,
+        invoiceNumber: invoiceNumber ?? this.invoiceNumber,
+        ocrReference: ocrReference ?? this.ocrReference,
+        total: total ?? this.total,
+        vatTotal: vatTotal ?? this.vatTotal,
+        vatCalculated: vatCalculated,
+        vatLines: vatLines,
+        net: net,
+        totalCandidates: totalCandidates,
+        notes: notes ?? this.notes,
+      );
+
+  /// Uses what the user taught for this supplier: each field is read after
+  /// the label where it was found when the user corrected it. A value found
+  /// that way is marked "Kontrollera", never "Säker".
+  InvoiceDraft withHints(List<String> rows, List<SupplierHint> hints) {
+    var d = this;
+    var changed = false;
+    const note = 'Enligt det du rättade senast för den här leverantören';
+    String? current(HintField f) => switch (f) {
+          HintField.total => d.total.value?.abs().toInput(),
+          HintField.vat => d.vatTotal.value?.abs().toInput(),
+          HintField.number => d.invoiceNumber.value,
+          HintField.ocr => d.ocrReference.value,
+          HintField.date => d.date.value,
+          HintField.due => d.dueDate.value,
+        };
+    for (final h in hints) {
+      final v = SupplierHints.read(rows, h.field, h.label);
+      if (v == null || v == current(h.field)) continue;
+      final source = 'Efter "${h.label}"';
+      switch (h.field) {
+        case HintField.total || HintField.vat:
+          final m = Money.parse(v);
+          if (m == null) continue;
+          final signed = isCredit ? -m.abs() : m;
+          final e = Extracted(signed, Confidence.medium, source: source, note: note);
+          d = h.field == HintField.total ? d.copyWith(total: e) : d.copyWith(vatTotal: e);
+        case HintField.number:
+          d = d.copyWith(invoiceNumber: Extracted(v, Confidence.medium, source: source, note: note));
+        case HintField.ocr:
+          d = d.copyWith(ocrReference: Extracted(v, Confidence.medium, source: source, note: note));
+        case HintField.date:
+          d = d.copyWith(date: Extracted(v, Confidence.medium, source: source, note: note));
+        case HintField.due:
+          d = d.copyWith(dueDate: Extracted(v, Confidence.medium, source: source, note: note));
+      }
+      changed = true;
+    }
+    if (!changed) return this;
+    return d.copyWith(notes: [
+      ...d.notes,
+      'Några fält lästes där du rättade dem förra gången för den här leverantören. Kontrollera dem.',
+    ]);
+  }
 }
 
 

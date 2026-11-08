@@ -11,6 +11,7 @@ import '../../domain/invoice_parser.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/payment_detector.dart';
+import '../../domain/supplier_hints.dart';
 import '../../domain/text_patterns.dart';
 import '../../domain/validation.dart';
 import '../../domain/vat.dart';
@@ -116,7 +117,8 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     for (final l in e?.vatLines ?? d?.vatLines ?? const <InvoiceVatLine>[]) {
       _vatRows.add(_VatRow(l.rate, l.vat.toInput(), net: l.net, gross: l.gross, calculated: l.calculated));
     }
-    _editing = widget.scan == null;
+    // Every field can be changed straight away; no "Redigera" step.
+    _editing = true;
 
     final p = d?.payment;
     if (e != null) {
@@ -302,6 +304,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       final scanId = await widget.scan?.persist(controller);
       final toSave = scanId == null ? inv : inv.copyWith(meta: inv.meta.copyWith(scanId: scanId));
       await controller.repo.saveInvoice(toSave);
+      await _learnFromCorrections(controller, toSave);
       final question = _d?.ownNameQuestion;
       if (question != null && _nameIsMine == true) await controller.repo.addOwnName(question.name);
       if (!toSave.paid && toSave.dueDate != null) await controller.reminders?.requestPermission();
@@ -312,6 +315,39 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Det gick inte att spara: $e')));
+    }
+  }
+
+  /// For each field the user corrected (or confirmed after a hint), notes
+  /// the printed label next to the value, so the next paper from the same
+  /// supplier is read there first.
+  Future<void> _learnFromCorrections(AppController controller, Invoice saved) async {
+    final d = _d;
+    final scan = widget.scan;
+    if (d == null || scan == null || saved.supplier.trim().isEmpty) return;
+    final rows = scan.ocrText.split('
+');
+    String? money(Money? m) => m?.abs().toInput();
+    final pairs = <(HintField, String?, Extracted<Object?>)>[
+      (HintField.total, money(saved.total), d.total),
+      (HintField.vat, saved.vatTotal.isZero ? null : money(saved.vatTotal), d.vatTotal),
+      (HintField.number, saved.invoiceNumber, d.invoiceNumber),
+      (HintField.ocr, saved.ocrReference, d.ocrReference),
+      (HintField.date, saved.invoiceDate, d.date),
+      (HintField.due, saved.dueDate, d.dueDate),
+    ];
+    for (final (field, value, read) in pairs) {
+      if (value == null || value.trim().isEmpty) continue;
+      final readValue = switch (read.value) {
+        final Money m => m.abs().toInput(),
+        final Object o => '$o',
+        null => null,
+      };
+      final corrected = readValue != value;
+      final confirmedHint = !corrected && (read.source ?? '').startsWith('Efter "');
+      if (!corrected && !confirmedHint) continue;
+      final label = SupplierHints.labelFor(rows, field, value);
+      if (label != null) await controller.repo.learnHint(saved.supplier, field, label);
     }
   }
 
@@ -333,7 +369,6 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       editing: _editing,
       saving: _saving,
       onSave: _save,
-      onEdit: () => setState(() => _editing = !_editing),
       onRescan: widget.scan == null ? null : () => _rescan(context),
       child: Form(
         key: _form,

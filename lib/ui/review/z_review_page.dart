@@ -80,7 +80,8 @@ class _ZReviewPageState extends State<ZReviewPage> {
     _zNumber = TextEditingController(text: e?.zNumber ?? d?.zNumber.value ?? '');
     _reported = TextEditingController(text: (e?.reportedTotal ?? d?.total.value)?.toInput() ?? '');
     _note = TextEditingController(text: e?.note ?? '');
-    _editing = widget.scan == null;
+    // Every field can be changed straight away; no "Redigera" step.
+    _editing = true;
   }
 
   @override
@@ -311,7 +312,6 @@ class _ZReviewPageState extends State<ZReviewPage> {
       editing: _editing,
       saving: _saving,
       onSave: _save,
-      onEdit: () => setState(() => _editing = !_editing),
       onRescan: widget.scan == null ? null : () => _rescan(context),
       child: cats == null
           ? const Center(child: CircularProgressIndicator())

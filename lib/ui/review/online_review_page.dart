@@ -53,7 +53,8 @@ class _OnlineReviewPageState extends State<OnlineReviewPage> {
     final vat = e != null ? (e.vat.isZero ? null : e.vat) : d?.vat.value;
     _vat = TextEditingController(text: vat?.toInput() ?? '');
     _rate = e?.vatRate ?? d?.vatRate;
-    _editing = widget.scan == null;
+    // Every field can be changed straight away; no "Redigera" step.
+    _editing = true;
     if (_partner.text.isEmpty) {
       // Most owners have one partner: suggest the latest one.
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -155,7 +156,6 @@ class _OnlineReviewPageState extends State<OnlineReviewPage> {
       editing: _editing,
       saving: _saving,
       onSave: _save,
-      onEdit: () => setState(() => _editing = !_editing),
       onRescan: widget.scan == null ? null : () => _rescan(context),
       child: Form(
         key: _form,

@@ -87,14 +87,16 @@ class NoteCard extends StatelessWidget {
 }
 
 /// Layout shared by the review screens: document preview, the form, and the
-/// buttons "Godkänn och spara / Redigera / Skanna igen / Avbryt".
+/// buttons "Godkänn och spara / Skanna igen / Avbryt" (and Redigera when a
+/// screen still locks its fields).
 class ReviewScaffold extends StatelessWidget {
   final String title;
   final ScanContext? scan;
   final bool editing;
   final bool saving;
   final VoidCallback onSave;
-  final VoidCallback onEdit;
+  /// Null when the fields are always editable: no Redigera button.
+  final VoidCallback? onEdit;
   final VoidCallback? onRescan;
   final Widget child;
 
@@ -105,7 +107,7 @@ class ReviewScaffold extends StatelessWidget {
     required this.editing,
     required this.saving,
     required this.onSave,
-    required this.onEdit,
+    this.onEdit,
     required this.onRescan,
     required this.child,
   });
@@ -173,11 +175,12 @@ class ReviewScaffold extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Expanded(
-                            child: TextButton(
-                                onPressed: saving ? null : onEdit,
-                                child: Text(editing ? 'Klar med ändringar' : 'Redigera')),
-                          ),
+                          if (onEdit != null)
+                            Expanded(
+                              child: TextButton(
+                                  onPressed: saving ? null : onEdit,
+                                  child: Text(editing ? 'Klar med ändringar' : 'Redigera')),
+                            ),
                           if (onRescan != null)
                             Expanded(child: TextButton(onPressed: saving ? null : onRescan, child: const Text('Skanna igen'))),
                           Expanded(

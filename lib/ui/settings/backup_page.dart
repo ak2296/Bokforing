@@ -113,45 +113,7 @@ class _BackupPageState extends State<BackupPage> {
     }
   }
 
-  Future<String?> _askPassword({required bool confirm}) async {
-    final p1 = TextEditingController();
-    final p2 = TextEditingController();
-    String? error;
-    return showDialog<String>(
-      context: context,
-      builder: (c) => StatefulBuilder(
-        builder: (c, setState) => AlertDialog(
-          title: Text(confirm ? 'Välj lösenord för säkerhetskopian' : 'Lösenord för säkerhetskopian'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (confirm)
-                const Text('Utan lösenordet går säkerhetskopian inte att öppna. Skriv upp det på ett säkert ställe.'),
-              TextField(controller: p1, obscureText: true, decoration: const InputDecoration(labelText: 'Lösenord')),
-              if (confirm)
-                TextField(controller: p2, obscureText: true, decoration: const InputDecoration(labelText: 'Upprepa lösenord')),
-              if (error != null) Text(error!, style: TextStyle(color: Theme.of(c).colorScheme.error)),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(c), child: const Text('Avbryt')),
-            FilledButton(
-              onPressed: () {
-                if (p1.text.length < 8) {
-                  setState(() => error = 'Minst 8 tecken.');
-                } else if (confirm && p1.text != p2.text) {
-                  setState(() => error = 'Lösenorden är inte lika.');
-                } else {
-                  Navigator.pop(c, p1.text);
-                }
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Future<String?> _askPassword({required bool confirm}) => askBackupPassword(context, confirm: confirm);
 
   Future<void> _export() async {
     final controller = AppScope.read(context);
@@ -179,30 +141,9 @@ class _BackupPageState extends State<BackupPage> {
   }
 
   Future<void> _import() async {
-    final controller = AppScope.read(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final files = await FilePicker.pickFiles(type: FileType.any);
-    if (files.isEmpty || !mounted) return;
-    final password = await _askPassword(confirm: false);
-    if (password == null || !mounted) return;
     setState(() => _busy = true);
     try {
-      final bytes = await files.first.readAsBytes();
-      final backup = await Backup.decrypt(bytes, password);
-      if (!mounted) return;
-      final ok = await confirmDialog(context,
-          title: 'Ersätta all data?',
-          message: '${Backup.summary(backup)}\n\nAll data som finns i appen nu ersätts med säkerhetskopian. '
-              'Exportera gärna en säkerhetskopia av nuvarande data först.',
-          confirm: 'Ersätt');
-      if (!ok) return;
-      await Backup.restore(controller.repo.db, backup);
-      controller.dataChanged();
-      messenger.showSnackBar(const SnackBar(content: Text('Säkerhetskopian har återställts.')));
-    } on BackupException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Säkerhetskopian kunde inte läsas: $e')));
+      await restoreBackupFromFile(context);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -335,3 +276,80 @@ class _BackupPageState extends State<BackupPage> {
     );
   }
 }
+
+/// Asks for the backup password; [confirm] asks twice for a new one.
+Future<String?> askBackupPassword(BuildContext context, {required bool confirm}) async {
+  final p1 = TextEditingController();
+  final p2 = TextEditingController();
+  String? error;
+  return showDialog<String>(
+    context: context,
+    builder: (c) => StatefulBuilder(
+      builder: (c, setState) => AlertDialog(
+        title: Text(confirm ? 'Välj lösenord för säkerhetskopian' : 'Lösenord för säkerhetskopian'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (confirm)
+              const Text('Utan lösenordet går säkerhetskopian inte att öppna. Skriv upp det på ett säkert ställe.'),
+            TextField(controller: p1, obscureText: true, decoration: const InputDecoration(labelText: 'Lösenord')),
+            if (confirm)
+              TextField(controller: p2, obscureText: true, decoration: const InputDecoration(labelText: 'Upprepa lösenord')),
+            if (error != null) Text(error!, style: TextStyle(color: Theme.of(c).colorScheme.error)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Avbryt')),
+          FilledButton(
+            onPressed: () {
+              if (p1.text.length < 8) {
+                setState(() => error = 'Minst 8 tecken.');
+              } else if (confirm && p1.text != p2.text) {
+                setState(() => error = 'Lösenorden är inte lika.');
+              } else {
+                Navigator.pop(c, p1.text);
+              }
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+
+/// Lets the user pick a backup file (.bkp or a ZIP with one), asks for its
+/// password, shows what it holds and replaces all data after a yes. Returns
+/// true when the data was restored.
+Future<bool> restoreBackupFromFile(BuildContext context) async {
+  final controller = AppScope.read(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final files = await FilePicker.pickFiles(type: FileType.any);
+  if (files.isEmpty || !context.mounted) return false;
+  final password = await askBackupPassword(context, confirm: false);
+  if (password == null || !context.mounted) return false;
+  try {
+    final bytes = await files.first.readAsBytes();
+    final backup = await Backup.decrypt(bytes, password);
+    if (!context.mounted) return false;
+    final ok = await confirmDialog(context,
+        title: 'Ersätta all data?',
+        message: '${Backup.summary(backup)}
+
+All data som finns i appen nu ersätts med säkerhetskopian. '
+            'Exportera gärna en säkerhetskopia av nuvarande data först.',
+        confirm: 'Ersätt');
+    if (!ok) return false;
+    await Backup.restore(controller.repo.db, backup);
+    controller.dataChanged();
+    messenger.showSnackBar(const SnackBar(content: Text('Säkerhetskopian har återställts.')));
+    return true;
+  } on BackupException catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(e.message)));
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text('Säkerhetskopian kunde inte läsas: $e')));
+  }
+  return false;
+}
+

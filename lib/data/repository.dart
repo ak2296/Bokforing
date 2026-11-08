@@ -7,6 +7,8 @@ import '../domain/dates.dart';
 import '../domain/license.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
+import '../domain/supplier_hints.dart';
+import '../domain/text_patterns.dart';
 import '../domain/vat.dart';
 
 /// All reads and writes to the local database. Accounting records are only
@@ -451,20 +453,41 @@ class Repository {
 
   /// Likely duplicates: same supplier + invoice number, or same date and
   /// amount (with matching supplier when both have one).
+  /// Invoices that may be [inv] saved before. Asked about before saving;
+  /// the user decides. The OCR number alone is enough (it is unique per
+  /// faktura); otherwise the same supplier with the same invoice number, the
+  /// same date and amount, or the same amount within 10 days (a misread date).
   Future<List<Invoice>> findDuplicateInvoices(Invoice inv) async {
     final rows = await db.query('invoices', where: 'id != ?', whereArgs: [inv.id ?? -1]);
     final out = <Invoice>[];
-    final number = inv.invoiceNumber.trim().toLowerCase();
-    final supplier = inv.supplier.trim().toLowerCase();
+    String fold(String s) =>
+        s.toLowerCase().replaceAll(RegExp('[åä]'), 'a').replaceAll('ö', 'o').replaceAll(RegExp(r'[^a-z0-9]'), '');
+    final number = fold(inv.invoiceNumber);
+    final ocr = inv.ocrReference.replaceAll(RegExp(r'\D'), '');
+    final supplier = fold(inv.supplier);
+    final day = SwedishDates.parseIso(inv.invoiceDate);
+    bool sameSupplier(String other) {
+      final o = fold(other);
+      if (supplier.isEmpty || o.isEmpty) return true;
+      return o == supplier || o.contains(supplier) || supplier.contains(o) || TextPatterns.similarity(o, supplier) >= 0.8;
+    }
+
     for (final r in rows) {
-      final rNumber = (r['invoice_number'] as String).trim().toLowerCase();
-      final rSupplier = (r['supplier'] as String).trim().toLowerCase();
-      final sameNumber = number.isNotEmpty && rNumber == number &&
-          (supplier.isEmpty || rSupplier.isEmpty || rSupplier == supplier);
-      final sameDateAmount = r['invoice_date'] == inv.invoiceDate &&
-          r['total_ore'] == inv.total.ore &&
-          (supplier.isEmpty || rSupplier.isEmpty || rSupplier == supplier);
-      if (sameNumber || sameDateAmount) out.add(await _invoiceFromRow(db, r));
+      final rSupplier = r['supplier'] as String;
+      final rOcr = (r['ocr_reference'] as String).replaceAll(RegExp(r'\D'), '');
+      final sameOcr = ocr.length >= 5 && rOcr == ocr;
+      final sameNumber = number.isNotEmpty && fold(r['invoice_number'] as String) == number && sameSupplier(rSupplier);
+      final sameAmount = r['total_ore'] == inv.total.ore;
+      final sameDateAmount = r['invoice_date'] == inv.invoiceDate && sameAmount && sameSupplier(rSupplier);
+      final rDay = SwedishDates.parseIso(r['invoice_date'] as String);
+      final nearby = sameAmount &&
+          supplier.isNotEmpty &&
+          fold(rSupplier).isNotEmpty &&
+          sameSupplier(rSupplier) &&
+          day != null &&
+          rDay != null &&
+          day.difference(rDay).inDays.abs() <= 10;
+      if (sameOcr || sameNumber || sameDateAmount || nearby) out.add(await _invoiceFromRow(db, r));
     }
     return out;
   }
@@ -550,6 +573,46 @@ class Repository {
     final rows = await db.rawQuery("SELECT DISTINCT partner FROM online_sales WHERE partner != '' ORDER BY id DESC");
     return [for (final r in rows) r['partner'] as String];
   }
+
+  /// Learned labels for [supplier]'s papers.
+  Future<List<SupplierHint>> supplierHints(String supplier) async {
+    final key = SupplierHints.key(supplier);
+    if (key.length < 3) return const [];
+    final rows = await db.query('supplier_hints', where: 'supplier_key = ?', whereArgs: [key]);
+    return [
+      for (final r in rows)
+        if (HintField.byName(r['field'] as String) case final f?)
+          SupplierHint(key, f, r['label'] as String, r['hits'] as int),
+    ];
+  }
+
+  /// Remembers that [supplier] prints [field] after [label]. The same label
+  /// again counts up; a new one replaces the old.
+  Future<void> learnHint(String supplier, HintField field, String label) async {
+    final key = SupplierHints.key(supplier);
+    if (key.length < 3) return;
+    final old = await db.query('supplier_hints',
+        where: 'supplier_key = ? AND field = ?', whereArgs: [key, field.name], limit: 1);
+    final hits = old.isNotEmpty && old.first['label'] == label ? (old.first['hits'] as int) + 1 : 1;
+    await db.insert(
+      'supplier_hints',
+      {'supplier_key': key, 'supplier': supplier.trim(), 'field': field.name, 'label': label, 'hits': hits, 'updated_at': _now()},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /// Everything learned, for Inställningar.
+  Future<List<({String supplier, String key, HintField field, String label, int hits})>> allHints() async {
+    final rows = await db.query('supplier_hints', orderBy: 'supplier, field');
+    return [
+      for (final r in rows)
+        if (HintField.byName(r['field'] as String) case final f?)
+          (supplier: r['supplier'] as String, key: r['supplier_key'] as String, field: f, label: r['label'] as String, hits: r['hits'] as int),
+    ];
+  }
+
+  Future<void> forgetHint(String key, HintField field) =>
+      db.delete('supplier_hints', where: 'supplier_key = ? AND field = ?', whereArgs: [key, field.name]);
 
   /// The cost type last chosen for [supplier], to suggest it again.
   Future<String?> lastCostType(String supplier) async {

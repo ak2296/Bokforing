@@ -155,7 +155,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
         <div class="nav"><div class="on"><div class="ic"></div>Översikt</div><div><div class="ic"></div>Försälj.</div><div><div class="scan"><span></span></div></div><div><div class="ic"></div>Utgifter</div><div><div class="ic"></div>Rapporter</div></div>
       </div></div>
     </div>
-    <div class="tag">Version 1.1 · november 2026</div>
+    <div class="tag">Version 1.2 · november 2026</div>
   </div>
 </section>
 
@@ -205,7 +205,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 <section class="page">
   <div class="kicker">2 · Kom igång</div>
   <h1>Företag, kategorier och moms</h1>
-  <p class="lead">Första gången appen startar går den igenom fem korta steg. Allt kan ändras senare under Inställningar.</p>
+  <p class="lead">Första gången appen startar går den igenom fem korta steg. Allt kan ändras senare under Inställningar. Har du använt appen förut? Tryck <span class="kbd">Återställ från säkerhetskopia</span> på första sidan, så kommer allt tillbaka utan stegen.</p>
   <table class="t">
     <tr><th style="width:24mm">Steg</th><th>Vad du gör</th></tr>
     <tr><td><b>Företag</b></td><td>Företagsnamn, företagsform, organisationsnummer och adress. Med dem känner appen igen <i>ditt</i> namn på papperen, så att det aldrig blir leverantör.</td></tr>
@@ -283,7 +283,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
       <span class="num" style="left:19mm;top:84mm">3</span>
     </div>
     <div>
-      <p class="lead">Tryck på den gröna knappen <b>Skanna</b> och sedan <span class="kbd">Skanna faktura eller Z-rapport</span>. Appen känner själv igen vilket slags papper det är.</p>
+      <p class="lead">Tryck på <b>Skanna</b> i menyn och sedan på den stora gröna knappen <span class="kbd">Skanna faktura eller Z-rapport</span> längst ner. Appen känner själv igen vilket slags papper det är.</p>
       <p><span class="num">1</span><b>Gul ram.</b> Appen ritar en gul ram runt pappret den ser, som en hjälp när du siktar.</p>
       <p><span class="num">2</span><b>Vattenpass.</b> Bubblan blir grön när telefonen hålls rakt över pappret. Den är bara en hjälp.</p>
       <p><span class="num">3</span><b>Ta bilden</b> när knappen blir grön. Långa kvitton: välj <b>I delar</b> och ta flera bilder uppifrån och ner med lite överlapp. Tryck <b>Klar</b>.</p>
@@ -307,7 +307,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
         <tr><td><span class="icon-q"></span>Kontrollera</td><td>Troligen rätt, men titta extra.</td></tr>
         <tr><td><span class="icon-x"></span>Osäker</td><td>Appen gissar eller hittade inget. Rätta vid behov.</td></tr>
       </table>
-      <p><b>Ändra ett värde:</b> tryck <span class="kbd">Redigera</span> och skriv i fältet. Under datum och summa visas ibland andra värden från pappret som knappar – tryck för att välja.</p>
+      <p><b>Ändra ett värde:</b> tryck direkt i fältet och skriv. Under datum och summa visas ibland andra värden från pappret som knappar – tryck för att välja.</p>
       <p><b>Läst text:</b> överst finns all text appen läste. <span class="kbd">Kopiera avläst text</span> kopierar den.</p>
       <p><b>Kontroll</b> längst ner räknar: stämmer netto + moms med summan? Är momsen rimlig?</p>
       <p>Tryck <span class="btn">Godkänn och spara</span> när allt stämmer.</p>
@@ -325,12 +325,13 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
           <div class="field"><label>Moms</label><div class="v">286,50 kr</div><span class="ok"></span></div>
           <div class="field"><label>OCR-nummer</label><div class="v">526730297326</div></div>
           <div class="save">✓ Godkänn och spara</div>
-          <div class="links"><span>Redigera</span><span>Skanna igen</span><span>Avbryt</span></div>
+          <div class="links"><span>Skanna igen</span><span>Avbryt</span></div>
         </div>
       </div></div>
     </div>
   </div>
-  <div class="warn"><b>Appen ändrar aldrig ett tryckt belopp i tysthet.</b> Om den tolkar ett tal (t.ex. "5850" som 58,50 kr för att summorna ska gå ihop) står det i en ruta överst. Jämför alltid med pappret.</div>
+  <div class="tip"><b>Appen lär sig:</b> rättar du ett fält läser den där nästa gång för samma leverantör. Den varnar också om fakturan redan finns.</div>
+  <div class="warn"><b>Appen ändrar aldrig ett tryckt belopp i tysthet</b> – en tolkning visas i en ruta överst. Jämför alltid med pappret.</div>
   <div class="folio"><span>Kontrollera uppgifterna</span><span>7</span></div>
 </section>
 
@@ -402,11 +403,11 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <p>När pappret också innehåller partnerns faktura för avgifter och provision delar appen upp det: först registreras försäljningen, sedan öppnas avgiftsfakturan som en vanlig utgift.</p>
   <h2>Faktura i e-post eller som PDF</h2>
   <ul>
-    <li><b>Från appen:</b> Skanna → <span class="kbd">Hämta faktura från fil</span> och välj en PDF eller bild.</li>
+    <li><b>Från appen:</b> Skanna → <span class="kbd">Från fil</span> och välj en PDF eller bild.</li>
     <li><b>Från e-posten:</b> öppna bilagan, tryck på dela-knappen och välj <b>Quee</b>. Appen läser filen direkt.</li>
   </ul>
   <h2>Fyll i manuellt</h2>
-  <p>Saknas pappret, eller går det inte att läsa? Välj <span class="kbd">Ny faktura</span>, <span class="kbd">Ny Z-rapport</span> eller <span class="kbd">Ny onlineförsäljning</span> längst ner på fliken Skanna och skriv in uppgifterna.</p>
+  <p>Saknas pappret, eller går det inte att läsa? Tryck Skanna → <span class="kbd">Fyll i själv</span> och välj faktura, Z-rapport eller onlineförsäljning.</p>
   <h2>Förbättrad analys online (valfri)</h2>
   <p>För mycket svårlästa papper finns en knapp som skickar bilden till Googles AI-tjänst för en andra läsning. Den är <b>av</b> från början, kräver en egen nyckel (Inställningar → Förbättrad analys) och frågar alltid innan något skickas.</p>
   <div class="folio"><span>Onlineförsäljning och filer</span><span>10</span></div>
@@ -528,6 +529,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     <tr><td><b>Lagring</b></td><td>Platsen appen tar, och Frigör utrymme.</td></tr>
     <tr><td><b>Påminnelser</b></td><td>Avisering före och på förfallodagen. Välj hur många dagar före.</td></tr>
     <tr><td><b>Säkerhetskopiering</b></td><td>Automatisk kopia, kopia till molnet, export och import.</td></tr>
+    <tr><td><b>Inlärda fält</b></td><td>Var varje leverantör skriver summa, moms, nummer och datum – inlärt när du rättar. Kan tas bort.</td></tr>
     <tr><td><b>Historik</b></td><td>Alla registreringar med status.</td></tr>
     <tr><td><b>Förbättrad analys</b></td><td>Valfri AI-läsning online. Av som standard.</td></tr>
     <tr><td><b>Integritet</b></td><td>Vad appen sparar och var.</td></tr>
@@ -542,7 +544,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <div class="kicker">13 · Hjälp</div>
   <h1>Vanliga frågor</h1>
   <h3>Appen läste fel belopp eller datum.</h3>
-  <p>Rätta fältet med <span class="kbd">Redigera</span>, eller välj ett annat värde bland knapparna under fältet. Vid många fel: <span class="kbd">Skanna igen</span> i bättre ljus och med hela pappret i bild.</p>
+  <p>Tryck i fältet och rätta, eller välj ett annat värde bland knapparna under fältet. Vid många fel: <span class="kbd">Skanna igen</span> i bättre ljus och med hela pappret i bild.</p>
   <h3>Leverantören blev mitt eget företags namn.</h3>
   <p>Fyll i organisationsnummer och adress under Inställningar → Företag, och svara "Mitt företag" när appen frågar. Då lär den sig.</p>
   <h3>Jag sparade samma papper två gånger.</h3>

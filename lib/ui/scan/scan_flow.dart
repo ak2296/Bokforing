@@ -278,15 +278,20 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
       final aspect = widget.photoPaths.length == 1 && _aspects.length == 1 ? _aspects.single : null;
       final suppliers = await controller.repo.knownSuppliers();
       final profile = await controller.repo.profile();
-      page = InvoiceReviewPage(
-          draft: InvoiceParser(
-            knownSuppliers: suppliers,
-            ownName: profile.name,
-            ownNames: await controller.repo.ownNames(),
-            ownOrgNumber: profile.orgNumber,
-            ownAddress: profile.address,
-          ).parse(ocr, paperAspect: aspect),
-          scan: ctx);
+      var draft = InvoiceParser(
+        knownSuppliers: suppliers,
+        ownName: profile.name,
+        ownNames: await controller.repo.ownNames(),
+        ownOrgNumber: profile.orgNumber,
+        ownAddress: profile.address,
+      ).parse(ocr, paperAspect: aspect);
+      // What the user taught by correcting this supplier's papers before.
+      final supplier = draft.supplier.value;
+      if (supplier != null) {
+        final hints = await controller.repo.supplierHints(supplier);
+        if (hints.isNotEmpty) draft = draft.withHints([for (final r in ocr.rows()) r.text], hints);
+      }
+      page = InvoiceReviewPage(draft: draft, scan: ctx);
     } else {
       final cats = await controller.repo.categories();
       final aliases = await controller.repo.categoryAliases();

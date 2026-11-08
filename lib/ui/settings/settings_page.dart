@@ -14,6 +14,7 @@ import 'activation_page.dart';
 import 'ai_settings_page.dart';
 import 'backup_page.dart';
 import 'category_editor.dart';
+import 'hints_page.dart';
 import 'storage_page.dart';
 import 'user_guide.dart';
 import 'z_fields_page.dart';
@@ -120,6 +121,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     await AppScope.read(context).repo.setBoolSetting(SettingsKeys.keepImages, v);
                     setState(() => _keepImages = v);
                   },
+                ),
+                ListTile(
+                  leading: const Icon(AppIcons.rules),
+                  title: const Text('Inlärda fält'),
+                  subtitle: const Text('Var varje leverantör skriver summa, moms, nummer och datum'),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HintsPage())),
                 ),
                 ListTile(
                   leading: const Icon(AppIcons.backup),

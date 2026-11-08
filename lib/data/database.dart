@@ -6,7 +6,7 @@ import 'package:sqflite/sqflite.dart';
 /// except amounts printed on the document itself (e.g. reported Z total).
 class AppDatabase {
   static const fileName = 'bokforing.db';
-  static const version = 7;
+  static const version = 8;
 
   static Future<Database> open({DatabaseFactory? factory, String? path}) async {
     final f = factory ?? databaseFactory;
@@ -34,6 +34,11 @@ class AppDatabase {
           if (oldVersion < 6) {
             final batch = db.batch();
             _v6Changes(batch);
+            await batch.commit(noResult: true);
+          }
+          if (oldVersion < 8) {
+            final batch = db.batch();
+            _v8Tables(batch);
             await batch.commit(noResult: true);
           }
           if (oldVersion < 7) {
@@ -164,6 +169,7 @@ class AppDatabase {
     _v4Tables(batch);
     _v5Changes(batch);
     _v6Changes(batch);
+    _v8Tables(batch);
     for (final bp in const [0, 600, 1200, 2500]) {
       batch.insert('vat_rates', {'basis_points': bp, 'active': 1});
     }
@@ -214,6 +220,20 @@ class AppDatabase {
   static void _v5Changes(Batch batch) {
     batch.execute('ALTER TABLE online_sales ADD COLUMN vat_ore INTEGER NOT NULL DEFAULT 0');
     batch.execute('ALTER TABLE online_sales ADD COLUMN vat_bp INTEGER');
+  }
+
+  /// v8: where a supplier prints a field, learned from the user's corrections.
+  static void _v8Tables(Batch batch) {
+    batch.execute('''
+      CREATE TABLE IF NOT EXISTS supplier_hints (
+        supplier_key TEXT NOT NULL,
+        supplier TEXT NOT NULL,
+        field TEXT NOT NULL,
+        label TEXT NOT NULL,
+        hits INTEGER NOT NULL DEFAULT 1,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (supplier_key, field)
+      )''');
   }
 
   /// v6: cost type of an invoice, for the resultatrapport and SIE export.

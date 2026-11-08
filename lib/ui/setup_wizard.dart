@@ -7,6 +7,7 @@ import '../app/settings_keys.dart';
 import '../domain/category_templates.dart';
 import '../domain/models.dart';
 import '../domain/vat.dart';
+import 'settings/backup_page.dart';
 import 'settings/category_editor.dart';
 
 /// First-run setup: company name, sales categories and a VAT rate per
@@ -55,6 +56,14 @@ class _SetupWizardState extends State<SetupWizard> {
         ..clear()
         ..addAll(t.names.map((n) => CategoryDraft(name: n)));
     });
+  }
+
+  /// Restores a backup instead of the steps; the settings come with it.
+  Future<void> _restore() async {
+    final repo = AppScope.read(context).repo;
+    if (!await restoreBackupFromFile(context)) return;
+    await repo.setBoolSetting(SettingsKeys.setupDone, true);
+    widget.onDone();
   }
 
   Future<void> _finish() async {
@@ -134,6 +143,25 @@ class _SetupWizardState extends State<SetupWizard> {
             const SizedBox(height: 16),
             const Text(
                 'Allt sparas bara i telefonen. Inget registreras utan att du först har kontrollerat och godkänt uppgifterna.'),
+            const SizedBox(height: 28),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  Text('Har du använt appen förut?', style: t.titleSmall),
+                  const SizedBox(height: 4),
+                  Text('Hämta din säkerhetskopia, så kommer företag, kategorier, Z-rapportens fält och alla '
+                      'registreringar tillbaka. Då behöver du inte gå igenom stegen.', style: t.bodySmall),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(AppIcons.restore),
+                    label: const Text('Återställ från säkerhetskopia'),
+                    onPressed: _restore,
+                  ),
+                ]),
+              ),
+            ),
           ],
         ),
       1 => Column(
