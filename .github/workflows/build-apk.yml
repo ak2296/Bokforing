@@ -78,6 +78,10 @@ jobs:
                 <data android:scheme="content" android:mimeType="application/pdf"/>
             </intent-filter>#' $m
           fi
+          # The fixed signing key for every build: the debug signing config,
+          # which release also uses, reads the file named in QUEE_KEYSTORE.
+          grep -q 'QUEE_KEYSTORE' "$f" || perl -0pi -e 's/(\n    buildTypes \{)/\n    signingConfigs {\n        getByName("debug") {\n            storeFile = file(System.getenv("QUEE_KEYSTORE") ?: error("QUEE_KEYSTORE saknas"))\n            storePassword = "android"\n            keyAlias = "androiddebugkey"\n            keyPassword = "android"\n        }\n    }$1/' "$f"
+          grep -q 'QUEE_KEYSTORE' "$f" || { echo "::error title=Signering::Kunde inte lägga in signeringen i build.gradle.kts"; exit 1; }
           grep -q 'isCoreLibraryDesugaringEnabled' "$f" || perl -0pi -e 's/compileOptions \{/compileOptions {\n        isCoreLibraryDesugaringEnabled = true/' "$f"
           grep -q 'desugar_jdk_libs' "$f" || printf '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n' >> "$f"
           echo "----- $f"; cat "$f"
@@ -93,13 +97,17 @@ jobs:
           KS: ${{ secrets.ANDROID_KEYSTORE_ENC }}
           PW: ${{ secrets.ANDROID_KEYSTORE_PW }}
         run: |
-          if [ -n "$KS" ] && [ -n "$PW" ]; then
-            mkdir -p ~/.android
-            echo "$KS" | base64 -d | openssl enc -d -aes-256-cbc -pbkdf2 -pass env:PW -out ~/.android/debug.keystore
-            echo "::notice title=Signering::Fast nyckel används"
-          else
-            echo "::warning title=Signering::Ingen fast nyckel. Den här versionen kan inte installeras över en tidigare."
+          if [ -z "$KS" ] || [ -z "$PW" ]; then
+            echo "::error title=Signering::Nyckeln saknas i GitHub-hemligheterna. Utan den kan en ny version inte installeras över en tidigare."
+            exit 1
           fi
+          # Gradle is told this exact file (see build.gradle.kts below); the
+          # default debug key location is not used, since on GitHub's machines
+          # Gradle made a new random key there for every build.
+          store="$RUNNER_TEMP/quee-signering.keystore"
+          echo "$KS" | base64 -d | openssl enc -d -aes-256-cbc -pbkdf2 -pass env:PW -out "$store"
+          echo "QUEE_KEYSTORE=$store" >> "$GITHUB_ENV"
+          keytool -list -v -keystore "$store" -storepass android -alias androiddebugkey | grep -i "SHA256:" | head -1
 
       - name: SQLite för databastester
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libsqlite3-dev
@@ -127,6 +135,21 @@ jobs:
         run: |
           set -o pipefail
           flutter build apk --release --no-shrink 2>&1 | tee -a /tmp/build.txt
+
+      - name: Kontrollera signeringen
+        # Both APKs must carry the fixed key, or a phone will refuse to update.
+        run: |
+          want=$(keytool -list -v -keystore "$QUEE_KEYSTORE" -storepass android -alias androiddebugkey | grep -i "SHA256:" | head -1 | sed 's/.*SHA256: *//')
+          echo "Fast nyckel: $want"
+          for apk in build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-debug.apk; do
+            got=$(keytool -printcert -jarfile "$apk" | grep -i "SHA256:" | head -1 | sed 's/.*SHA256: *//')
+            echo "$apk: $got"
+            if [ "$got" != "$want" ]; then
+              echo "::error title=Signering::$apk är inte signerad med den fasta nyckeln."
+              exit 1
+            fi
+          done
+          echo "::notice title=Signering::Båda APK-filerna är signerade med den fasta nyckeln ($want)"
 
       # Error output as annotations, readable on the public run page and API.
       - name: Felrapport
