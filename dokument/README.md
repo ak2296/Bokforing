@@ -4,7 +4,7 @@ Användarguide, nedladdningskort och förpackning för appen Quee.
 
 | Mapp | Innehåll |
 |---|---|
-| `anvandarguide/` | Användarguiden, 15 sidor A5 (HTML-källa och PDF, samma som i appen) och `anvandarguide-tryck.pdf` för utskrift som häfte |
+| `anvandarguide/` | Användarguiden, 15 sidor A5 (HTML-källa och PDF, samma som i appen) och två filer för utskrift som häfte: `anvandarguide-tryck-omslag.pdf` och `anvandarguide-tryck-inlaga.pdf` |
 | `kort/` | Kort 85 × 55 mm med QR-kod, fram- och baksida |
 | `forpackning/` | Tuck-box 154 × 216 × 14 mm: tryckfil med stans- och biglinjer (A3) och förhandsvisning |
 | `bilder/` | Appikon och QR-koden till nedladdningssidan |
@@ -23,10 +23,13 @@ QR-koden leder till https://ak2296.github.io/quee/, där den senaste versionen a
 
 ## Skriv ut användarguiden som häfte
 
-`anvandarguide/anvandarguide-tryck.pdf` är ett A5-häfte på A4-papper: 16 sidor på 4 ark. Baksidan av omslaget är vit; övriga sidor är dubbelsidiga.
+Häftet är A5, tryckt på A4-papper med två sidor per arksida.
 
-1. Skriv ut på A4, **dubbelsidigt**, **vänd längs kortsidan**, i **verklig storlek (100 %)**.
-2. Lägg arken i ordning med omslaget ytterst, vik dem på mitten (de små strecken visar mitten).
-3. Häfta två gånger i vikningen.
+- **Omslag** (`anvandarguide/anvandarguide-tryck-omslag.pdf`): 1 ark, **enkelsidigt**. Baksidan (vit med liten logga och namn) och framsidan ligger bredvid varandra; insidan är vit.
+- **Inlaga** (`anvandarguide/anvandarguide-tryck-inlaga.pdf`): 16 sidor på 4 ark, **dubbelsidigt**, vänd längs **kortsidan**. Första arket har innehållsförteckningen och sista sidan på ena sidan, sidan 3 och näst sista sidan på den andra, och så vidare. De två sista sidorna är "Anteckningar".
+
+1. Skriv ut båda i **verklig storlek (100 %)**.
+2. Lägg inlagans ark i ordning, med första arket ytterst, och lägg dem i omslaget.
+3. Vik allt på mitten (de små strecken visar mitten) och häfta två gånger i vikningen.
 
 PDF-filerna görs om med `python dokument/verktyg/make_docs.py`; häftet görs samtidigt av `make_booklet.py`.
