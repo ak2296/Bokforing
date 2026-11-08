@@ -31,28 +31,72 @@ class SlipCodeLine {
     this.accountCode,
   });
 
-  static final _line = RegExp(
-      r'(?:#\s*(\d[\d ]*\d)\s*#)?\s*(\d[\d ]{0,12}?) (\d{2})\s+(\d)\s*>\s*(\d{5,8})\s*#\s*(\d{2})\s*#');
   static final _ocrOnly = RegExp(r'#\s*(\d[\d ]{3,30}\d)\s*#');
 
-  /// Finds the code line among [rows]; null when none is printed.
+  /// The payee number with its type code: "1262500#41#". OCR often reads a
+  /// 5 as S, a 0 as O and a 1 as l or I.
+  static final _account = RegExp(r'([0-9SOIl]{5,8})\s*#\s*(\d{2})\s*#');
+
+  /// Kronor, öre and the check digit: "159 00 4", the ">" after it may be
+  /// lost by OCR.
+  static final _amount = RegExp(r'(?<![\d,.])(\d{1,9}) (\d{2})(?:\s+(\d))?(?![\d,.])');
+
+  static String _digitsFromOcr(String s) =>
+      s.replaceAll('S', '5').replaceAll('O', '0').replaceAll('I', '1').replaceAll('l', '1');
+
+  /// Finds the code line among [rows]; null when none is printed. The line
+  /// may be split over two rows and miss its "#" or ">" marks; every part
+  /// is only used when its check digit fits (the amount also when it equals
+  /// the total read elsewhere, see [amountChecked]).
   static SlipCodeLine? find(List<String> rows) {
-    for (final raw in rows.reversed) {
-      final row = raw.replaceAll(RegExp(r'\s+'), ' ');
-      final m = _line.firstMatch(row);
-      if (m == null) continue;
-      final ocr = m[1]?.replaceAll(' ', '');
-      final kronor = m[2]!.replaceAll(' ', '');
-      final digits = '$kronor${m[3]}';
-      final amount = Money.parse('$kronor,${m[3]}');
-      final account = m[5]!;
+    final marker = RegExp(r'#\s*\d{2}\s*#|\d\s*>');
+    for (var k = rows.length - 1; k >= 0; k--) {
+      if (!marker.hasMatch(rows[k])) continue;
+      // The rows around the marker that carry digits make up the line.
+      final window = [
+        for (var i = k - 2; i <= k + 2; i++)
+          if (i >= 0 && i < rows.length && RegExp(r'\d{2}').hasMatch(rows[i])) rows[i],
+      ];
+      final text = window.join(' ').replaceAll(RegExp(r'\s+'), ' ');
+      String? account, code;
+      var rest = text;
+      final a = _account.firstMatch(text);
+      if (a != null) {
+        final digits = _digitsFromOcr(a[1]!);
+        if (RegExp(r'^\d+$').hasMatch(digits) && luhnValid(digits)) {
+          account = digits;
+          code = a[2];
+        }
+        rest = text.replaceRange(a.start, a.end, ' ');
+      }
+      // The reference: the first long number whose check digit fits.
+      String? ocr;
+      var after = 0;
+      for (final m in RegExp(r'(?<!\d)\d{6,25}(?!\d)').allMatches(rest)) {
+        if (luhnValid(m[0]!)) {
+          ocr = m[0];
+          after = m.end;
+          break;
+        }
+      }
+      Money? amount;
+      var checked = false;
+      for (final m in _amount.allMatches(rest.substring(after))) {
+        final kronor = m[1]!, ore = m[2]!;
+        final value = Money.parse('$kronor,$ore');
+        if (value == null || value.isZero) continue;
+        amount = value;
+        checked = m[3] != null && luhnCheckDigit('$kronor$ore') == int.parse(m[3]!);
+        break;
+      }
+      if (ocr == null && amount == null && account == null) continue;
       return SlipCodeLine(
-        source: raw,
-        ocr: ocr != null && ocr.length >= 2 && luhnValid(ocr) ? ocr : null,
+        source: window.join(' / '),
+        ocr: ocr,
         amount: amount,
-        amountChecked: luhnCheckDigit(digits) == int.parse(m[4]!),
-        account: luhnValid(account) ? account : null,
-        accountCode: m[6],
+        amountChecked: checked,
+        account: account,
+        accountCode: code,
       );
     }
     // A slip with only the reference part read.

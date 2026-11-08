@@ -254,6 +254,19 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         vatCalculated = true;
       }
     }
+    // No VAT amount read, but the paper prints one rate ("Moms 25%") and a
+    // net amount that with that rate gives the total: the VAT is the rest.
+    if (!vatTotal.hasValue && total.value != null) {
+      final fromRate = _vatFromPrintedRate(rows, norm, total.value!.abs());
+      if (fromRate != null) {
+        vatTotal = Extracted(fromRate.vat, Confidence.medium, note: fromRate.note);
+        vatCalculated = true;
+        vat = _VatInfo([
+          InvoiceVatLine(
+              rate: fromRate.rate, vat: fromRate.vat, net: fromRate.net, gross: total.value!.abs(), calculated: true),
+        ], null, fromRate.net, null, false, note: fromRate.note);
+      }
+    }
     // A giro slip on its own shows no VAT, and that is no fault in the reading.
     final giroSlip = norm.any((n) => RegExp(r'girering\s*av').hasMatch(n));
     if (!vatTotal.hasValue && giroSlip) {
@@ -305,7 +318,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     final dates = _dates(rows, norm);
     var supplier = _resolveSupplier(rows, norm);
     final logo = _logoName(ocr);
-    if (logo != null) supplier = (_checkWithLogo(supplier.$1, logo), supplier.$2);
+    if (logo != null) supplier = (_checkWithLogo(supplier.$1, logo, rows), supplier.$2);
     var ocrReference = _ocrNumber(rows, norm);
     var invoiceNumber = _invoiceNumber(rows, norm);
     // "Faktura/OCR-nummer 265 896 994 17" is both numbers.
@@ -717,7 +730,12 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       if (!isHeader) continue;
       final tableLines = <InvoiceVatLine>[];
       for (var j = i + 1; j < rows.length && j <= i + 6; j++) {
-        final line = _tableRow(rows[j].text);
+        var line = _tableRow(rows[j].text);
+        // "Momskod Stan..25,00" with its amounts on the row below.
+        if (line == null && j + 1 < rows.length && _onlyAmounts(norm[j + 1])) {
+          line = _tableRow('${rows[j].text}   ${rows[j + 1].text}');
+          if (line != null) j++;
+        }
         if (line == null) {
           // A lone amount is the end of the row above, wrapped by OCR.
           if (tableLines.isNotEmpty && !RegExp(r'^[\d\s.,]+$').hasMatch(rows[j].text.trim())) break;
@@ -762,7 +780,15 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     // 3. Total VAT and net amount rows.
     for (var i = 0; i < rows.length; i++) {
       final n = norm[i];
-      final a = TextPatterns.amounts(rows[i].text);
+      var a = TextPatterns.amounts(rows[i].text);
+      // "Varav moms" alone, its amount on the row below or above.
+      if (a.isEmpty && RegExp(r'(varav|summa|total|totalt)\s+moms\W*$|^moms\W*$').hasMatch(n)) {
+        if (i + 1 < rows.length && _onlyAmounts(norm[i + 1])) {
+          a = TextPatterns.amounts(rows[i + 1].text);
+        } else if (i > 0 && _onlyAmounts(norm[i - 1])) {
+          a = TextPatterns.amounts(rows[i - 1].text);
+        }
+      }
       if (a.isEmpty) continue;
       // "Momspliktigt belopp"/"Momspl." is the taxable base: used only to
       // check the arithmetic, never recorded as an amount.
@@ -817,7 +843,9 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
   ({Money net, Money vat, Money gross, String row})? _sumRow(List<TextRow> rows, List<String> norm) {
     for (var i = 0; i < rows.length; i++) {
       final n = norm[i];
-      if (!RegExp(r'\b(summa|totalt?|totaler|total amount)\b').hasMatch(n)) continue;
+      final first = n.split(' ').first;
+      final fuzzy = ['totaler', 'totalt', 'summa'].any((w) => TextPatterns.similarity(first, w) >= 0.7);
+      if (!fuzzy && !RegExp(r'\b(summa|totalt?|totaler|total amount)\b').hasMatch(n)) continue;
       if (n.contains('delsumma') || n.contains('subtotal') || n.contains('rabatt')) continue;
       final a = [for (final t in TextPatterns.amounts(rows[i].text)) if (t.hasDecimals && !t.value.isNegative) t.value];
       if (a.length < 3) continue;
@@ -827,6 +855,37 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         // 6 % to 25 % of the net, the Swedish rates and their mixes.
         if (vat.ore * 1000 < net.ore * 56 || vat.ore * 1000 > net.ore * 251) continue;
         return (net: net, vat: vat, gross: gross, row: rows[i].text);
+      }
+    }
+    return null;
+  }
+
+  /// The VAT read from a printed rate and a printed net amount, when the
+  /// paper's VAT amount itself could not be read. Only with exactly one rate
+  /// printed beside a VAT word, and only when net + VAT is the total.
+  ({VatRate rate, Money vat, Money net, String note})? _vatFromPrintedRate(
+      List<TextRow> rows, List<String> norm, Money total) {
+    final rates = <int>{};
+    for (var i = 0; i < rows.length; i++) {
+      if (!_hasVatWord(norm[i])) continue;
+      final r = TextPatterns.rate(rows[i].text);
+      if (r != null && r.basisPoints > 0) rates.add(r.basisPoints);
+    }
+    if (rates.length != 1) return null;
+    final rate = VatRate(rates.single);
+    for (final r in rows) {
+      for (final t in TextPatterns.amounts(r.text)) {
+        if (!t.hasDecimals || t.value >= total || t.value.isZero) continue;
+        final v = VatCalculator.vatFromNet(t.value, rate);
+        if ((t.value + v - total).abs() >= Money.ignoredDifference) continue;
+        final vat = total - t.value;
+        return (
+          rate: rate,
+          vat: vat,
+          net: t.value,
+          note: 'Momsbeloppet kunde inte läsas. Det räknades fram: ${rate.label} av ${t.value.format()} '
+              'ger ${vat.format()}, och tillsammans blir det summan. Kontrollera mot pappret.',
+        );
       }
     }
     return null;
@@ -910,7 +969,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
   ];
   static const _dueDateLabels = [
     'förfallodatum', 'forfallodatum', 'förfallodag', 'forfallodag', 'förfaller', 'betalas senast', 'betala senast',
-    'sista betalningsdag', 'oss tillhanda', 'due date', 'payment due', 'due by', 'pay by',
+    'sista betalningsdag', 'oss tillhanda', 'tillhanda senast', 'due date', 'payment due', 'due by', 'pay by',
   ];
 
   /// "Förtallodatum", "Forfallodatun": a misread due-date label.
@@ -1097,7 +1156,8 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         norm,
         ['fakturanummer', 'fakturanr', 'faktura nr', 'fakturanr.', 'kvittonr', 'kvitto nr', 'kvittonummer', 'löpnr', 'köpnota nr', 'avinr', 'avi nr', 'avinummer',
          'invoice number', 'invoice no', 'invoice nr', 'invoice #', 'receipt number', 'receipt no', 'receipt #'],
-        RegExp(r'[A-Za-z]{0,4}-?\d[\d\-/]{0,19}'),
+        // Never part of a word: "0" in a misread "0CR" is no invoice number.
+        RegExp(r'[A-Za-z]{0,4}-?\d[\d\-/]{0,19}(?![A-Za-zÅÄÖåäö\d])'),
         below: RegExp(r'(?<![\d\-,.])\d{4,12}(?![\d\-,.])'),
         fuzzy: 'fakturanummer');
     if (labelled.hasValue) return labelled;
@@ -1120,6 +1180,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
   static const _skipSupplier = [
     'faktura', 'kvitto', 'datum', 'org', 'organisation', 'tel', 'telefon', 'www', 'http', '@', 'kund', 'kundnr',
     'kundnummer', 'sida', 'kopia', 'betald', 'ocr', 'bankgiro', 'plusgiro', 'att betala', 'adress', 'box ',
+    'kontantnota', 'nota',
     'inbetalning', 'girering',
   ];
 
@@ -1169,12 +1230,45 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       }
       if (best == null || l.box.height > best.box.height) best = l;
     }
-    return best?.text.trim();
+    if (best == null) return null;
+    // A logo in two lines ("Sam" over "Grossist"): a large line right below
+    // or above it, overlapping it sideways, is part of it.
+    final b = best;
+    double gap(OcrLine l) => l.box.top >= b.box.top ? l.box.top - b.box.bottom : b.box.top - l.box.bottom;
+    final parts = [
+      for (final l in lines)
+        if (l == b ||
+            (l.box.height >= median * 1.4 &&
+                gap(l) < b.box.height * 0.6 &&
+                l.box.left < b.box.right &&
+                l.box.right > b.box.left &&
+                RegExp(r'^[A-Za-zÅÄÖåäö&\- ]{3,}$').hasMatch(l.text.trim())))
+          l,
+    ]..sort((x, y) => x.box.top.compareTo(y.box.top));
+    return parts.map((l) => l.text.trim()).join(' ');
   }
 
   /// Uses the logo name to back up or confirm the supplier read from the text.
-  Extracted<String> _checkWithLogo(Extracted<String> supplier, String logo) {
+  Extracted<String> _checkWithLogo(Extracted<String> supplier, String logo, List<TextRow> rows) {
     String fold(String s) => _squeeze(s).replaceAll(RegExp('[åä]'), 'a').replaceAll('ö', 'o');
+    // The logo's name with a company form in the text ("Svekraft" and
+    // "Returadress: Svekraft AB"): two places agree, so that is the supplier.
+    final formal = RegExp(
+        '(?<![A-Za-zÅÄÖåäö])(${RegExp.escape(logo)})' r'\s+(AB|HB|KB|Aktiebolag|Handelsbolag|Ltd|Oy|AS|ApS)\b',
+        caseSensitive: false);
+    for (final r in rows) {
+      final m = formal.firstMatch(r.text);
+      if (m == null || _closeToOwn(m[0]!)) continue;
+      final name = m[0]!.replaceAll(RegExp(r'\s+'), ' ');
+      final current = supplier.value;
+      // A known supplier, or a fuller name that holds this one ("Axfood
+      // Snabbgross AB" for "Snabbgross AB"), stays.
+      if (current != null && (supplier.confidence == Confidence.high || fold(current) == fold(name))) {
+        return Extracted(current, Confidence.high, source: supplier.source);
+      }
+      if (current != null && fold(current).contains(fold(name)) && !current.contains('/')) return supplier;
+      return Extracted(name, Confidence.medium, source: r.text, note: 'Samma namn som logotypen');
+    }
     final name = supplier.value;
     if (name == null) return Extracted(logo, Confidence.medium, source: logo, note: 'Namnet i logotypen');
     final a = fold(name), b = fold(logo);
@@ -1311,6 +1405,8 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       // the seller, "Betalare   ANKAN AB" is the buyer.
       final upToName = columns.take(at + 1).join(' ').toLowerCase();
       if (upToName.contains('betalare') || upToName.contains('mottagare') || RegExp(r'\bkund\b').hasMatch(upToName)) continue;
+      // "Bank: Swedbank AB" in the footer is the seller's bank.
+      if (RegExp(r'\bbank\b').hasMatch(upToName)) continue;
       var name = _clean(columns[at].split('(').first);
       // A cut name at the top ("osT AB") printed whole in the footer
       // ("Rest Lillebror Öst AB").
@@ -1390,6 +1486,20 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         .firstOrNull;
   }
 
+  /// The value in the same column on the row below a row of labels:
+  /// "Kundnummer.   OCR-nr:" over "612123   20000000000" gives 20000000000
+  /// for OCR. Null unless the label row has several columns.
+  static String? _sameColumnBelow(List<TextRow> rows, int i, int labelStart, RegExp value) {
+    if (i + 1 >= rows.length) return null;
+    final split = RegExp(r'\s{3,}');
+    final gaps = split.allMatches(rows[i].text).toList();
+    if (gaps.isEmpty) return null;
+    final col = gaps.where((g) => g.start < labelStart).length;
+    final below = rows[i + 1].text.split(split);
+    if (col >= below.length) return null;
+    return value.firstMatch(below[col].trim())?[0];
+  }
+
   /// The value after a label on its row; for a label alone, the value at the
   /// start of the next row, or anywhere in it when it matches [below].
   Extracted<String> _labelledValue(List<TextRow> rows, List<String> norm, List<String> labels, RegExp value,
@@ -1404,6 +1514,10 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         final m = value.firstMatch(after.replaceFirst(RegExp(r'^[\s:.#]*'), ''));
         if (m != null && RegExp(r'\d').hasMatch(m.group(0)!)) {
           return Extracted(m.group(0)!, Confidence.high, source: rows[i].text);
+        }
+        final column = _sameColumnBelow(rows, i, at.start, below ?? value);
+        if (column != null && RegExp(r'\d').hasMatch(column)) {
+          return Extracted(column, Confidence.medium, source: '${rows[i].text} / ${rows[i + 1].text}');
         }
         if (i + 1 < rows.length) {
           final next = value.firstMatch(rows[i + 1].text.trim());
@@ -1430,6 +1544,9 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     Extracted<String>? found;
     for (var i = 0; i < rows.length && found == null; i++) {
       final n = norm[i];
+      // "… referensnr (OCR) IBAN SE33 8000 …" explains how to pay; the IBAN
+      // digits are no OCR number.
+      if (n.contains('iban')) continue;
       for (final l in labels) {
         if (l == 'ocr' && (n.contains('ocr-nummer') || n.contains('ocr nr'))) continue;
         final at = _findLabel(rows[i].text, l);
@@ -1437,6 +1554,12 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         final m = value.firstMatch(rows[i].text.substring(at.end));
         if (m != null) {
           found = Extracted(m[0]!, Confidence.high, source: rows[i].text);
+          break;
+        }
+        // Under a row of labels: the number in the same column.
+        final column = _sameColumnBelow(rows, i, at.start, value);
+        if (column != null) {
+          found = Extracted(column, Confidence.medium, source: '${rows[i].text} / ${rows[i + 1].text}');
           break;
         }
         // Alone on its row: the number one or two rows below; a long one there

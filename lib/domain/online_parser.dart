@@ -100,7 +100,10 @@ class OnlineParser implements DocumentParser<OnlineDraft> {
 
     Extracted<String> date = const Extracted.none();
     for (var i = 0; i < rows.length && !date.hasValue; i++) {
-      if (!_dateLabels.any(norm[i].contains)) continue;
+      // "Betainingsdatum": a misread label still counts.
+      final fuzzy = RegExp(r'[a-zåäö]{9,}').allMatches(norm[i]).any((w) =>
+          _dateLabels.any((l) => l.length >= 9 && TextPatterns.similarity(w[0]!, l) >= 0.85));
+      if (!_dateLabels.any(norm[i].contains) && !fuzzy) continue;
       var d = TextPatterns.dates(rows[i].text);
       if (d.isEmpty && i + 1 < rows.length) d = TextPatterns.dates(rows[i + 1].text);
       if (d.isNotEmpty) date = Extracted(d.first, Confidence.high, source: rows[i].text);

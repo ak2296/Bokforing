@@ -207,6 +207,8 @@ class OcrResult {
           // The letter O for zero after a decimal comma: "198, OO".
           .replaceAllMapped(RegExp(r'(\d[,.]\s?)[Oo]{2}\b'), (m) => '${m[1]}00')
           .replaceAllMapped(RegExp(r'(?<=\d)\|(?=[\d,])'), (m) => '1')
+          // A zero read for the letter O in the word OCR: "0CR-nummer", "Faktura/0CR".
+          .replaceAllMapped(RegExp(r'(?<![0-9])0(?=[Cc][Rr](?![A-Za-z]))'), (m) => 'O')
           // A dot read for the decimal comma after a thousands dot: "4.309.27".
           .replaceAllMapped(RegExp(r'(?<![\d.,])(\d{1,3})\.(\d{3})\.(\d{2})(?![\d.,])'), (m) => '${m[1]}.${m[2]},${m[3]}')
           // Two amounts stuck together: "492,00123,00".
