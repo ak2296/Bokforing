@@ -781,8 +781,9 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     for (var i = 0; i < rows.length; i++) {
       final n = norm[i];
       var a = TextPatterns.amounts(rows[i].text);
-      // "Varav moms" alone, its amount on the row below or above.
-      if (a.isEmpty && RegExp(r'(varav|summa|total|totalt)\s+moms\W*$|^moms\W*$').hasMatch(n)) {
+      // "Varav moms" alone, its amount on the row below or above. A bare
+      // "Moms" is often a heading, with rounding or another figure below it.
+      if (a.isEmpty && RegExp(r'(varav|summa|total|totalt)\s+moms\W*$').hasMatch(n)) {
         if (i + 1 < rows.length && _onlyAmounts(norm[i + 1])) {
           a = TextPatterns.amounts(rows[i + 1].text);
         } else if (i > 0 && _onlyAmounts(norm[i - 1])) {
