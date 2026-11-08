@@ -13,7 +13,7 @@ import '../domain/dates.dart';
 import 'backup.dart';
 
 /// Encrypted backups written by themselves to a folder the user picked once,
-/// such as Dokument/Bokföring on the phone. One file per day (the day's file
+/// such as Dokument/Quee on the phone. One file per day (the day's file
 /// is replaced as data changes); the [keep] newest are kept. The files stay
 /// when the app's data is cleared or the app is removed.
 class AutoBackup {
@@ -27,7 +27,8 @@ class AutoBackup {
   static const _passwordKey = 'auto_backup_password';
   static const keep = 3;
   static const _storage = FlutterSecureStorage();
-  static final _name = RegExp(r'^bokforing_\d{4}-\d{2}-\d{2}\.bkp$');
+  // Files from before the app was named Quee start with "bokforing_".
+  static final _name = RegExp(r'^(quee|bokforing)_\d{4}-\d{2}-\d{2}\.bkp$');
 
   final Repository repo;
   AutoBackup(this.repo);
@@ -38,7 +39,7 @@ class AutoBackup {
   Timer? _timer;
   Future<void>? _running;
 
-  static String fileName(DateTime day) => 'bokforing_${SwedishDates.iso(day)}.bkp';
+  static String fileName(DateTime day) => 'quee_${SwedishDates.iso(day)}.bkp';
 
   Future<String?> folder() async {
     final f = await repo.setting(folderKey);
@@ -176,7 +177,7 @@ class AutoBackup {
     await tmp.writeAsBytes(bytes, flush: true);
     await SharePlus.instance.share(ShareParams(
       files: [XFile(tmp.path, mimeType: 'application/octet-stream')],
-      subject: 'Säkerhetskopia Bokföring ${SwedishDates.iso(DateTime.now())}',
+      subject: 'Säkerhetskopia Quee ${SwedishDates.iso(DateTime.now())}',
     ));
   }
 }

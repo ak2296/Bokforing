@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <!-- Quee app icon: green ground, white scan corners and page, a faded
+       pumpkin without leaf behind green bars. -->
+  
+  <g id="art" transform="translate(54 54) scale(0.72) translate(-54 -54)">
+    <g fill="#fff">
+      <path d="M13 13 H30 V19 H19 V30 H13 Z"/><path d="M95 13 V30 H89 V19 H78 V13 Z"/>
+      <path d="M95 95 H78 V89 H89 V78 H95 Z"/><path d="M13 95 V78 H19 V89 H30 V95 Z"/>
+    </g>
+    <path d="M32 26 H54 V82 H32 Z" fill="#fff"/>
+    <path d="M54 26 H62 L76 40 V82 H54 Z" fill="#E4F2EC"/>
+    <path d="M62 26 V40 H76 Z" fill="#B9DFCC"/>
+    <g fill="#F08A24" stroke="#F08A24" opacity="0.45" transform="translate(54 61) scale(0.8) translate(-54 -61)">
+      <path d="M54 44 C62 40 72 43 75 52 C78 61 76 72 68 76 C63 78 58 77 54 75 C50 77 45 78 40 76 C32 72 30 61 33 52 C36 43 46 40 54 44 Z"/>
+      <path d="M53 44 C52 40 53 37 56 35" fill="none" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+    <g fill="#0B6B4E">
+      <rect x="40" y="62" width="7" height="12"/><rect x="50.5" y="54" width="7" height="20"/><rect x="61" y="46" width="7" height="28"/>
+    </g>
+  </g>
+</svg>

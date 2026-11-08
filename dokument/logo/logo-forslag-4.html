@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>Quee – logoförslag 4</title>
+<style>
+@font-face { font-family: Inter; src: url(../../assets/fonts/Inter-Regular.otf); font-weight: 400; }
+@font-face { font-family: Inter; src: url(../../assets/fonts/Inter-Medium.otf); font-weight: 500; }
+@page { size: 297mm 210mm; margin: 0; }
+body { margin: 0; font-family: Inter, Arial, sans-serif; color: #10201B; background: #F5F7F4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.sheet { width: 297mm; height: 210mm; padding: 14mm 16mm; box-sizing: border-box; }
+h1 { margin: 0 0 2mm; font-size: 9mm; font-weight: 500; }
+.lead { margin: 0 0 8mm; color: #62706A; font-size: 4mm; }
+.row { display: flex; gap: 7mm; }
+.opt { flex: 1 1 0; min-width: 0; background: #fff; border: 0.3mm solid #E8ECE6; border-radius: 6mm; padding: 7mm; }
+.opt h2 { margin: 0 0 1mm; font-size: 5.4mm; font-weight: 500; }
+.opt p { margin: 0 0 5mm; font-size: 3.4mm; color: #62706A; line-height: 1.45; min-height: 15mm; }
+.icons { display: flex; align-items: flex-end; gap: 6mm; }
+.big { width: 38mm; height: 38mm; }
+.mid { width: 18mm; height: 18mm; }
+.small { width: 9mm; height: 9mm; }
+.word { margin-top: 6mm; display: flex; align-items: center; gap: 3mm; font-size: 8mm; font-weight: 500; letter-spacing: -0.2mm; }
+.word svg { width: 11mm; height: 11mm; }
+.dark { margin-top: 4mm; background: #10201B; border-radius: 3mm; padding: 3mm; display: flex; gap: 4mm; align-items: center; color: #fff; font-size: 3.2mm; }
+.dark svg { width: 12mm; height: 12mm; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- The current icon on a 108 grid with the colours swapped: green ground, white corners and page, green bars. -->
+    <g id="base">
+      <rect width="108" height="108" rx="24" fill="#0B6B4E"/>
+      <g fill="#fff">
+        <path d="M13 13 H30 V19 H19 V30 H13 Z"/><path d="M95 13 V30 H89 V19 H78 V13 Z"/>
+        <path d="M95 95 H78 V89 H89 V78 H95 Z"/><path d="M13 95 V78 H19 V89 H30 V95 Z"/>
+      </g>
+      <path d="M32 26 H54 V82 H32 Z" fill="#fff"/>
+      <path d="M54 26 H62 L76 40 V82 H54 Z" fill="#E4F2EC"/>
+      <path d="M62 26 V40 H76 Z" fill="#B9DFCC"/>
+    </g>
+    <!-- Pumpkin without leaf, a short stem only -->
+    <g id="pumpkin">
+      <path d="M54 44 C62 40 72 43 75 52 C78 61 76 72 68 76 C63 78 58 77 54 75 C50 77 45 78 40 76 C32 72 30 61 33 52 C36 43 46 40 54 44 Z"/>
+      <path d="M53 44 C52 40 53 37 56 35" fill="none" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+    <g id="bars" fill="#0B6B4E">
+      <rect x="40" y="62" width="7" height="12"/><rect x="50.5" y="54" width="7" height="20"/><rect x="61" y="46" width="7" height="28"/>
+    </g>
+
+    <symbol id="o" viewBox="0 0 108 108">
+      <use href="#base"/>
+      <use href="#pumpkin" fill="#F08A24" stroke="#F08A24" opacity="0.28"/>
+      <use href="#bars"/>
+    </symbol>
+    <symbol id="g" viewBox="0 0 108 108">
+      <use href="#base"/>
+      <use href="#pumpkin" fill="#0B6B4E" stroke="#0B6B4E" opacity="0.12"/>
+      <use href="#bars"/>
+    </symbol>
+    <symbol id="o2" viewBox="0 0 108 108">
+      <use href="#base"/>
+      <use href="#pumpkin" fill="#F08A24" stroke="#F08A24" opacity="0.45"/>
+      <use href="#bars"/>
+    </symbol>
+  </defs>
+</svg>
+
+<section class="sheet">
+  <h1>Quee – nuvarande logga, omvända färger, pumpa som vattenstämpel</h1>
+  <p class="lead">Grön bakgrund, vita skannerhörn och vitt papper, gröna staplar. En blek pumpa utan blad ligger bakom staplarna.</p>
+  <div class="row">
+    <div class="opt">
+      <h2>1 · Blek orange pumpa</h2>
+      <p>Pumpan syns svagt i orange bakom staplarna. Märks när man tittar efter.</p>
+      <div class="icons"><svg class="big"><use href="#o"/></svg><svg class="mid"><use href="#o"/></svg><svg class="small"><use href="#o"/></svg></div>
+      <div class="word"><svg><use href="#o"/></svg>Quee</div>
+      <div class="dark"><svg><use href="#o"/></svg>På mörk bakgrund</div>
+    </div>
+    <div class="opt">
+      <h2>2 · Blek grön pumpa</h2>
+      <p>Pumpan i samma gröna ton som staplarna, mycket diskret. Helt i appens färger.</p>
+      <div class="icons"><svg class="big"><use href="#g"/></svg><svg class="mid"><use href="#g"/></svg><svg class="small"><use href="#g"/></svg></div>
+      <div class="word"><svg><use href="#g"/></svg>Quee</div>
+      <div class="dark"><svg><use href="#g"/></svg>På mörk bakgrund</div>
+    </div>
+    <div class="opt">
+      <h2>3 · Lite tydligare orange</h2>
+      <p>Som 1, men pumpan syns bättre, även på små ikoner.</p>
+      <div class="icons"><svg class="big"><use href="#o2"/></svg><svg class="mid"><use href="#o2"/></svg><svg class="small"><use href="#o2"/></svg></div>
+      <div class="word"><svg><use href="#o2"/></svg>Quee</div>
+      <div class="dark"><svg><use href="#o2"/></svg>På mörk bakgrund</div>
+    </div>
+  </div>
+</section>
+</body>
+</html>

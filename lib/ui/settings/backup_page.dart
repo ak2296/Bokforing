@@ -164,7 +164,7 @@ class _BackupPageState extends State<BackupPage> {
       final bytes = await Backup.encrypt(data, password);
       final uri = await FilePicker.saveFile(
         dialogTitle: 'Spara säkerhetskopia',
-        fileName: 'bokforing_sakerhetskopia_${SwedishDates.iso(DateTime.now())}.bkp',
+        fileName: 'quee_sakerhetskopia_${SwedishDates.iso(DateTime.now())}.bkp',
         bytes: bytes,
       );
       if (uri != null) {
@@ -293,7 +293,7 @@ class _BackupPageState extends State<BackupPage> {
           _autoCard(),
           const SizedBox(height: 8),
           Text(
-            'Välj gärna en mapp under Dokument, t.ex. Dokument/Bokföring. Ligger mappen på telefonen försvinner den '
+            'Välj gärna en mapp under Dokument, t.ex. Dokument/Quee. Ligger mappen på telefonen försvinner den '
             'med telefonen, så skicka ibland en kopia till molnet också.',
             style: t.bodySmall,
           ),

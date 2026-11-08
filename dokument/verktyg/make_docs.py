@@ -4,10 +4,12 @@ Edge (headless), which is already on Windows. Nothing is installed.
     python dokument/verktyg/make_docs.py
 
 Run it after changing a design or the user guide, then commit both the HTML
-and the PDF.
+and the PDF. The guide is also copied to assets/ so the app carries it
+(a change there starts an app build).
 """
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 
@@ -39,6 +41,11 @@ def main() -> int:
             check=True, capture_output=True,
         )
         print(f"{rel} -> {out.name}")
+    # The app carries the guide, opened from Inställningar → Användarguide.
+    guide = ROOT / "dokument/anvandarguide/anvandarguide.pdf"
+    if guide.exists():
+        shutil.copyfile(guide, ROOT / "assets/anvandarguide.pdf")
+        print("assets/anvandarguide.pdf uppdaterad")
     return 0
 
 

@@ -15,6 +15,7 @@ import 'ai_settings_page.dart';
 import 'backup_page.dart';
 import 'category_editor.dart';
 import 'storage_page.dart';
+import 'user_guide.dart';
 import 'z_fields_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -191,9 +192,15 @@ class _SettingsPageState extends State<SettingsPage> {
                   onTap: () => Navigator.of(context)
                       .push(MaterialPageRoute(builder: (_) => const PrivacyPage())),
                 ),
+                ListTile(
+                  leading: const Icon(AppIcons.text),
+                  title: const Text('Användarguide'),
+                  subtitle: const Text('Hela guiden som PDF, öppnas i telefonens PDF-läsare'),
+                  onTap: () => openUserGuide(context),
+                ),
                 const AboutListTile(
                   icon: Icon(AppIcons.info),
-                  applicationName: 'Bokföring',
+                  applicationName: 'Quee',
                   applicationVersion: '0.2.0',
                   aboutBoxChildren: [
                     Text('Lokal bokföringsassistent för småföretag i Sverige. '

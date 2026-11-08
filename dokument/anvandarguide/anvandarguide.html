@@ -2,7 +2,7 @@
 <html lang="sv">
 <head>
 <meta charset="utf-8">
-<title>Bokföring – Användarguide</title>
+<title>Quee – Användarguide</title>
 <!--
   Källan till användarguiden. PDF-filen görs med: python dokument/verktyg/make_docs.py
   Uppdatera texten här när appen ändras, och höj versionen på omslaget.
@@ -113,8 +113,8 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 /* ---------- Omslag ---------- */
 .cover { background: var(--green); color: #fff; padding: 0; }
 .cover .inner { position: absolute; inset: 0; padding: 20mm 14mm; }
-.cover .logo { width: 22mm; height: 22mm; border-radius: 5mm; background: #fff; display: flex; align-items: center; justify-content: center; }
-.cover .logo img { width: 19mm; height: 19mm; }
+.cover .logo { width: 22mm; height: 22mm; border-radius: 5mm; box-shadow: 0 0 0 0.6mm rgba(255,255,255,.35); overflow: hidden; }
+.cover .logo img { width: 22mm; height: 22mm; display: block; }
 .cover h1 { font-size: 34pt; margin: 10mm 0 2mm; letter-spacing: -0.8pt; }
 .cover .sub { font-size: 13pt; opacity: 0.9; }
 .cover .tag { position: absolute; left: 14mm; bottom: 18mm; font-size: 9pt; opacity: 0.85; }
@@ -137,7 +137,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 <section class="page cover">
   <div class="inner">
     <div class="logo"><img src="../bilder/app-ikon.png" alt=""></div>
-    <h1>Bokföring</h1>
+    <h1>Quee</h1>
     <div class="sub">Användarguide</div>
     <p style="margin-top:6mm; max-width:80mm; opacity:.9">Skanna fakturor, kvitton och Z-rapporter. Kontrollera. Klart – med moms och rapporter för varje månad.</p>
     <div class="deco">
@@ -155,7 +155,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
         <div class="nav"><div class="on"><div class="ic"></div>Översikt</div><div><div class="ic"></div>Försälj.</div><div><div class="scan"><span></span></div></div><div><div class="ic"></div>Utgifter</div><div><div class="ic"></div>Rapporter</div></div>
       </div></div>
     </div>
-    <div class="tag">Version 1.0 · november 2026</div>
+    <div class="tag">Version 1.1 · november 2026</div>
   </div>
 </section>
 
@@ -179,19 +179,19 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     <li><span>13</span><span>Vanliga frågor</span><span>15</span></li>
   </ul>
   <div class="tip" style="margin-top:7mm"><b>Allt stannar i telefonen.</b> Appen skickar inga uppgifter någonstans, om du inte själv slår på "Förbättrad analys online" eller skickar en säkerhetskopia. Ingen inloggning behövs.</div>
-  <div class="folio"><span>Bokföring · Användarguide</span><span>2</span></div>
+  <div class="folio"><span>Quee · Användarguide</span><span>2</span></div>
 </section>
 
 <!-- ============ 3. Installera ============ -->
 <section class="page">
   <div class="kicker">1 · Installera</div>
   <h1>Installera och aktivera</h1>
-  <p class="lead">Appen finns för Android. Installationen tar ett par minuter.</p>
+  <p class="lead">Appen finns för Android-mobiler och surfplattor med Android 7.0 eller senare och kamera. Installationen tar ett par minuter.</p>
   <ol class="steps">
     <li><b>Skanna QR-koden</b> på kortet i förpackningen med telefonens kamera. Sidan som öppnas har knappen <span class="kbd">Ladda ner appen</span>.</li>
-    <li><b>Öppna filen</b> när nedladdningen är klar (Bokforing.apk).</li>
+    <li><b>Öppna filen</b> när nedladdningen är klar (Quee.apk).</li>
     <li><b>Tillåt installation.</b> Första gången frågar telefonen om webbläsaren får installera appar. Välj <span class="kbd">Inställningar</span> → slå på <span class="kbd">Tillåt från den här källan</span> → gå tillbaka.</li>
-    <li><b>Tryck på Installera.</b> Appen heter <b>Bokföring</b> och har en grön ikon.</li>
+    <li><b>Tryck på Installera.</b> Appen heter <b>Quee</b> och har en grön ikon med staplar och en pumpa.</li>
     <li><b>Aktivera.</b> Du får en aktiveringskod via e-post eller SMS. Kopiera den, öppna appen, gå till <span class="kbd">Inställningar</span> → <span class="kbd">Aktivering</span>, håll in fältet och välj <b>Klistra in</b>. Sidan stängs själv när koden är godkänd.</li>
   </ol>
   <div class="tip"><b>Utan aktivering</b> kan du titta på allt, se rapporter och göra säkerhetskopior, men inte skanna eller spara nya papper.</div>
@@ -284,18 +284,14 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     </div>
     <div>
       <p class="lead">Tryck på den gröna knappen <b>Skanna</b> och sedan <span class="kbd">Skanna faktura eller Z-rapport</span>. Appen känner själv igen vilket slags papper det är.</p>
-      <p><span class="num">1</span><b>Gul ram.</b> Appen ritar en gul ram runt pappret den ser. Bilden beskärs till ramen, så papper som ligger under kommer inte med.</p>
+      <p><span class="num">1</span><b>Gul ram.</b> Appen ritar en gul ram runt pappret den ser, som en hjälp när du siktar.</p>
       <p><span class="num">2</span><b>Vattenpass.</b> Bubblan blir grön när telefonen hålls rakt över pappret. Den är bara en hjälp.</p>
       <p><span class="num">3</span><b>Ta bilden</b> när knappen blir grön. Långa kvitton: välj <b>I delar</b> och ta flera bilder uppifrån och ner med lite överlapp. Tryck <b>Klar</b>.</p>
     </div>
   </div>
-  <h2>Så blir bilden bäst</h2>
-  <ul>
-    <li>Lägg pappret på en mörk, slät yta i bra ljus, utan skuggor från handen eller telefonen.</li>
-    <li>Släta ut vikta kvitton. Hela pappret ska synas, med beloppen i bild.</li>
-    <li>Upp och ner eller på sidan gör inget – appen vrider bilden själv.</li>
-  </ul>
-  <div class="tip"><b>Blev något fel?</b> Tryck <span class="kbd">Skanna igen</span> på nästa sida. Inget sparas förrän du godkänner.</div>
+  <h2>Justera hörnen</h2>
+  <p>Efter varje bild visas den med fyra gula hörn. Dra hörnen till pappersets hörn – ett förstoringsglas visar var du sätter dem. Det som ligger utanför ramen, t.ex. papper under, tas inte med, och pappret rätas upp. Tryck <span class="kbd">Klar</span>, eller <span class="kbd">Ta om</span> för en ny bild.</p>
+  <div class="tip"><b>Bästa bilden:</b> lägg pappret på en mörk, slät yta i bra ljus och släta ut vikta kvitton. Upp och ner eller på sidan gör inget – appen vrider bilden själv.</div>
   <div class="folio"><span>Skanna</span><span>6</span></div>
 </section>
 
@@ -407,7 +403,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <h2>Faktura i e-post eller som PDF</h2>
   <ul>
     <li><b>Från appen:</b> Skanna → <span class="kbd">Hämta faktura från fil</span> och välj en PDF eller bild.</li>
-    <li><b>Från e-posten:</b> öppna bilagan, tryck på dela-knappen och välj <b>Bokföring</b>. Appen läser filen direkt.</li>
+    <li><b>Från e-posten:</b> öppna bilagan, tryck på dela-knappen och välj <b>Quee</b>. Appen läser filen direkt.</li>
   </ul>
   <h2>Fyll i manuellt</h2>
   <p>Saknas pappret, eller går det inte att läsa? Välj <span class="kbd">Ny faktura</span>, <span class="kbd">Ny Z-rapport</span> eller <span class="kbd">Ny onlineförsäljning</span> längst ner på fliken Skanna och skriv in uppgifterna.</p>
@@ -505,7 +501,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <h2>Automatisk säkerhetskopia – slå på den en gång</h2>
   <ol class="steps">
     <li>Inställningar → <span class="kbd">Säkerhetskopiering</span> → <span class="kbd">Välj mapp och slå på</span>.</li>
-    <li>Välj eller skapa en mapp, t.ex. <b>Dokument/Bokföring</b>, och tryck <b>Använd den här mappen</b> → <b>Tillåt</b>.</li>
+    <li>Välj eller skapa en mapp, t.ex. <b>Dokument/Quee</b>, och tryck <b>Använd den här mappen</b> → <b>Tillåt</b>.</li>
     <li>Välj ett lösenord på minst 8 tecken och <b>skriv upp det</b>. Utan det går kopiorna inte att öppna.</li>
   </ol>
   <p>Sedan sparar appen en krypterad kopia efter varje ändring (högst en fil per dag) och behåller de tre senaste. Filerna ligger kvar även om appen tas bort.</p>
@@ -535,6 +531,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     <tr><td><b>Historik</b></td><td>Alla registreringar med status.</td></tr>
     <tr><td><b>Förbättrad analys</b></td><td>Valfri AI-läsning online. Av som standard.</td></tr>
     <tr><td><b>Integritet</b></td><td>Vad appen sparar och var.</td></tr>
+    <tr><td><b>Användarguide</b></td><td>Den här guiden som PDF, öppnas i telefonens PDF-läsare.</td></tr>
   </table>
   <div class="tip"><b>Spara papperen.</b> Bokföringslagen kräver att underlagen sparas i sju år. Appen är ett hjälpmedel för att registrera och räkna – papperen är originalen.</div>
   <div class="folio"><span>Inställningar</span><span>14</span></div>

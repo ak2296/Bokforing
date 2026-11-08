@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>Quee – logoförslag 3, pumpaskivor</title>
+<style>
+@font-face { font-family: Inter; src: url(../../assets/fonts/Inter-Regular.otf); font-weight: 400; }
+@font-face { font-family: Inter; src: url(../../assets/fonts/Inter-Medium.otf); font-weight: 500; }
+@page { size: 297mm 210mm; margin: 0; }
+body { margin: 0; font-family: Inter, Arial, sans-serif; color: #10201B; background: #F5F7F4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.sheet { width: 297mm; height: 210mm; padding: 14mm 16mm; box-sizing: border-box; }
+h1 { margin: 0 0 2mm; font-size: 9mm; font-weight: 500; }
+.lead { margin: 0 0 8mm; color: #62706A; font-size: 4mm; }
+.row { display: flex; gap: 7mm; }
+.opt { flex: 1 1 0; min-width: 0; background: #fff; border: 0.3mm solid #E8ECE6; border-radius: 6mm; padding: 7mm; }
+.opt h2 { margin: 0 0 1mm; font-size: 5.4mm; font-weight: 500; }
+.opt p { margin: 0 0 5mm; font-size: 3.4mm; color: #62706A; line-height: 1.45; min-height: 20mm; }
+.icons { display: flex; align-items: flex-end; gap: 6mm; }
+.big { width: 38mm; height: 38mm; }
+.mid { width: 18mm; height: 18mm; }
+.small { width: 9mm; height: 9mm; }
+.word { margin-top: 6mm; display: flex; align-items: center; gap: 3mm; font-size: 8mm; font-weight: 500; letter-spacing: -0.2mm; }
+.word svg { width: 11mm; height: 11mm; }
+.dark { margin-top: 4mm; background: #10201B; border-radius: 3mm; padding: 3mm; display: flex; gap: 4mm; align-items: center; color: #fff; font-size: 3.2mm; }
+.dark svg { width: 12mm; height: 12mm; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- One pumpkin slice: rind, flesh and seeds; points down, tip at 0,0 -->
+    <g id="slice">
+      <path d="M0 0 L-62 -150 A160 160 0 0 1 62 -150 Z" fill="#F08A24"/>
+      <path d="M-62 -150 A160 160 0 0 1 62 -150 L56 -134 A144 144 0 0 0 -56 -134 Z" fill="#B85A12"/>
+      <path d="M0 -12 L-40 -108 A116 116 0 0 1 40 -108 Z" fill="#F6A955"/>
+      <g fill="#FFF4E6"><ellipse cx="-14" cy="-72" rx="5" ry="10" transform="rotate(-12 -14 -72)"/><ellipse cx="10" cy="-88" rx="5" ry="10" transform="rotate(10 10 -88)"/><ellipse cx="-4" cy="-48" rx="4.5" ry="9"/></g>
+    </g>
+
+    <!-- G: a pie chart with one pumpkin slice taken out -->
+    <symbol id="g" viewBox="0 0 512 512">
+      <rect width="512" height="512" rx="112" fill="#0B6B4E"/>
+      <g transform="translate(236 276)">
+        <path d="M0 0 L0 -150 A150 150 0 1 0 142.7 -46.4 Z" fill="#fff"/>
+        <path d="M0 0 L-150 0 A150 150 0 0 0 -46.4 142.7 Z" fill="#B9DFCC"/>
+        <path d="M0 0 L-46.4 142.7 A150 150 0 0 0 106 106 Z" fill="#7CC4A6"/>
+      </g>
+      <g transform="translate(250 257)">
+        <path d="M0 0 L0 -150 A150 150 0 0 1 142.7 -46.4 Z" fill="#F08A24"/>
+        <path d="M0 -150 A150 150 0 0 1 142.7 -46.4" fill="none" stroke="#B85A12" stroke-width="18"/>
+        <path d="M0 -24 L0 -112 A112 112 0 0 1 106.5 -34.6 Z" fill="#F6A955"/>
+        <g fill="#FFF4E6"><ellipse cx="34" cy="-74" rx="6" ry="12" transform="rotate(36 34 -74)"/><ellipse cx="62" cy="-54" rx="6" ry="12" transform="rotate(54 62 -54)"/><ellipse cx="22" cy="-46" rx="5" ry="10" transform="rotate(40 22 -46)"/></g>
+      </g>
+    </symbol>
+
+    <!-- H: three pumpkin slices standing as rising bars -->
+    <symbol id="h" viewBox="0 0 512 512">
+      <rect width="512" height="512" rx="112" fill="#0B6B4E"/>
+      <g transform="translate(156 297) scale(0.62) rotate(180)"><use href="#slice"/></g>
+      <g transform="translate(256 249) scale(0.92) rotate(180)"><use href="#slice"/></g>
+      <g transform="translate(356 198) scale(1.24) rotate(180)"><use href="#slice"/></g>
+      <path d="M96 404 H416" stroke="#fff" stroke-width="16" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- I: a pumpkin cut across: the ring of flesh is the Q, seeds inside -->
+    <symbol id="i" viewBox="0 0 512 512">
+      <rect width="512" height="512" rx="112" fill="#0B6B4E"/>
+      <path d="M256 104 C290 104 300 124 326 128 C352 132 372 120 394 144 C416 168 402 188 410 214 C418 240 438 252 432 284 C426 316 404 320 394 346 C384 372 392 394 364 410 C336 426 318 410 290 418 C262 426 250 440 222 434 C194 428 188 408 162 398 C136 388 116 396 100 370 C84 344 100 326 94 298 C88 270 72 256 80 228 C88 200 108 196 120 172 C132 148 128 124 156 112 C184 100 200 116 226 110 C240 106 246 104 256 104 Z" fill="#F08A24"/>
+      <circle cx="256" cy="268" r="112" fill="#F6A955"/>
+      <circle cx="256" cy="268" r="74" fill="#0B6B4E"/>
+      <g fill="#FFF4E6"><ellipse cx="226" cy="236" rx="7" ry="13" transform="rotate(-30 226 236)"/><ellipse cx="288" cy="240" rx="7" ry="13" transform="rotate(30 288 240)"/><ellipse cx="236" cy="300" rx="7" ry="13" transform="rotate(30 236 300)"/><ellipse cx="282" cy="298" rx="7" ry="13" transform="rotate(-30 282 298)"/></g>
+      <path d="M318 326 L392 404" stroke="#F08A24" stroke-width="40" stroke-linecap="round"/>
+      <path d="M318 326 L392 404" stroke="#B85A12" stroke-width="10" stroke-linecap="round" opacity=".5"/>
+    </symbol>
+  </defs>
+</svg>
+
+<section class="sheet">
+  <h1>Quee – pumpaskivor</h1>
+  <p class="lead">En skiva pumpa är en "andel" – samma tanke som ett cirkeldiagram. Grönt som i appen, pumpan som skiva.</p>
+  <div class="row">
+    <div class="opt">
+      <h2>G · Tårtbit ur diagrammet</h2>
+      <p>Ett cirkeldiagram där en bit är en pumpaskiva, utdragen som i en rapport. Visar andelar, försäljning och moms.</p>
+      <div class="icons"><svg class="big"><use href="#g"/></svg><svg class="mid"><use href="#g"/></svg><svg class="small"><use href="#g"/></svg></div>
+      <div class="word"><svg><use href="#g"/></svg>Quee</div>
+      <div class="dark"><svg><use href="#g"/></svg>På mörk bakgrund</div>
+    </div>
+    <div class="opt">
+      <h2>H · Skivor som staplar</h2>
+      <p>Tre pumpaskivor som växer från vänster till höger, som staplarna i B. Stående på en linje, som i ett diagram.</p>
+      <div class="icons"><svg class="big"><use href="#h"/></svg><svg class="mid"><use href="#h"/></svg><svg class="small"><use href="#h"/></svg></div>
+      <div class="word"><svg><use href="#h"/></svg>Quee</div>
+      <div class="dark"><svg><use href="#h"/></svg>På mörk bakgrund</div>
+    </div>
+    <div class="opt">
+      <h2>I · Genomskuren pumpa som Q</h2>
+      <p>En pumpa skuren på tvären: ringen är bokstaven Q, kärnorna syns i mitten och svansen gör Q:et komplett.</p>
+      <div class="icons"><svg class="big"><use href="#i"/></svg><svg class="mid"><use href="#i"/></svg><svg class="small"><use href="#i"/></svg></div>
+      <div class="word"><svg><use href="#i"/></svg>Quee</div>
+      <div class="dark"><svg><use href="#i"/></svg>På mörk bakgrund</div>
+    </div>
+  </div>
+</section>
+</body>
+</html>

@@ -59,7 +59,7 @@ jobs:
           # Share to the app: PDFs and images from e-mail and other apps.
           sed -i 's/android:launchMode="singleTop"/android:launchMode="singleTask"/' $m
           # The name under the app icon.
-          sed -i 's/android:label="[^"]*"/android:label="Bokföring"/' $m
+          sed -i 's/android:label="[^"]*"/android:label="Quee"/' $m
           if ! grep -q 'application/pdf' $m; then
             perl -0pi -e 's#</intent-filter>#</intent-filter>
             <intent-filter>

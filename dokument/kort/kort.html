@@ -2,7 +2,7 @@
 <html lang="sv">
 <head>
 <meta charset="utf-8">
-<title>Bokföring – kort med nedladdning</title>
+<title>Quee – kort med nedladdning</title>
 <!--
   Kort i visitkortsformat 85 × 55 mm, med 3 mm utfallande kant (91 × 61 mm).
   Sida 1 = framsida, sida 2 = baksida. PDF: python dokument/verktyg/make_docs.py
@@ -22,8 +22,8 @@ body { font-family: Inter, Arial, sans-serif; color: #10201B; -webkit-print-colo
 .front { background: #0B6B4E; color: #fff; }
 .front .ring { position: absolute; right: -16mm; top: -14mm; width: 52mm; height: 52mm; border-radius: 50%; border: 6mm solid rgba(255,255,255,0.07); }
 .front .ring2 { position: absolute; right: 6mm; bottom: -20mm; width: 34mm; height: 34mm; border-radius: 50%; background: rgba(255,255,255,0.06); }
-.front .logo { width: 13mm; height: 13mm; border-radius: 3.2mm; background: #fff; display: flex; align-items: center; justify-content: center; }
-.front .logo img { width: 11.4mm; height: 11.4mm; }
+.front .logo { width: 13mm; height: 13mm; border-radius: 3.2mm; box-shadow: 0 0 0 0.35mm rgba(255,255,255,.35); overflow: hidden; }
+.front .logo img { width: 13mm; height: 13mm; display: block; }
 .front .name { position: absolute; left: 0; top: 17mm; font-size: 17pt; font-weight: 500; letter-spacing: -0.4pt; }
 .front .tag { position: absolute; left: 0; top: 27.5mm; font-size: 7pt; opacity: 0.88; line-height: 1.4; max-width: 50mm; }
 .front .foot { position: absolute; left: 0; bottom: 0; font-size: 5.6pt; opacity: 0.75; letter-spacing: 0.3pt; }
@@ -47,9 +47,9 @@ body { font-family: Inter, Arial, sans-serif; color: #10201B; -webkit-print-colo
   <div class="ring"></div><div class="ring2"></div>
   <div class="safe">
     <div class="logo"><img src="../bilder/app-ikon.png" alt=""></div>
-    <div class="name">Bokföring</div>
+    <div class="name">Quee</div>
     <div class="tag">Fakturor, kvitton och Z-rapporter – skannade, kontrollerade och klara för moms och rapporter.</div>
-    <div class="foot">FÖR ANDROID</div>
+    <div class="foot">MOBIL OCH SURFPLATTA · ANDROID</div>
   </div>
 </section>
 

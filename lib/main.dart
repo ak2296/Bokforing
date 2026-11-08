@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -45,7 +47,7 @@ class _BokforingAppState extends State<BokforingApp> {
   Widget build(BuildContext context) => AppScope(
         controller: widget.controller,
         child: MaterialApp(
-          title: 'Bokföring',
+          title: 'Quee',
           debugShowCheckedModeBanner: false,
           locale: const Locale('sv', 'SE'),
           supportedLocales: const [Locale('sv', 'SE')],
@@ -55,9 +57,48 @@ class _BokforingAppState extends State<BokforingApp> {
             GlobalCupertinoLocalizations.delegate,
           ],
           theme: AppTheme.light(),
+          builder: (context, child) => _Readable(child: child ?? const SizedBox.shrink()),
           home: _setupDone
               ? const Shell()
               : SetupWizard(onDone: () => setState(() => _setupDone = true)),
         ),
       );
+}
+
+/// On a tablet the screens keep a comfortable reading width in the middle,
+/// instead of lines and tables stretched across the whole display.
+class _Readable extends StatelessWidget {
+  static const maxWidth = 840.0;
+  final Widget child;
+  const _Readable({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    if (mq.size.width <= maxWidth) return child;
+    final side = (mq.size.width - maxWidth) / 2;
+    return ColoredBox(
+      color: const Color(0xFFE6EBE5),
+      child: Center(
+        child: SizedBox(
+          width: maxWidth,
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              boxShadow: [BoxShadow(color: Color(0x1A000000), blurRadius: 24)],
+            ),
+            child: MediaQuery(
+              data: mq.copyWith(
+                size: Size(maxWidth, mq.size.height),
+                padding: mq.padding.copyWith(
+                  left: math.max(0.0, mq.padding.left - side),
+                  right: math.max(0.0, mq.padding.right - side),
+                ),
+              ),
+              child: ClipRect(child: child),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

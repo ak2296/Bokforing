@@ -80,7 +80,12 @@ class PreprocessRequest {
   /// Guide frame as fractions of the image (left, top, right, bottom), or
   /// null to use the whole photo.
   final List<double>? frame;
-  const PreprocessRequest(this.bytes, {this.frame});
+
+  /// The paper's corners placed by the user, as fractions of the upright
+  /// photo: top-left, top-right, bottom-right, bottom-left, each x then y.
+  /// The paper is cut out and straightened.
+  final List<double>? corners;
+  const PreprocessRequest(this.bytes, {this.frame, this.corners});
 }
 
 /// Thresholds are provisional. The owner's real photos measured brightness
@@ -97,6 +102,24 @@ PreprocessResult preprocessDocument(PreprocessRequest req) {
   var image = img.decodeImage(req.bytes);
   if (image == null) throw const FormatException('Bilden kunde inte läsas.');
   image = img.bakeOrientation(image);
+
+  final q = req.corners;
+  if (q != null && q.length == 8) {
+    double px(int i) => q[i] * image!.width;
+    double py(int i) => q[i] * image!.height;
+    final tl = img.Point(px(0), py(1)), tr = img.Point(px(2), py(3));
+    final br = img.Point(px(4), py(5)), bl = img.Point(px(6), py(7));
+    double dist(img.Point a, img.Point b) => math.sqrt(math.pow(a.x - b.x, 2) + math.pow(a.y - b.y, 2));
+    final w = ((dist(tl, tr) + dist(bl, br)) / 2).round().clamp(64, 6000);
+    final h = ((dist(tl, bl) + dist(tr, br)) / 2).round().clamp(64, 6000);
+    image = img.copyRectify(image,
+        topLeft: tl,
+        topRight: tr,
+        bottomLeft: bl,
+        bottomRight: br,
+        interpolation: img.Interpolation.linear,
+        toImage: img.Image(width: w, height: h, numChannels: image.numChannels));
+  }
 
   final f = req.frame;
   if (f != null) {

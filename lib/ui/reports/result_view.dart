@@ -154,7 +154,7 @@ class _ResultBody extends StatelessWidget {
         online: data.online,
       );
       final uri = await FilePicker.saveFile(
-          dialogTitle: 'Spara SIE-fil', fileName: 'bokforing_${p.fileTag}.se', bytes: SieExport.encode(text));
+          dialogTitle: 'Spara SIE-fil', fileName: 'quee_${p.fileTag}.se', bytes: SieExport.encode(text));
       if (uri == null) return;
       messenger.showSnackBar(const SnackBar(content: Text('SIE-filen har sparats. Skicka den till din redovisare.')));
     } catch (e) {

@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import '../app_icons.dart';
+import 'crop_page.dart';
 
 const _accent = Color(0xFF5FE0B0);
 const _background = Color(0xFF0C1411);
@@ -18,9 +21,9 @@ class CameraPage extends StatefulWidget {
 
   static final _frames = <String, List<double>>{};
 
-  /// The page found in the viewfinder when [path] was taken, as fractions of
-  /// the upright photo (left, top, right, bottom), or null.
-  static List<double>? frameFor(String path) => _frames.remove(path);
+  /// The paper's corners as the user placed them on photo [path], as
+  /// fractions (top-left, top-right, bottom-right, bottom-left, x then y).
+  static List<double>? cornersFor(String path) => _frames.remove(path);
 
   @override
   State<CameraPage> createState() => _CameraPageState();
@@ -55,6 +58,9 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Upright on phones and tablets alike: the page outline follows the
+    // camera sensor, which is laid out for portrait.
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _init();
     try {
       _level = accelerometerEventStream(samplingPeriod: SensorInterval.uiInterval).listen((e) {
@@ -69,6 +75,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    SystemChrome.setPreferredOrientations(const []);
     _level?.cancel();
     _controller?.dispose();
     super.dispose();
@@ -206,8 +213,19 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
     final histogram = List<int>.filled(256, 0);
     for (var gy = 0; gy < gh; gy++) {
       for (var gx = 0; gx < gw; gx++) {
-        final i = gy * step * stride + gx * step;
-        final v = i < plane.bytes.length ? plane.bytes[i] : 0;
+        // The mean of 3 x 3 points per cell, so print and text blur away and
+        // only the paper and its edges stay.
+        var sum = 0, n = 0;
+        for (var sy = 0; sy < 3; sy++) {
+          for (var sx = 0; sx < 3; sx++) {
+            final i = (gy * step + sy * step ~/ 3) * stride + gx * step + sx * step ~/ 3;
+            if (i < plane.bytes.length) {
+              sum += plane.bytes[i];
+              n++;
+            }
+          }
+        }
+        final v = n == 0 ? 0 : sum ~/ n;
         cells[gy * gw + gx] = v;
         histogram[v]++;
       }
@@ -244,6 +262,10 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
       }
     }
     if (start < 0) return null;
+    // A step in brightness between two neighbouring cells is an edge: the
+    // shadow or tone change where the top paper lies on another one. The
+    // area never grows across it.
+    final edgeStep = (cells[start] * 0.07).round().clamp(8, 24);
     final seen = List<bool>.filled(total, false);
     seen[start] = true;
     final queue = [start];
@@ -270,7 +292,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
         bl = i;
       }
       for (final j in [if (x > 0) i - 1, if (x < gw - 1) i + 1, if (y > 0) i - gw, if (y < gh - 1) i + gw]) {
-        if (!seen[j] && cells[j] > threshold) {
+        if (!seen[j] && cells[j] > threshold && (cells[j] - cells[i]).abs() < edgeStep) {
           seen[j] = true;
           queue.add(j);
         }
@@ -292,32 +314,30 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
     return [topLeft, rest.first, bottomRight, rest.last];
   }
 
-  /// The found page as a crop for the photo, with a margin so no text is cut.
-  List<double>? _cropFrame() {
-    final q = _quad;
-    if (q == null) return null;
-    const pad = 0.03;
-    final xs = q.map((p) => p.dx), ys = q.map((p) => p.dy);
-    final f = [
-      (xs.reduce((a, b) => a < b ? a : b) - pad).clamp(0.0, 1.0),
-      (ys.reduce((a, b) => a < b ? a : b) - pad).clamp(0.0, 1.0),
-      (xs.reduce((a, b) => a > b ? a : b) + pad).clamp(0.0, 1.0),
-      (ys.reduce((a, b) => a > b ? a : b) + pad).clamp(0.0, 1.0),
-    ];
-    // Nearly the whole photo: nothing to leave out.
-    return (f[2] - f[0]) * (f[3] - f[1]) > 0.9 ? null : f;
-  }
-
   Future<void> _capture() async {
     final c = _controller;
     if (c == null || _busy || !c.value.isInitialized) return;
     setState(() => _busy = true);
     try {
-      final frame = _cropFrame();
+      final seen = _quad;
       await _stopStream();
       final file = await c.takePicture();
+      if (!mounted) return;
+      // The user places the corners on the photo itself; only the paper
+      // inside them is read.
+      final corners = await Navigator.of(context)
+          .push<List<double>>(MaterialPageRoute(builder: (_) => CropPage(path: file.path, initial: seen)));
+      if (corners == null) {
+        try {
+          await File(file.path).delete();
+        } on FileSystemException {
+          // Camera temp file; the cache is cleaned at start anyway.
+        }
+        await _startStream();
+        return;
+      }
       _shots.add(file.path);
-      if (frame != null) CameraPage._frames[file.path] = frame;
+      CameraPage._frames[file.path] = corners;
       if (!_inParts) {
         if (mounted) Navigator.pop(context, List<String>.of(_shots));
         return;
@@ -342,7 +362,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
       body = _Message(
         icon: AppIcons.cameraOff,
         text: 'Appen behöver tillgång till kameran för att skanna dokument.\n\n'
-            'Om du tidigare har nekat: öppna telefonens Inställningar → Appar → Bokföring → Behörigheter och tillåt Kamera.',
+            'Om du tidigare har nekat: öppna telefonens Inställningar → Appar → Quee → Behörigheter och tillåt Kamera.',
         action: FilledButton(onPressed: _retry, child: const Text('Försök igen')),
       );
     } else if (_error != null) {

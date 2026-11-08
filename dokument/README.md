@@ -1,6 +1,6 @@
 # Dokument
 
-Användarguide, nedladdningskort och förpackning för appen Bokföring.
+Användarguide, nedladdningskort och förpackning för appen Quee.
 
 | Mapp | Innehåll |
 |---|---|
@@ -17,6 +17,6 @@ Gör om PDF-filerna efter en ändring:
 python dokument/verktyg/make_docs.py
 ```
 
-QR-koden leder till https://ak2296.github.io/bokforing-app/, där den senaste versionen av appen kan laddas ner.
+QR-koden leder till https://ak2296.github.io/quee/, där den senaste versionen av appen kan laddas ner.
 
 Ändringar i den här mappen startar inget nytt bygge av appen.

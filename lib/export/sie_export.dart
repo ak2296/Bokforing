@@ -131,7 +131,7 @@ class SieExport {
     line('#FLAGGA 0');
     line('#FORMAT PC8');
     line('#SIETYP 4');
-    line('#PROGRAM ${_q('Bokföring')} ${_q('1')}');
+    line('#PROGRAM ${_q('Quee')} ${_q('1')}');
     line('#GEN ${d(SwedishDates.iso(generated ?? DateTime.now()))}');
     line('#FNAMN ${_q(profile.name)}');
     if (profile.orgNumber.trim().isNotEmpty) line('#ORGNR ${profile.orgNumber.trim()}');

@@ -54,7 +54,7 @@ void backupFormatTests() {
   test('A backup inside a ZIP file can be imported', () async {
     final bytes = await Backup.encrypt(sample, 'hemligt-lösenord');
     for (final level in [0, 6]) {
-      final zip = ZipEncoder().encode(Archive()..addFile(ArchiveFile('mapp/bokforing_2026-11-08.bkp', bytes.length, bytes)
+      final zip = ZipEncoder().encode(Archive()..addFile(ArchiveFile('mapp/quee_2026-11-08.bkp', bytes.length, bytes)
         ..compression = level == 0 ? CompressionType.none : CompressionType.deflate));
       final back = await Backup.decrypt(zip, 'hemligt-lösenord');
       expect((back['tables'] as Map)['invoices'], hasLength(200));

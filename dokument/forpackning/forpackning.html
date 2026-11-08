@@ -2,7 +2,7 @@
 <html lang="sv">
 <head>
 <meta charset="utf-8">
-<title>Bokföring – förpackning</title>
+<title>Quee – förpackning</title>
 <!--
   Tuck-box för användarguiden (A5) och kortet. Innermått 154 × 216 × 14 mm.
   Sida 1: tryckfil med stans- och biglinjer (A3 liggande, skala 1:1).
@@ -26,8 +26,8 @@ svg.die { position: absolute; left: 0; top: 0; width: 420mm; height: 297mm; }
 
 /* Front panel art */
 .front-art { left: 210mm; top: 40mm; width: 154mm; height: 216mm; overflow: hidden; }
-.front-art .logo { position: absolute; left: 14mm; top: 16mm; width: 24mm; height: 24mm; border-radius: 6mm; background: #fff; display: flex; align-items: center; justify-content: center; }
-.front-art .logo img { width: 21mm; height: 21mm; }
+.front-art .logo { position: absolute; left: 14mm; top: 16mm; width: 24mm; height: 24mm; border-radius: 6mm; box-shadow: 0 0 0 0.6mm rgba(255,255,255,.35); overflow: hidden; }
+.front-art .logo img { width: 24mm; height: 24mm; display: block; }
 .front-art h1 { position: absolute; left: 14mm; top: 46mm; margin: 0; font-size: 21mm; line-height: 1; font-weight: 500; letter-spacing: -0.6mm; }
 .front-art .sub { position: absolute; left: 14mm; top: 72mm; width: 74mm; font-size: 4.4mm; line-height: 1.4; opacity: .92; }
 .front-art .bottom { position: absolute; left: 14mm; right: 14mm; bottom: 14mm; display: flex; justify-content: space-between; align-items: flex-end; font-size: 3.4mm; opacity: .9; }
@@ -134,14 +134,14 @@ svg.die { position: absolute; left: 0; top: 0; width: 420mm; height: 297mm; }
     <div class="legal">Appen är ett hjälpmedel för registrering och beräkning. Beräknad moms ersätter inte momsdeklarationen. Spara originalunderlagen enligt bokföringslagen.</div>
   </div>
 
-  <div class="abs spine green" style="left:196mm"><span>BOKFÖRING</span></div>
-  <div class="abs spine green" style="left:364mm"><span>BOKFÖRING</span></div>
-  <div class="abs lid green">BOKFÖRING</div>
+  <div class="abs spine green" style="left:196mm"><span>QUEE</span></div>
+  <div class="abs spine green" style="left:364mm"><span>QUEE</span></div>
+  <div class="abs lid green">QUEE</div>
 
   <div class="abs front-art green">
     <div class="ring"></div>
     <div class="logo"><img src="../bilder/app-ikon.png" alt=""></div>
-    <h1>Bokföring</h1>
+    <h1>Quee</h1>
     <div class="sub">Fakturor, kvitton och Z-rapporter – skannade, kontrollerade och klara för moms och rapporter.</div>
     <div class="tablet"><div class="tscr"><div class="tcol l"><div class="thero">Utgifter<b>21 506 kr</b></div><div class="tlist"><div><span>Snabbgross</span><span>5 443</span></div><div><span>Telenor</span><span>1 433</span></div><div><span>E.ON</span><span>2 180</span></div><div><span>Securitas</span><span>890</span></div></div></div><div class="tcol r"><div class="tchart">Försäljning och utgifter<div class="tbars"><i style="height:45%"></i><i style="height:30%"></i><i style="height:62%"></i><i style="height:38%"></i><i style="height:70%"></i><i style="height:42%"></i><i style="height:84%"></i><i style="height:36%"></i><i style="height:76%"></i><i style="height:40%"></i><i style="height:92%"></i><i style="height:44%"></i></div></div></div></div></div>
     <div class="phone"><div class="scr">
@@ -190,7 +190,7 @@ svg.die { position: absolute; left: 0; top: 0; width: 420mm; height: 297mm; }
   <h1 class="ptitle">Förpackning – förhandsvisning</h1>
   <p class="plead">En smal tuck-box i kartong, lagom för användarguiden i A5 och kortet. Den skickas platt till tryckeriet och viks ihop. Framsidan är grön med appens ikon; baksidan berättar hur appen fungerar.</p>
   <div class="contents">
-    <div class="item"><div class="thumb-guide"><img src="../bilder/app-ikon.png" alt="" style="width:9mm;height:9mm;background:#fff;border-radius:2mm;display:block;margin-bottom:3mm">Bokföring<small>Användarguide</small></div><div class="t2"><b>Användarguide</b>15 sidor i A5 med bilder: installera, skanna, kontrollera, rapporter och säkerhetskopia.</div></div>
+    <div class="item"><div class="thumb-guide"><img src="../bilder/app-ikon.png" alt="" style="width:9mm;height:9mm;border-radius:2mm;display:block;margin-bottom:3mm;box-shadow:0 0 0 .4mm rgba(255,255,255,.35)">Quee<small>Användarguide</small></div><div class="t2"><b>Användarguide</b>15 sidor i A5 med bilder: installera, skanna, kontrollera, rapporter och säkerhetskopia.</div></div>
     <div class="item"><div class="thumb-card"><img src="../bilder/qr-ladda-ner.svg" alt=""><span>Ladda ner<br>appen</span></div><div class="t2"><b>Kort med QR-kod</b>Leder till den senaste versionen av appen. Aktiveringskoden skickas separat.</div></div>
   </div>
   <div class="stage">
@@ -199,7 +199,7 @@ svg.die { position: absolute; left: 0; top: 0; width: 420mm; height: 297mm; }
       <div class="f green"><div class="scale"><div class="front-art green" style="position:absolute; left:0; top:0; width:154mm; height:216mm; overflow:hidden">
         <div class="ring"></div>
         <div class="logo"><img src="../bilder/app-ikon.png" alt=""></div>
-        <h1>Bokföring</h1>
+        <h1>Quee</h1>
         <div class="sub">Fakturor, kvitton och Z-rapporter – skannade, kontrollerade och klara för moms och rapporter.</div>
         <div class="tablet"><div class="tscr"><div class="tcol l"><div class="thero">Utgifter<b>21 506 kr</b></div><div class="tlist"><div><span>Snabbgross</span><span>5 443</span></div><div><span>Telenor</span><span>1 433</span></div><div><span>E.ON</span><span>2 180</span></div><div><span>Securitas</span><span>890</span></div></div></div><div class="tcol r"><div class="tchart">Försäljning och utgifter<div class="tbars"><i style="height:45%"></i><i style="height:30%"></i><i style="height:62%"></i><i style="height:38%"></i><i style="height:70%"></i><i style="height:42%"></i><i style="height:84%"></i><i style="height:36%"></i><i style="height:76%"></i><i style="height:40%"></i><i style="height:92%"></i><i style="height:44%"></i></div></div></div></div></div>
     <div class="phone"><div class="scr">
@@ -209,7 +209,7 @@ svg.die { position: absolute; left: 0; top: 0; width: 420mm; height: 297mm; }
         </div></div>
         <div class="bottom"><span>Användarguide<br>Nedladdningskort</span><span class="badge">MOBIL OCH SURFPLATTA · ANDROID</span></div>
       </div></div></div>
-      <div class="s"><span>BOKFÖRING</span></div>
+      <div class="s"><span>QUEE</span></div>
       <div class="t"></div>
     </div>
   </div>
