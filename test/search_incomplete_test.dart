@@ -4,6 +4,7 @@ import 'package:bokforing/domain/dates.dart';
 import 'package:bokforing/domain/invoice_filter.dart';
 import 'package:bokforing/domain/models.dart';
 import 'package:bokforing/domain/money.dart';
+import 'package:bokforing/domain/vat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -14,7 +15,7 @@ Invoice _inv({
   int total = 52100,
   int vat = 2947,
   String type = 'varuinkop',
-  bool noVat = false,
+  bool zeroRate = false,
 }) =>
     Invoice(
       invoiceDate: date,
@@ -23,7 +24,7 @@ Invoice _inv({
       total: Money(total),
       vatTotal: Money(vat),
       costType: type,
-      noVat: noVat,
+      vatLines: zeroRate ? const [InvoiceVatLine(rate: VatRate.zero, vat: Money.zero)] : const [],
       meta: const RecordMeta(source: RecordSource.manual),
     );
 
@@ -53,9 +54,9 @@ void main() {
       expect(_inv(total: 0, vat: 0).missingFields, ['belopp', 'moms']);
     });
 
-    test('0 kr moms is fine only when confirmed', () {
+    test('0 kr moms is fine only with a 0 % row', () {
       expect(_inv(vat: 0).missingFields, ['moms']);
-      expect(_inv(vat: 0, noVat: true).missingFields, isEmpty);
+      expect(_inv(vat: 0, zeroRate: true).missingFields, isEmpty);
     });
   });
 
@@ -89,14 +90,13 @@ void main() {
     });
   });
 
-  test('"Ingen moms" is saved and read back', () async {
+  test('a saved 0 % row keeps the invoice complete', () async {
     sqfliteFfiInit();
     final db = await AppDatabase.open(factory: databaseFactoryFfi, path: inMemoryDatabasePath);
     final repo = Repository(db);
-    final id = await repo.saveInvoice(_inv(vat: 0, noVat: true));
+    final id = await repo.saveInvoice(_inv(vat: 0, zeroRate: true));
     final back = await repo.invoice(id);
-    expect(back!.noVat, isTrue);
-    expect(back.isIncomplete, isFalse);
+    expect(back!.isIncomplete, isFalse);
     await db.close();
   });
 }

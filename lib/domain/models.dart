@@ -180,12 +180,8 @@ class Invoice {
   /// [CostType.key], or '' when not chosen.
   final String costType;
 
-  /// The user confirmed the document carries no VAT, so 0 kr moms is right.
-  final bool noVat;
-
   const Invoice({
     this.costType = '',
-    this.noVat = false,
     this.paid = false,
     this.paidDate,
     this.bankgiro = '',
@@ -257,7 +253,6 @@ extension InvoiceCopy on Invoice {
         bankgiro: bankgiro,
         plusgiro: plusgiro,
         costType: costType,
-        noVat: noVat,
       );
 
   /// What the reports need but the invoice lacks, in Swedish, e.g.
@@ -267,7 +262,8 @@ extension InvoiceCopy on Invoice {
         if (supplier.trim().isEmpty) 'leverantör',
         if (invoiceDate.trim().isEmpty) 'datum',
         if (total.isZero) 'belopp',
-        if (vatTotal.isZero && !noVat) 'moms',
+        // A 0 % row under "Moms per momssats" is the user's word that the paper has no moms.
+        if (vatTotal.isZero && !vatLines.any((l) => l.rate.basisPoints == 0)) 'moms',
       ];
 
   bool get isIncomplete => missingFields.isNotEmpty;
