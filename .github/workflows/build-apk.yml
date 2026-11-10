@@ -59,6 +59,11 @@ jobs:
           # The share plugin compiles Java and Kotlin for different JVM targets;
           # that is harmless on Android, so the strict check is turned off.
           grep -q 'jvm.target.validation' android/gradle.properties || echo 'kotlin.jvm.target.validation.mode=IGNORE' >> android/gradle.properties
+          # The own PC has 8 GB in all; the template's 8 GB Gradle heap froze it.
+          if [ "$RUNNER_ENVIRONMENT" = "self-hosted" ]; then
+            sed -i '/^org.gradle.jvmargs=/d; /^org.gradle.daemon=/d; /^org.gradle.workers.max=/d' android/gradle.properties
+            printf 'org.gradle.jvmargs=-Xmx2G -XX:MaxMetaspaceSize=1G\norg.gradle.daemon=false\norg.gradle.workers.max=2\n' >> android/gradle.properties
+          fi
           # Share to the app: PDFs and images from e-mail and other apps.
           sed -i 's/android:launchMode="singleTop"/android:launchMode="singleTask"/' $m
           # The name under the app icon.
