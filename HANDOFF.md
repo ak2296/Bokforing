@@ -1,6 +1,6 @@
 # HANDOFF – Bokföringsassistent (Flutter)
 
-Read this whole file first. It is the full context from a long chat with the owner (a non-developer who runs a small restaurant in Malmö, Sweden). Reply to the owner in plain language; all app UI text must be Swedish.
+Read this whole file first. It is the full context from a long chat with the owner (a non-developer who runs a small business in Sweden). Reply to the owner in plain language; all app UI text must be Swedish.
 
 ## 1. What the app is
 A local-first Swedish bookkeeping assistant for small businesses (Android first, iPhone later; hence Flutter). The user photographs:
@@ -52,9 +52,9 @@ Rule-based extraction cannot understand arbitrary invoice/Z-report layouts (ever
 - Gemini facts checked 2026-10-31 on ai.google.dev: free tier exists for `gemini-3.8-flash` and `gemini-3.5-flash-lite` (both image input + structured output); free-tier content "used to improve our products"; limits only visible in AI Studio.
 
 ## 6. Owner's real documents (what OCR/extraction must cope with)
-- **Centrumgrossisten AB invoice (A4, FAKTURA)**: "Fakturanr", "Kundnr 999", due-date header with the dates on the next row, "Momspliktigt belopp 491,87", "Moms 6% 29,47", "Moms 25% 0,00", "Öresutj. -0,34", "Att betala SEK 521,00", stamp "BETALD", QR code, supplier line "CENTRUMGROSSISTEN AB". Extraction was close to right in the debug build (total and VAT correct).
-- **Willys receipt**: "Totalt 598,90 SEK", "Mottaget Kontokort 598,90", VAT table "Moms% Moms Netto Brutto / 6,00 31,05 517,95 549,00 / 25,00 9,98 39,92 49,90".
-- **Lunds Universitet card receipt**: no VAT printed, "Totalt 200,00kr", "Kortbetalning".
+- **Wholesaler invoice (A4, FAKTURA)**: "Fakturanr", "Kundnr", due-date header with the dates on the next row, "Momspliktigt belopp 491,87", "Moms 6% 29,47", "Moms 25% 0,00", "Öresutj. -0,34", "Att betala SEK 521,00", stamp "BETALD", QR code, supplier name in capitals. Extraction was close to right in the debug build (total and VAT correct).
+- **Supermarket receipt**: "Totalt 598,90 SEK", "Mottaget Kontokort 598,90", VAT table "Moms% Moms Netto Brutto / 6,00 31,05 517,95 549,00 / 25,00 9,98 39,92 49,90".
+- **Card receipt from a public body**: no VAT printed, "Totalt 200,00kr", "Kortbetalning".
 - **Z-report, A4 version** (OCR text was good): sections include "Periodens försäljning kr 12 955,00", "Öresutjämning", "Betalningar", "Tjänster", "Varor", "Skulder", then **"Försäljning per varugrupp"** with rows such as Dryck, Dryck avhämtning, Mat 1 912, Mat avhämtning 1 507, Sprit, Tobak, Vin, Öl. Those rows (163+70+1 912+1 507+880+2 512+89+5 822) sum exactly to 12 955. Later sections: per momsgrupp, kvitto counts, grand total, bokföringsunderlag, "Kassalåda och växelkassa". Dated 2026-10-31.
 - **Z-report, long thermal strip version**: vertical "EJ KVITTO PÅ KÖP" printed along both edges; photographed from far away the OCR was garbage (digits wrong, special characters lost). Needs close-ups (long-document mode) or the AI step. Some owner invoices are long with small print; A4 Z-reports also exist. **Layouts differ between cash registers and suppliers - do not hard-code one.**
 - Many supplier invoices also arrive as PDF by email: plan a "Välj fil" import for PDFs/images (check packages first).
