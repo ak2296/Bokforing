@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-const chartSecond = Color(0xFFE8916E);
+const chartSecond = AppTheme.pumpkinLight;
 const chartPrevious = Color(0xFF9FB3AA);
 
 /// Two bars per label, e.g. sales and expenses per month.

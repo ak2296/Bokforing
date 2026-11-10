@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../app/app_controller.dart';
 import '../../domain/dates.dart';
@@ -154,12 +159,46 @@ class _ResultBody extends StatelessWidget {
         invoices: data.invoices,
         online: data.online,
       );
-      final uri = await FilePicker.saveFile(
-          dialogTitle: 'Spara SIE-fil', fileName: 'quee_${p.fileTag}.se', bytes: SieExport.encode(text));
+      final bytes = SieExport.encode(text);
+      final fileName = 'quee_${p.fileTag}.se';
+      if (!context.mounted) return;
+      final email = await showModalBottomSheet<bool>(
+        context: context,
+        showDragHandle: true,
+        builder: (c) => Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(AppIcons.mail),
+            title: const Text('Skicka med e-post'),
+            subtitle: const Text('Öppnar e-posten med filen bifogad'),
+            onTap: () => Navigator.pop(c, true),
+          ),
+          ListTile(
+            leading: const Icon(AppIcons.save),
+            title: const Text('Spara på telefonen'),
+            onTap: () => Navigator.pop(c, false),
+          ),
+          const SizedBox(height: 8),
+        ]),
+      );
+      if (email == null) return;
+      if (email) {
+        // The share menu lists the mail apps; the recipient is chosen there.
+        final company = data.profile.name.trim().isEmpty ? 'Quee' : data.profile.name.trim();
+        final file = File(path.join((await getTemporaryDirectory()).path, fileName));
+        await file.writeAsBytes(bytes, flush: true);
+        await SharePlus.instance.share(ShareParams(
+          files: [XFile(file.path, mimeType: 'application/octet-stream')],
+          subject: 'SIE-fil $company, ${p.title}',
+          text: 'Hej!\n\nHär kommer SIE-filen för ${p.title} från $company '
+              '(${p.from} – ${p.to}). Den kan läsas in i Fortnox, Visma, Bokio och andra bokföringsprogram.\n\nVänliga hälsningar\n$company',
+        ));
+        return;
+      }
+      final uri = await FilePicker.saveFile(dialogTitle: 'Spara SIE-fil', fileName: fileName, bytes: bytes);
       if (uri == null) return;
       messenger.showSnackBar(const SnackBar(content: Text('SIE-filen har sparats. Skicka den till din redovisare.')));
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('SIE-filen kunde inte sparas: $e')));
+      messenger.showSnackBar(SnackBar(content: Text('SIE-filen kunde inte skapas: $e')));
     }
   }
 

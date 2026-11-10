@@ -37,6 +37,7 @@ class AppIcons {
   static const IconData info = TablerIcons.info_circle;
   static const IconData language = TablerIcons.language;
   static const IconData lock = TablerIcons.lock;
+  static const IconData mail = TablerIcons.mail;
   static const IconData cameraOff = TablerIcons.camera_off;
   static const IconData notifications = TablerIcons.bell;
   static const IconData payments = TablerIcons.cash;

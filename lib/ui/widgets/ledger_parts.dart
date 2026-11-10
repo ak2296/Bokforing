@@ -302,4 +302,4 @@ class ShareBar extends StatelessWidget {
 
 /// Greens for sales, warm tones for costs; both readable on white.
 const salesPalette = [Color(0xFF0B6B4E), Color(0xFF3E9B7A), Color(0xFF7CC4A6), Color(0xFFB9DFCC), Color(0xFF5B7F72), Color(0xFF9AA9A2)];
-const costPalette = [Color(0xFFB4553A), Color(0xFFE8916E), Color(0xFFF2B89F), Color(0xFF8A5300), Color(0xFFD9A066), Color(0xFFB0A08A)];
+const costPalette = [AppTheme.pumpkin, AppTheme.pumpkinLight, AppTheme.pumpkinPale, Color(0xFF8A5300), Color(0xFFD9A066), Color(0xFFB0A08A)];

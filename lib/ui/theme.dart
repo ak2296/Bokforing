@@ -13,6 +13,14 @@ class AppTheme {
   static const warningTint = Color(0xFFFFF6E5);
   static const warningBorder = Color(0xFFF4E2BC);
   static const ok = Color(0xFF0B6B4E);
+  /// Pumpkin orange, the second brand colour: expenses and "Osäker" readings.
+  static const pumpkin = Color(0xFFE2600D);
+  static const pumpkinLight = Color(0xFFF2832E);
+  static const pumpkinPale = Color(0xFFF9B27A);
+  static const pumpkinTint = Color(0xFFFDE6D3);
+  static const pumpkinBorder = Color(0xFFF8C29A);
+  static const pumpkinText = Color(0xFFB04A0A);
+
   /// Invoices missing data the reports need ("Fyll i"); red stays for overdue.
   static const fix = Color(0xFF3C3489);
   static const fixTint = Color(0xFFEEEDFE);

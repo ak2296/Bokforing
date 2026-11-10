@@ -15,8 +15,8 @@ import 'widgets/common.dart';
 import 'widgets/ledger_parts.dart';
 
 /// Colours for expenses, matching the expenses bars on Översikt.
-const _expense = Color(0xFFB4553A);
-const _expenseTint = Color(0xFFFBE9E2);
+const _expense = AppTheme.pumpkin;
+const _expenseTint = AppTheme.pumpkinTint;
 
 class ExpensesPage extends StatefulWidget {
   const ExpensesPage({super.key});
