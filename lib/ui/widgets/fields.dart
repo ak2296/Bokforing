@@ -19,7 +19,7 @@ class ConfidenceBadge extends StatelessWidget {
     // Säker green check, Kontrollera yellow triangle, Osäker pumpkin question mark.
     final (icon, color) = switch (c) {
       Confidence.high => (AppIcons.checkCircle, AppTheme.ok),
-      Confidence.low => (AppIcons.help, AppTheme.pumpkinText),
+      Confidence.low => (AppIcons.help, AppTheme.unsure),
       _ => (AppIcons.warning, AppTheme.warning),
     };
     return Tooltip(message: c.label, child: Icon(icon, color: color, semanticLabel: c.label));
@@ -33,9 +33,9 @@ InputDecoration _decoration(BuildContext context, String label, Confidence? c, {
     hintText: hint,
     suffixText: suffix,
     filled: low,
-    fillColor: !low ? null : (c == Confidence.low ? AppTheme.pumpkinTint : AppTheme.warningTint),
+    fillColor: !low ? null : (c == Confidence.low ? AppTheme.unsureTint : AppTheme.warningTint),
     helperText: low ? (c == Confidence.low ? 'Osäker – kontrollera' : 'Kontrollera') : null,
-    helperStyle: !low ? null : TextStyle(color: c == Confidence.low ? AppTheme.pumpkinText : AppTheme.warning),
+    helperStyle: !low ? null : TextStyle(color: c == Confidence.low ? AppTheme.unsure : AppTheme.warning),
     prefixIcon: c == null ? null : Padding(padding: const EdgeInsets.all(12), child: ConfidenceBadge(c)),
   );
 }

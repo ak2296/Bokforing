@@ -21,6 +21,10 @@ class AppTheme {
   static const pumpkinBorder = Color(0xFFF8C29A);
   static const pumpkinText = Color(0xFFB04A0A);
 
+  /// "Osäker" readings: a stronger orange field than the yellow "Kontrollera".
+  static const unsure = Color(0xFF873605);
+  static const unsureTint = Color(0xFFF9C08E);
+
   /// Invoices missing data the reports need ("Fyll i"); red stays for overdue.
   static const fix = Color(0xFF3C3489);
   static const fixTint = Color(0xFFEEEDFE);

@@ -13,8 +13,8 @@
 
 :root {
   --green: #0B6B4E; --green-2: #3E9B7A; --tint: #E4F2EC; --ink: #10201B; --muted: #62706A;
-  --bg: #F5F7F4; --line: #E8ECE6; --amber: #8A5300; --amber-tint: #FFF6E5; --coral: #B4553A;
-  --coral-tint: #FBE9E2; --yellow: #FFD600;
+  --bg: #F5F7F4; --line: #E8ECE6; --amber: #8A5300; --amber-tint: #FFF6E5; --coral: #E2600D;
+  --coral-tint: #FDE6D3; --yellow: #FFD600;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -45,6 +45,24 @@ table.t { width: 100%; border-collapse: collapse; font-size: 8.6pt; margin: 2mm 
 table.t td, table.t th { text-align: left; padding: 1.4mm 1.5mm; border-bottom: 0.3mm solid var(--line); vertical-align: top; }
 table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 
+/* ---------- Detaljbilder: en knapp eller en del av skärmen ---------- */
+.detail { background: var(--bg); border-radius: 3mm; padding: 2.4mm 3mm; margin: 3mm 0; font-size: 7.6pt; line-height: 1.35; }
+.detail .cap { font-size: 7pt; color: var(--muted); margin: 0 0 1.4mm; }
+.ui { background: #fff; border: 0.3mm solid var(--line); border-radius: 2mm; padding: 1.5mm 2.2mm; display: flex; align-items: center; gap: 2mm; }
+.ui + .ui { margin-top: 1.2mm; }
+.ui .grow { flex: 1; }
+.ui small { display: block; color: var(--muted); font-size: 6.4pt; }
+.sw { width: 7mm; height: 4mm; border-radius: 2mm; background: #c9d1cc; position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; top: 0.5mm; left: 0.5mm; width: 3mm; height: 3mm; border-radius: 50%; background: #fff; }
+.sw.on { background: var(--green); }
+.sw.on::after { left: 3.5mm; }
+.flow { display: flex; align-items: stretch; gap: 1.6mm; }
+.flow > .ui { flex: 1; flex-direction: column; align-items: flex-start; gap: 0.6mm; }
+.flow .arr { align-self: center; color: var(--muted); font-size: 9pt; }
+.gbtn { background: var(--green); color: #fff; border-radius: 1.6mm; padding: 0.6mm 2mm; font-weight: 500; white-space: nowrap; }
+.pill { display: inline-block; border-radius: 1.2mm; padding: 0.2mm 1.4mm; font-size: 6.6pt; font-weight: 500; }
+.drag { color: #aeb9b3; letter-spacing: -0.4mm; }
+
 /* ---------- Telefonskisser ---------- */
 .phone { width: 50mm; height: 100mm; border-radius: 6mm; background: #1b2521; padding: 1.6mm; box-shadow: 0 1mm 3mm rgba(0,0,0,0.18); }
 .phone.small { width: 44mm; height: 88mm; }
@@ -56,7 +74,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 .body { padding: 0 2.5mm; }
 .card { background: #fff; border: 0.25mm solid var(--line); border-radius: 2.2mm; padding: 1.8mm; margin-bottom: 1.5mm; }
 .hero { border-radius: 2.6mm; padding: 2mm 2.4mm; color: #fff; margin-bottom: 1.5mm; background: linear-gradient(135deg, #0B6B4E, #084d38); }
-.hero.coral { background: linear-gradient(135deg, #B4553A, #82402c); }
+.hero.coral { background: linear-gradient(135deg, #E2600D, #A34509); }
 .hero .big { font-size: 9.5pt; font-weight: 500; margin: 0.6mm 0 1mm; }
 .hero .stats { display: flex; border-top: 0.2mm solid rgba(255,255,255,0.25); padding-top: 1mm; font-size: 4.6pt; }
 .hero .stats div { flex: 1; } .hero .stats b { display: block; font-size: 5.6pt; font-weight: 500; }
@@ -76,7 +94,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 .bars { display: flex; align-items: flex-end; gap: 1.2mm; height: 12mm; padding: 1mm 0; }
 .bars div { flex: 1; display: flex; gap: 0.4mm; align-items: flex-end; height: 100%; }
 .bars s { flex: 1; background: var(--green); border-radius: 0.5mm 0.5mm 0 0; text-decoration: none; }
-.bars s + s { background: #E8916E; }
+.bars s + s { background: #F2832E; }
 .field { background: #fff; border: 0.25mm solid var(--line); border-radius: 1.6mm; padding: 1mm 1.6mm; margin-bottom: 1.2mm; position: relative; }
 .field label { display: block; color: var(--muted); font-size: 4.2pt; }
 .field .v { font-size: 6pt; }
@@ -128,7 +146,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 .icon-ok, .icon-q, .icon-x { display: inline-block; width: 3.4mm; height: 3.4mm; border-radius: 50%; vertical-align: -0.6mm; margin-right: 1mm; }
 .icon-ok { border: 0.5mm solid var(--green); }
 .icon-q { border: 0.5mm solid var(--amber); background: var(--amber-tint); }
-.icon-x { background: #F6F2E8; border: 0.5mm solid #b38a3c; }
+.icon-x { background: #F9C08E; border: 0.5mm solid #873605; }
 </style>
 
 <style>

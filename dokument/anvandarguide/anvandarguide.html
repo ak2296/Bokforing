@@ -13,8 +13,8 @@
 @page { size: 148mm 210mm; margin: 0; }
 :root {
   --green: #0B6B4E; --green-2: #3E9B7A; --tint: #E4F2EC; --ink: #10201B; --muted: #62706A;
-  --bg: #F5F7F4; --line: #E8ECE6; --amber: #8A5300; --amber-tint: #FFF6E5; --coral: #B4553A;
-  --coral-tint: #FBE9E2; --yellow: #FFD600;
+  --bg: #F5F7F4; --line: #E8ECE6; --amber: #8A5300; --amber-tint: #FFF6E5; --coral: #E2600D;
+  --coral-tint: #FDE6D3; --yellow: #FFD600;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -45,6 +45,24 @@ table.t { width: 100%; border-collapse: collapse; font-size: 8.6pt; margin: 2mm 
 table.t td, table.t th { text-align: left; padding: 1.4mm 1.5mm; border-bottom: 0.3mm solid var(--line); vertical-align: top; }
 table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 
+/* ---------- Detaljbilder: en knapp eller en del av skärmen ---------- */
+.detail { background: var(--bg); border-radius: 3mm; padding: 2.4mm 3mm; margin: 3mm 0; font-size: 7.6pt; line-height: 1.35; }
+.detail .cap { font-size: 7pt; color: var(--muted); margin: 0 0 1.4mm; }
+.ui { background: #fff; border: 0.3mm solid var(--line); border-radius: 2mm; padding: 1.5mm 2.2mm; display: flex; align-items: center; gap: 2mm; }
+.ui + .ui { margin-top: 1.2mm; }
+.ui .grow { flex: 1; }
+.ui small { display: block; color: var(--muted); font-size: 6.4pt; }
+.sw { width: 7mm; height: 4mm; border-radius: 2mm; background: #c9d1cc; position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; top: 0.5mm; left: 0.5mm; width: 3mm; height: 3mm; border-radius: 50%; background: #fff; }
+.sw.on { background: var(--green); }
+.sw.on::after { left: 3.5mm; }
+.flow { display: flex; align-items: stretch; gap: 1.6mm; }
+.flow > .ui { flex: 1; flex-direction: column; align-items: flex-start; gap: 0.6mm; }
+.flow .arr { align-self: center; color: var(--muted); font-size: 9pt; }
+.gbtn { background: var(--green); color: #fff; border-radius: 1.6mm; padding: 0.6mm 2mm; font-weight: 500; white-space: nowrap; }
+.pill { display: inline-block; border-radius: 1.2mm; padding: 0.2mm 1.4mm; font-size: 6.6pt; font-weight: 500; }
+.drag { color: #aeb9b3; letter-spacing: -0.4mm; }
+
 /* ---------- Telefonskisser ---------- */
 .phone { width: 50mm; height: 100mm; border-radius: 6mm; background: #1b2521; padding: 1.6mm; box-shadow: 0 1mm 3mm rgba(0,0,0,0.18); }
 .phone.small { width: 44mm; height: 88mm; }
@@ -56,7 +74,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 .body { padding: 0 2.5mm; }
 .card { background: #fff; border: 0.25mm solid var(--line); border-radius: 2.2mm; padding: 1.8mm; margin-bottom: 1.5mm; }
 .hero { border-radius: 2.6mm; padding: 2mm 2.4mm; color: #fff; margin-bottom: 1.5mm; background: linear-gradient(135deg, #0B6B4E, #084d38); }
-.hero.coral { background: linear-gradient(135deg, #B4553A, #82402c); }
+.hero.coral { background: linear-gradient(135deg, #E2600D, #A34509); }
 .hero .big { font-size: 9.5pt; font-weight: 500; margin: 0.6mm 0 1mm; }
 .hero .stats { display: flex; border-top: 0.2mm solid rgba(255,255,255,0.25); padding-top: 1mm; font-size: 4.6pt; }
 .hero .stats div { flex: 1; } .hero .stats b { display: block; font-size: 5.6pt; font-weight: 500; }
@@ -76,7 +94,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 .bars { display: flex; align-items: flex-end; gap: 1.2mm; height: 12mm; padding: 1mm 0; }
 .bars div { flex: 1; display: flex; gap: 0.4mm; align-items: flex-end; height: 100%; }
 .bars s { flex: 1; background: var(--green); border-radius: 0.5mm 0.5mm 0 0; text-decoration: none; }
-.bars s + s { background: #E8916E; }
+.bars s + s { background: #F2832E; }
 .field { background: #fff; border: 0.25mm solid var(--line); border-radius: 1.6mm; padding: 1mm 1.6mm; margin-bottom: 1.2mm; position: relative; }
 .field label { display: block; color: var(--muted); font-size: 4.2pt; }
 .field .v { font-size: 6pt; }
@@ -128,7 +146,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 .icon-ok, .icon-q, .icon-x { display: inline-block; width: 3.4mm; height: 3.4mm; border-radius: 50%; vertical-align: -0.6mm; margin-right: 1mm; }
 .icon-ok { border: 0.5mm solid var(--green); }
 .icon-q { border: 0.5mm solid var(--amber); background: var(--amber-tint); }
-.icon-x { background: #F6F2E8; border: 0.5mm solid #b38a3c; }
+.icon-x { background: #F9C08E; border: 0.5mm solid #873605; }
 </style>
 </head>
 <body>
@@ -194,9 +212,18 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     <li><b>Tryck på Installera.</b> Appen heter <b>Quee</b> och har en grön ikon med staplar och en pumpa.</li>
     <li><b>Aktivera.</b> Du får en aktiveringskod via e-post eller SMS. Kopiera den, öppna appen, gå till <span class="kbd">Inställningar</span> → <span class="kbd">Aktivering</span>, håll in fältet och välj <b>Klistra in</b>. Sidan stängs själv när koden är godkänd.</li>
   </ol>
+  <div class="detail">
+    <div class="flow">
+      <div class="ui"><span class="num">1</span><span class="gbtn">Ladda ner appen</span><small>Sidan från QR-koden</small></div>
+      <div class="arr">→</div>
+      <div class="ui"><span class="num">3</span><span style="display:flex;align-items:center;gap:1.6mm">Tillåt från den här källan <span class="sw on"></span></span><small>Telefonens inställningar</small></div>
+      <div class="arr">→</div>
+      <div class="ui"><span class="num">5</span><b style="font-weight:500">Aktiveringskod</b><span style="font-family:monospace;font-size:6.6pt;color:var(--muted)">BOK1.eyJpZCI6…</span><small>Inställningar → Aktivering</small></div>
+    </div>
+  </div>
   <div class="tip"><b>Utan aktivering</b> kan du titta på allt, se rapporter och göra säkerhetskopior, men inte skanna eller spara nya papper.</div>
   <h2>Uppdatera appen</h2>
-  <p>En ny version installeras på samma sätt, via samma QR-kod. Den läggs över den gamla och <b>alla uppgifter finns kvar</b>. Ta aldrig bort appen före en uppdatering.</p>
+  <p>En ny version installeras på samma sätt och läggs över den gamla; <b>alla uppgifter finns kvar</b>. Ta aldrig bort appen före en uppdatering.</p>
   <div class="warn"><b>Tänk på:</b> en app som tas bort tar med sig sina uppgifter. Slå därför på automatisk säkerhetskopia (kapitel 11) innan du börjar på riktigt.</div>
   <div class="folio"><span>Installera och aktivera</span><span>3</span></div>
 </section>
@@ -214,6 +241,19 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     <tr><td><b>Z-rapportens rader</b></td><td>Raderna som står på Z-rapporten, och vilken kategori varje rad registreras som, t.ex. "Drycka avhämtning" → Avhämtning. En rad med samma namn som en kategori behöver inte läggas till. Du kan hoppa över steget; appen frågar när den möter en ny rad.</td></tr>
     <tr><td><b>Klart</b></td><td>En sammanfattning. Tryck på Klar.</td></tr>
   </table>
+  <div class="detail" style="display:grid;grid-template-columns:62mm 1fr;gap:3mm;align-items:center">
+    <div>
+      <div class="ui"><span class="num">1</span><span class="drag">⋮⋮</span><span class="grow">Mat</span><span class="pill" style="background:var(--tint);color:var(--green)">12 %</span><span class="num">2</span></div>
+      <div class="ui"><span class="drag">⋮⋮</span><span class="grow">Avhämtning</span><span class="pill" style="background:var(--tint);color:var(--green)">6 %</span></div>
+      <div class="ui"><span class="num">3</span><span class="drag">⋮⋮</span><span class="grow">Öl</span><span class="pill" style="background:var(--tint);color:var(--green)">25 %</span></div>
+      <div class="ui" style="border-style:dashed;color:var(--green)">+ Lägg till kategori</div>
+    </div>
+    <div style="font-size:7.4pt">
+      <p style="margin:0 0 1.6mm"><span class="num">1</span> Dra i ⋮⋮ för att flytta en kolumn i månadsrapporten.</p>
+      <p style="margin:0 0 1.6mm"><span class="num">2</span> Tryck på momssatsen för att byta den.</p>
+      <p style="margin:0"><span class="num">3</span> Stora eller små bokstäver spelar ingen roll: "ÖL" på Z-rapporten blir Öl.</p>
+    </div>
+  </div>
   <div class="tip"><b>Räkenskapsår:</b> börjar ditt räkenskapsår inte i januari, välj startmånad under Inställningar → Företag. Årsrapporten och resultatet följer det.</div>
   <div class="folio"><span>Kom igång</span><span>4</span></div>
 </section>
@@ -343,17 +383,22 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <p>Under <b>Betalning</b> föreslår appen om pappret redan är betalt (kvitto, kortbetalning, stämpel BETALD) eller ska betalas. Du bekräftar alltid själv.</p>
   <ul>
     <li><b>Betald (kvitto):</b> ange betaldatum. Inget mer att göra.</li>
-    <li><b>Obetald (faktura):</b> hamnar under "Att betala", med bankgiro, plusgiro och OCR-nummer sparade.</li>
+    <li><b>Obetald (faktura):</b> hamnar under "Att betala", med bankgiro, plusgiro och OCR-nummer sparade. Kodraden längst ner (med # och &gt;) har kontrollsiffror som bekräftar OCR-nummer, belopp och giro.</li>
   </ul>
-  <h2>Inbetalningskortets kodrad</h2>
-  <p>Raden längst ner med siffror, # och &gt; har kontrollsiffror. Appen kontrollerar med den <b>OCR-numret</b>, <b>beloppet</b> och <b>bankgiro/plusgiro</b>.</p>
   <h2>Kreditnota</h2>
   <p>Slå på <span class="kbd">Kreditnota</span> när leverantören krediterar. Beloppen blir minus och dras av från utgifterna och den ingående momsen.</p>
   <h2>Moms</h2>
   <p>Har fakturan flera momssatser (t.ex. 12 % och 25 %) visas en rad per sats. Saknar pappret moms, t.ex. ett inbetalningskort, slå på <span class="kbd">Ingen moms</span> under fältet Moms. Appen gör det själv när pappret säger att det saknar moms; annars räknas momsen som saknad.</p>
   <h2>Kostnadstyp</h2>
   <p>Välj vad fakturan gäller, t.ex. Varuinköp, Lokalhyra eller El. Samma leverantör får samma typ föreslagen nästa gång. Typen visas överst på fakturans sida och används i resultatrapporten och SIE-filen.</p>
-  <div class="tip"><b>Ditt eget företag på pappret?</b> Om appen är osäker frågar den: "Är detta ditt företag?" Svaret sparas, så att namnet inte blir leverantör nästa gång.</div>
+  <div class="detail">
+    <div class="flow">
+      <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap"><span class="grow">Kreditnota</span><span class="sw"></span></div>
+      <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap"><span class="grow">Moms <span style="color:var(--muted)">0,00 kr</span></span></div>
+      <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap;border-color:var(--green)"><span class="grow">Ingen moms</span><span class="sw on"></span></div>
+      <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap"><span class="grow">Varuinköp ▾</span></div>
+    </div>
+  </div>
   <div class="folio"><span>Fakturor och kvitton</span><span>8</span></div>
 </section>
 
@@ -399,7 +444,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <div class="kicker">8 · Mer att skanna</div>
   <h1>Onlineförsäljning och filer</h1>
   <h2>Onlineförsäljning (Foodora och andra)</h2>
-  <p>Välj <span class="kbd">Skanna onlineförsäljning</span> och fotografera partnerns betalningsbesked eller självfaktura. Appen läser utbetalningsdatum, belopp och moms.</p>
+  <p>Tryck Skanna → <span class="kbd">Onlineförsäljning</span> och fotografera partnerns betalningsbesked eller självfaktura. Appen läser utbetalningsdatum, belopp och moms.</p>
   <p>När pappret också innehåller partnerns faktura för avgifter och provision delar appen upp det: först registreras försäljningen, sedan öppnas avgiftsfakturan som en vanlig utgift.</p>
   <h2>Faktura i e-post eller som PDF</h2>
   <ul>
@@ -410,6 +455,22 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <p>Saknas pappret, eller går det inte att läsa? Tryck Skanna → <span class="kbd">Fyll i själv</span> och välj faktura, Z-rapport eller onlineförsäljning.</p>
   <h2>Förbättrad analys online (valfri)</h2>
   <p>För mycket svårlästa papper finns en knapp som skickar bilden till Googles AI-tjänst för en andra läsning. Den är <b>av</b> från början, kräver en egen nyckel (Inställningar → Förbättrad analys) och frågar alltid innan något skickas.</p>
+  <div class="detail" style="display:grid;grid-template-columns:1fr 38mm;gap:3mm;align-items:start">
+    <div>
+      <p class="cap">Skanna-fliken, under "Annat sätt"</p>
+      <div class="flow">
+        <div class="ui" style="align-items:center"><span class="num">1</span>Onlineförsäljning</div>
+        <div class="ui" style="align-items:center"><span class="num">2</span>Från fil</div>
+        <div class="ui" style="align-items:center"><span class="num">3</span>Fyll i själv</div>
+      </div>
+    </div>
+    <div>
+      <p class="cap">Bilaga i e-posten → Dela</p>
+      <div class="ui"><span class="grow">Dela med</span></div>
+      <div class="ui" style="border-color:var(--green)"><span style="width:4.5mm;height:4.5mm;border-radius:1.2mm;background:var(--green);display:inline-block"></span><b style="font-weight:500" class="grow">Quee</b><span class="num">2</span></div>
+    </div>
+  </div>
+  <p style="font-size:7.6pt;color:var(--muted)"><span class="num">1</span>Onlineförsäljning &nbsp; <span class="num">2</span>Faktura som fil eller bilaga &nbsp; <span class="num">3</span>Fyll i manuellt</p>
   <div class="folio"><span>Onlineförsäljning och filer</span><span>10</span></div>
 </section>
 
@@ -427,8 +488,8 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
           <div class="hero coral"><div>Utgifter</div><div class="big">21 506,40 kr</div>
             <div class="stats"><div>Ing. moms<b>3 410</b></div><div>Fakturor<b>9</b></div><div>Obetalda<b>2</b></div></div></div>
           <div class="card" style="background:#FFF6E5;border-color:#F4E2BC"><b style="font-weight:500;color:#8A5300">Att betala: 2 fakturor</b><br><span style="color:#62706A">Tryck för att se och betala</span></div>
-          <div class="card"><div class="share"><i style="flex:62;background:#B4553A"></i><i style="flex:20;background:#E8916E"></i><i style="flex:18;background:#F2B89F"></i></div>
-            <div class="legend"><i style="background:#B4553A"></i>Varuinköp 62 %</div><div class="legend"><i style="background:#E8916E"></i>Telefon 20 %</div></div>
+          <div class="card"><div class="share"><i style="flex:62;background:#E2600D"></i><i style="flex:20;background:#F2832E"></i><i style="flex:18;background:#F9B27A"></i></div>
+            <div class="legend"><i style="background:#E2600D"></i>Varuinköp 62 %</div><div class="legend"><i style="background:#F2832E"></i>Telefon 20 %</div></div>
           <div class="card" style="padding:0.6mm 1.6mm">
             <div class="row"><div class="date c">05<i>tor</i></div><div class="grow"><b>Snabbgross</b><span>Varuinköp</span></div><div class="amt">5 443</div></div>
             <div class="row"><div class="date c">02<i>mån</i></div><div class="grow"><b>Telenor</b><span class="chip">Obetald · 13 d kvar</span></div><div class="amt">1 433</div></div>
@@ -469,7 +530,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
       </table>
       <p>Varje rapport har knapparna <span class="kbd">PDF</span>, <span class="kbd">Excel</span> och <span class="kbd">Skriv ut</span>. Excel-filen öppnas direkt i Excel och Google Kalkylark.</p>
       <h2>SIE-fil till redovisaren</h2>
-      <p>På fliken Resultat finns <span class="kbd">SIE-fil till redovisaren</span>. Filen följer svensk standard och läses av Fortnox, Visma, Bokio och de flesta redovisningsbyråer. Varje Z-rapport, faktura och betalning blir en verifikation på rätt BAS-konto.</p>
+      <p>På fliken Resultat finns <span class="kbd">SIE-fil till redovisaren</span>. Välj <b>Skicka med e-post</b>: e-posten öppnas med filen bifogad och ämnet "SIE-fil [ditt företag], [period]". Eller välj <b>Spara på telefonen</b>. Filen läses av Fortnox, Visma, Bokio och de flesta redovisningsbyråer.</p>
     </div>
     <div>
       <div class="phone"><div class="screen">
@@ -507,20 +568,27 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     <li>Välj eller skapa en mapp, t.ex. <b>Dokument/Quee</b>, och tryck <b>Använd den här mappen</b> → <b>Tillåt</b>.</li>
     <li>Välj ett lösenord på minst 8 tecken och <b>skriv upp det</b>. Utan det går kopiorna inte att öppna.</li>
   </ol>
-  <p>Sedan sparar appen en krypterad kopia efter varje ändring (högst en fil per dag) och behåller de tre senaste. Filerna ligger kvar även om appen tas bort.</p>
+  <div class="detail" style="display:grid;grid-template-columns:1fr 1fr;gap:3mm;align-items:center">
+    <div class="ui" style="margin:0"><span class="grow"><b style="font-weight:500">Automatisk säkerhetskopia</b><small>På · mapp: Quee</small><small>Senaste kopian: i dag 09:12</small></span></div>
+    <p style="margin:0">Sedan sparas en krypterad kopia efter varje ändring (högst en per dag); de tre senaste behålls, även om appen tas bort.</p>
+  </div>
   <h2>Kopia till molnet</h2>
-  <p><span class="kbd">Skicka kopia</span> öppnar telefonens delningsmeny: välj Google Drive, OneDrive, Box eller e-post. Gör det t.ex. en gång i månaden, så finns en kopia även om telefonen försvinner.</p>
+  <p><span class="kbd">Skicka kopia</span> öppnar delningsmenyn: välj Google Drive, OneDrive, Box eller e-post, t.ex. en gång i månaden.</p>
   <h2>Återställa</h2>
   <p>Installera appen, gå till Säkerhetskopiering → <span class="kbd">Importera säkerhetskopia</span>, välj den senaste filen (.bkp eller en ZIP-fil med den) och skriv lösenordet. Appen visar vad kopian innehåller innan något ersätts.</p>
   <h2>Lagring</h2>
-  <p>Inställningar → <span class="kbd">Lagring</span> visar hur mycket plats appen tar. <span class="kbd">Frigör utrymme</span> tar bort tillfälliga filer och packar databasen – inga belopp eller registreringar tas bort.</p>
+  <p>Inställningar → <span class="kbd">Lagring</span> visar hur mycket plats appen tar. <span class="kbd">Frigör utrymme</span> tar bort tillfälliga filer – inga belopp eller registreringar.</p>
   <div class="folio"><span>Säkerhetskopia och lagring</span><span>13</span></div>
 </section>
 
 <!-- ============ 14. Inställningar ============ -->
 <section class="page">
   <div class="kicker">12 · Inställningar</div>
-  <h1>Inställningar</h1>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:4mm">
+    <h1>Inställningar</h1>
+    <div class="ui" style="width:46mm;font-size:7pt"><span class="grow"><b style="font-weight:500">DIN RESTAURANG</b><small>November 2026</small></span><span class="num">1</span><span style="width:4.2mm;height:4.2mm;border:0.5mm solid var(--ink);border-radius:50%;display:inline-block"></span></div>
+  </div>
+  <p style="font-size:7.6pt;color:var(--muted);margin-top:-1mm"><span class="num">1</span>Kugghjulet uppe till höger, på alla flikar, öppnar Inställningar.</p>
   <table class="t">
     <tr><th style="width:34mm">Del</th><th>Vad den gör</th></tr>
     <tr><td><b>Företag</b></td><td>Namn, företagsform, organisationsnummer, adress, räkenskapsårets startmånad och andra namn företaget har på papper.</td></tr>
