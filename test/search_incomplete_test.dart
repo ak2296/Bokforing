@@ -4,6 +4,7 @@ import 'package:bokforing/domain/dates.dart';
 import 'package:bokforing/domain/invoice_filter.dart';
 import 'package:bokforing/domain/models.dart';
 import 'package:bokforing/domain/money.dart';
+import 'package:bokforing/domain/text_patterns.dart';
 import 'package:bokforing/domain/vat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -43,6 +44,14 @@ void main() {
       expect(SwedishDates.mondayOf(DateTime(2026, 11, 15)), DateTime(2026, 11, 9)); // Sunday
       expect(SwedishDates.mondayOf(DateTime(2026, 11, 9)), DateTime(2026, 11, 9));
     });
+  });
+
+  test('öl, Öl, ÖL and a camera-split Ö are the same label', () {
+    const split = 'Öl'; // "Ö" as O plus a separate dots mark
+    for (final s in ['Öl', 'ÖL', 'öl', split, ' öl ']) {
+      expect(TextPatterns.normalize(s), 'öl', reason: s);
+    }
+    expect(TextPatterns.normalize('Mat avhåhtning'), 'mat avhåhtning');
   });
 
   group('missing fields', () {

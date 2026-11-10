@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_icons.dart';
 
 import '../app/app_controller.dart';
+import '../domain/cost_types.dart';
 import '../domain/dates.dart';
 import '../domain/models.dart';
 import '../domain/validation.dart';
@@ -169,6 +170,7 @@ class InvoiceDetailsPage extends StatelessWidget {
                 _section(context, 'Uppgifter', [
                   _Row('Datum', inv.invoiceDate),
                   if (inv.supplier.isNotEmpty) _Row('Leverantör', inv.supplier),
+                  _Row('Kostnadstyp', CostType.labelFor(inv.costType)),
                   if (inv.invoiceNumber.isNotEmpty) _Row('Fakturanummer', inv.invoiceNumber),
                   if (inv.dueDate != null) _Row('Förfallodatum', inv.dueDate!),
                   if (inv.ocrReference.isNotEmpty) _Row('OCR-nummer', inv.ocrReference),

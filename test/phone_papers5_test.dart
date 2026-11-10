@@ -226,6 +226,15 @@ SMÅA
     expect(d.vatLines.single.rate.basisPoints, 0);
   });
 
+  test('A paper that says "Momsfri" gets a 0 % row; one without a word stays unknown', () {
+    final free = _read('Hyra lokal\nMomsfri uthyrning\nAtt betala 8 000,00');
+    expect(free.vatTotal.value, Money.zero);
+    expect(free.vatLines.single.rate.basisPoints, 0);
+    final unknown = _read('Kortbetalning\nTotalt 200,00kr');
+    expect(unknown.vatTotal.hasValue, isFalse);
+    expect(unknown.vatLines, isEmpty);
+  });
+
   test('Rows read right to left look upside down', () {
     final r = OcrResult.fromPlainText('''
 5443,92   376,53   5067,39   TOTALER

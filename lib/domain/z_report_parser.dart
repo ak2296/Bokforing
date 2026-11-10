@@ -506,7 +506,7 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     return s.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
-  static String normalizeLabel(String s) => s.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+  static String normalizeLabel(String s) => TextPatterns.normalize(s);
 
   ({int? categoryId, int? suggested, MatchKind match, String? warning}) _match(String label, VatRate? printed) {
     final n = normalizeLabel(label);

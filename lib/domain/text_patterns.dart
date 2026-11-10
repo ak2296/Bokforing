@@ -41,7 +41,20 @@ class TextPatterns {
   const TextPatterns._();
 
   /// Lowercase, collapse spaces, fold common OCR confusions in words.
-  static String normalize(String s) => s.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+  static String normalize(String s) => composeSwedish(s).toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  /// The camera text can give "Ö" as "O" plus a separate dots mark; it looks
+  /// the same but compares different. Joins them into one letter (å ä ö é ü).
+  static String composeSwedish(String s) => s.contains(RegExp('[́̈̊]'))
+      ? s.replaceAllMapped(RegExp('([aAoOeEuU])([́̈̊])'), (m) {
+          const marks = {
+            '̈': {'a': 'ä', 'A': 'Ä', 'o': 'ö', 'O': 'Ö', 'u': 'ü', 'U': 'Ü'},
+            '̊': {'a': 'å', 'A': 'Å'},
+            '́': {'e': 'é', 'E': 'É'},
+          };
+          return marks[m[2]]?[m[1]] ?? m[0]!;
+        })
+      : s;
 
   // Grouped thousands with decimals, plain decimals, `125:-`, plain integers.
   static final _amount = RegExp(

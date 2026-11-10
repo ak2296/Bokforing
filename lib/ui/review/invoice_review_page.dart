@@ -97,6 +97,21 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     });
   }
 
+  /// "Ingen moms" is a 0 kr moms with a 0 % row; the row is what gets saved,
+  /// so the switch needs no field of its own in the database.
+  bool get _noVat =>
+      _vatRows.any((r) => r.rate.basisPoints == 0) && (Money.parse(_vat.text) ?? Money.zero).isZero;
+
+  void _setNoVat(bool on) => setState(() {
+        _vatRows.removeWhere((r) => r.rate.basisPoints == 0 || on);
+        if (on) {
+          _vat.text = Money.zero.toInput();
+          _vatRows.add(_VatRow(VatRate.zero, Money.zero.toInput()));
+        }
+        _vatCalculated = false;
+        _edited = true;
+      });
+
   InvoiceDraft? get _d => widget.draft;
   bool get _manual => widget.draft == null && widget.existing == null;
 
@@ -410,6 +425,13 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
               subtitle: const Text('Beloppen blir minus och dras av från utgifterna'),
               value: _isCredit,
               onChanged: !_editing ? null : _setCredit,
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Ingen moms'),
+              subtitle: const Text('Dokumentet har ingen moms, t.ex. inbetalningskort eller momsfri tjänst'),
+              value: _noVat,
+              onChanged: !_editing ? null : _setNoVat,
             ),
             const SizedBox(height: 4),
             PlainField(controller: _supplier, label: 'Leverantör', confidence: conf(d?.supplier), enabled: _editing, onChanged: _changed),

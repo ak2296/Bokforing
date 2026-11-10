@@ -346,8 +346,13 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     }
     // A giro slip on its own shows no VAT, and that is no fault in the reading.
     final giroSlip = norm.any((n) => RegExp(r'girering\s*av').hasMatch(n));
-    if (!vatTotal.hasValue && giroSlip) {
-      vatTotal = const Extracted(Money.zero, Confidence.medium, note: 'Inbetalningskort utan moms. Kontrollera.');
+    // A paper that says it carries no moms turns "Ingen moms" on, like Kreditnota.
+    final saysNoVat = norm.any((n) => RegExp(
+            r'momsfri|ej momspliktig|inte momspliktig|momsbefriad|undantag(?:en)? från (?:skatteplikt|moms)|ingen moms')
+        .hasMatch(n));
+    if (!vatTotal.hasValue && (giroSlip || saysNoVat)) {
+      vatTotal = Extracted(Money.zero, Confidence.medium,
+          note: giroSlip ? 'Inbetalningskort utan moms. Kontrollera.' : 'Dokumentet anger att det saknar moms. Kontrollera.');
       // A 0 % row is saved with the paper, so it is not later listed as missing moms.
       vat = _VatInfo([
         InvoiceVatLine(rate: VatRate.zero, vat: Money.zero, gross: total.value?.abs(), calculated: true),

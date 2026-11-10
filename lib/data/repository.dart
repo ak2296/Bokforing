@@ -194,8 +194,7 @@ class Repository {
 
   // ---------- Remembered label -> category mappings ----------
 
-  static String normalizeLabel(String label) =>
-      label.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+  static String normalizeLabel(String label) => TextPatterns.normalize(label);
 
   Future<Map<String, int>> categoryAliases() async {
     final rows = await db.rawQuery('''
@@ -617,13 +616,14 @@ class Repository {
   /// The cost type last chosen for [supplier], to suggest it again.
   Future<String?> lastCostType(String supplier) async {
     if (supplier.trim().isEmpty) return null;
+    // Compared in Dart: SQLite's lower() leaves Å, Ä and Ö as they are.
+    final key = TextPatterns.normalize(supplier);
     final rows = await db.query('invoices',
-        columns: ['cost_type'],
-        where: "lower(supplier) = lower(?) AND cost_type != ''",
-        whereArgs: [supplier.trim()],
-        orderBy: 'id DESC',
-        limit: 1);
-    return rows.isEmpty ? null : rows.first['cost_type'] as String;
+        columns: ['supplier', 'cost_type'], where: "cost_type != ''", orderBy: 'id DESC');
+    for (final r in rows) {
+      if (TextPatterns.normalize(r['supplier'] as String) == key) return r['cost_type'] as String;
+    }
+    return null;
   }
 
   Future<List<String>> knownSuppliers() async {
