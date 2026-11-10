@@ -49,7 +49,11 @@ class AppIcons {
   static const IconData save = TablerIcons.download;
   static const IconData scan = TablerIcons.scan;
   static const IconData schedule = TablerIcons.clock;
+  static const IconData search = TablerIcons.search;
   static const IconData searchOff = TablerIcons.search_off;
+  static const IconData filter = TablerIcons.filter;
+  static const IconData expand = TablerIcons.chevron_down;
+  static const IconData collapse = TablerIcons.chevron_up;
   static const IconData settings = TablerIcons.settings;
   static const IconData store = TablerIcons.building_store;
   static const IconData table = TablerIcons.table;

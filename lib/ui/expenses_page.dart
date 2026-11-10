@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_controller.dart';
 import '../domain/cost_types.dart';
+import '../domain/dates.dart';
+import '../domain/invoice_filter.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
 import 'app_icons.dart';
+import 'incomplete_page.dart';
 import 'record_details.dart';
 import 'theme.dart';
 import 'unpaid_page.dart';
@@ -23,9 +27,58 @@ class ExpensesPage extends StatefulWidget {
 
 class _ExpensesPageState extends State<ExpensesPage> {
   YearMonth _ym = YearMonth.now();
+  InvoiceFilter _filter = const InvoiceFilter();
+  final _search = TextEditingController();
 
   @override
-  Widget build(BuildContext context) => Reloading<(MonthData, List<Invoice>)>(
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  void _setFilter(InvoiceFilter f) => setState(() => _filter = f);
+
+  @override
+  Widget build(BuildContext context) => Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          child: TextField(
+            controller: _search,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'Sök leverantör, nummer eller typ',
+              prefixIcon: const Icon(AppIcons.search),
+              suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (_filter.active)
+                  IconButton(
+                    tooltip: 'Rensa sökningen',
+                    icon: const Icon(AppIcons.close),
+                    onPressed: () {
+                      _search.clear();
+                      FocusScope.of(context).unfocus();
+                      _setFilter(const InvoiceFilter());
+                    },
+                  ),
+                IconButton(
+                  tooltip: 'Filtrera',
+                  icon: Icon(AppIcons.filter,
+                      color: _filter.supplier != null || _filter.costType != null || _filter.from != null
+                          ? AppTheme.seed
+                          : null),
+                  onPressed: () async {
+                    final f = await showFilterSheet(context, _filter);
+                    if (f != null) _setFilter(f);
+                  },
+                ),
+              ]),
+            ),
+            onChanged: (v) => _setFilter(_filter.copyWith(query: v)),
+          ),
+        ),
+        Expanded(child: _filter.active ? _SearchResults(_filter, onChanged: _setFilter) : _month(context)),
+      ]);
+
+  Widget _month(BuildContext context) => Reloading<(MonthData, List<Invoice>)>(
         deps: _ym.title,
         loader: (c) async => (await MonthData.load(c, _ym), await c.repo.unpaidInvoices()),
         builder: (context, data) {
@@ -40,6 +93,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
             ..sort((a, b) => b.$2.ore.compareTo(a.$2.ore));
           final invoices = [...m.invoices]..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate));
           final unpaidThisMonth = m.invoices.where((i) => !i.paid).length;
+          final incomplete = m.invoices.where((i) => i.isIncomplete).length;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -63,6 +117,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
               ),
               const SizedBox(height: 10),
               _UnpaidTile(unpaid),
+              if (incomplete > 0) ...[
+                const SizedBox(height: 10),
+                IncompleteNotice(count: incomplete, from: _ym.firstDay, to: _ym.lastDay, period: _ym.title),
+              ],
               if (parts.isNotEmpty) ...[
                 const SectionTitle('Per kostnadstyp', trailing: 'exkl. moms'),
                 ShareBar(parts: parts, colors: costPalette),
@@ -82,39 +140,166 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   ),
                 )
               else
-                LedgerCard(children: [
-                  for (final inv in invoices)
-                    LedgerRow(
-                      isoDate: inv.invoiceDate,
-                      title: inv.supplier.isNotEmpty ? inv.supplier : (inv.total.isNegative ? 'Kreditnota' : 'Faktura'),
-                      subtitle: [
-                        if (CostType.byKey(inv.costType) != null) CostType.labelFor(inv.costType),
-                        if (inv.invoiceNumber.isNotEmpty) 'Nr ${inv.invoiceNumber}',
-                        'Moms ${inv.vatTotal.format(compact: true)}',
-                      ].join(' · '),
-                      amount: inv.total,
-                      badgeBackground: _expenseTint,
-                      badgeColor: _expense,
-                      chips: [
-                        if (inv.total.isNegative)
-                          const StatusChip('Kreditnota', color: AppTheme.seed, background: AppTheme.tint),
-                        if (!inv.paid) _dueChip(inv),
-                      ],
-                      onTap: () => openRecord(context, 'invoice', inv.id!),
-                    ),
-                ]),
+                LedgerCard(children: [for (final inv in invoices) _invoiceRow(context, inv)]),
             ],
           );
         },
       );
+}
 
-  Widget _dueChip(Invoice inv) {
-    final days = daysUntil(inv.dueDate);
-    if (days == null) return const StatusChip('Obetald');
-    if (days < 0) return const StatusChip('Förfallen', color: Color(0xFFB3261E), background: Color(0xFFFDECEA));
-    if (days == 0) return const StatusChip('Förfaller i dag');
-    return StatusChip('Obetald · $days d kvar');
-  }
+Widget _invoiceRow(BuildContext context, Invoice inv) => LedgerRow(
+      isoDate: inv.invoiceDate,
+      title: inv.supplier.isNotEmpty ? inv.supplier : (inv.total.isNegative ? 'Kreditnota' : 'Faktura'),
+      subtitle: [
+        if (CostType.byKey(inv.costType) != null) CostType.labelFor(inv.costType),
+        if (inv.invoiceNumber.isNotEmpty) 'Nr ${inv.invoiceNumber}',
+        'Moms ${inv.vatTotal.format(compact: true)}',
+      ].join(' · '),
+      amount: inv.total,
+      badgeBackground: _expenseTint,
+      badgeColor: _expense,
+      chips: [
+        if (inv.isIncomplete) const StatusChip('Saknar uppgifter'),
+        if (inv.total.isNegative) const StatusChip('Kreditnota', color: AppTheme.seed, background: AppTheme.tint),
+        if (!inv.paid) _dueChip(inv),
+      ],
+      onTap: () => openRecord(context, 'invoice', inv.id!),
+    );
+
+Widget _dueChip(Invoice inv) {
+  final days = daysUntil(inv.dueDate);
+  if (days == null) return const StatusChip('Obetald');
+  if (days < 0) return const StatusChip('Förfallen', color: Color(0xFFB3261E), background: Color(0xFFFDECEA));
+  if (days == 0) return const StatusChip('Förfaller i dag');
+  return StatusChip('Obetald · $days d kvar');
+}
+
+/// Every invoice and receipt, scanned or imported, that matches [filter].
+class _SearchResults extends StatelessWidget {
+  final InvoiceFilter filter;
+  final ValueChanged<InvoiceFilter> onChanged;
+  const _SearchResults(this.filter, {required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) => Reloading<List<Invoice>>(
+        loader: (c) => c.repo.invoicesBetween('0000-01-01', '9999-12-31'),
+        builder: (context, all) {
+          final hits = all.where(filter.matches).toList()..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate));
+          final chips = <Widget>[
+            if (filter.supplier != null)
+              InputChip(
+                label: Text(filter.supplier!),
+                onDeleted: () => onChanged(filter.copyWith(clearSupplier: true)),
+              ),
+            if (filter.costType != null)
+              InputChip(
+                label: Text(CostType.labelFor(filter.costType!)),
+                onDeleted: () => onChanged(filter.copyWith(clearCostType: true)),
+              ),
+            if (filter.from != null || filter.to != null)
+              InputChip(
+                label: Text('${filter.from ?? '…'} – ${filter.to ?? '…'}'),
+                onDeleted: () => onChanged(filter.copyWith(clearDates: true)),
+              ),
+          ];
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            children: [
+              if (chips.isNotEmpty) Wrap(spacing: 6, runSpacing: 6, children: chips),
+              SectionTitle('Sökresultat',
+                  trailing: hits.isEmpty ? null : '${hits.length} st · ${Money.sum(hits.map((i) => i.total)).format(compact: true)}'),
+              if (hits.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: Text('Inga fakturor eller kvitton matchar sökningen.')),
+                )
+              else
+                LedgerCard(children: [for (final inv in hits) _invoiceRow(context, inv)]),
+            ],
+          );
+        },
+      );
+}
+
+/// Supplier, cost type and date range. Returns the new filter, or null when
+/// the sheet is closed without "Visa".
+Future<InvoiceFilter?> showFilterSheet(BuildContext context, InvoiceFilter current) async {
+  final all = await AppScope.read(context).repo.invoicesBetween('0000-01-01', '9999-12-31');
+  final suppliers = {
+    for (final i in all)
+      if (i.supplier.trim().isNotEmpty) i.supplier.trim(),
+  }.toList()
+    ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  if (!context.mounted) return null;
+  var f = current;
+  return showModalBottomSheet<InvoiceFilter>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (c) => StatefulBuilder(
+      builder: (c, setSheet) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Filtrera fakturor', style: Theme.of(c).textTheme.titleLarge),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String?>(
+              initialValue: suppliers.contains(f.supplier) ? f.supplier : null,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Leverantör'),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('Alla leverantörer')),
+                for (final s in suppliers) DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis)),
+              ],
+              onChanged: (v) => setSheet(() => f = v == null ? f.copyWith(clearSupplier: true) : f.copyWith(supplier: v)),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String?>(
+              initialValue: f.costType,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Kostnadstyp'),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('Alla typer')),
+                const DropdownMenuItem(value: '', child: Text('Ej vald kostnadstyp')),
+                for (final t in CostType.all) DropdownMenuItem(value: t.key, child: Text(t.label)),
+              ],
+              onChanged: (v) => setSheet(() => f = v == null ? f.copyWith(clearCostType: true) : f.copyWith(costType: v)),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              icon: const Icon(AppIcons.calendar),
+              label: Text(f.from == null && f.to == null ? 'Välj datum (från – till)' : '${f.from} – ${f.to}'),
+              onPressed: () async {
+                final range = await showDateRangePicker(
+                  context: c,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                  helpText: 'Fakturadatum',
+                );
+                if (range != null) {
+                  setSheet(() => f = f.copyWith(from: SwedishDates.iso(range.start), to: SwedishDates.iso(range.end)));
+                }
+              },
+            ),
+            if (f.from != null)
+              TextButton(
+                onPressed: () => setSheet(() => f = f.copyWith(clearDates: true)),
+                child: const Text('Ta bort datum'),
+              ),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: () => Navigator.of(c).pop(f), child: const Text('Visa')),
+            TextButton(
+              onPressed: () => Navigator.of(c)
+                  .pop(f.copyWith(clearSupplier: true, clearCostType: true, clearDates: true)),
+              child: const Text('Rensa filter'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 /// All unpaid invoices, whatever month: a card to open the list, or a calm

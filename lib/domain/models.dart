@@ -180,8 +180,12 @@ class Invoice {
   /// [CostType.key], or '' when not chosen.
   final String costType;
 
+  /// The user confirmed the document carries no VAT, so 0 kr moms is right.
+  final bool noVat;
+
   const Invoice({
     this.costType = '',
+    this.noVat = false,
     this.paid = false,
     this.paidDate,
     this.bankgiro = '',
@@ -253,7 +257,20 @@ extension InvoiceCopy on Invoice {
         bankgiro: bankgiro,
         plusgiro: plusgiro,
         costType: costType,
+        noVat: noVat,
       );
+
+  /// What the reports need but the invoice lacks, in Swedish, e.g.
+  /// `['kostnadstyp', 'moms']`. Empty when the invoice is complete.
+  List<String> get missingFields => [
+        if (costType.isEmpty) 'kostnadstyp',
+        if (supplier.trim().isEmpty) 'leverantör',
+        if (invoiceDate.trim().isEmpty) 'datum',
+        if (total.isZero) 'belopp',
+        if (vatTotal.isZero && !noVat) 'moms',
+      ];
+
+  bool get isIncomplete => missingFields.isNotEmpty;
 }
 
 /// A payout from a delivery partner (e.g. Foodora), after their commission.

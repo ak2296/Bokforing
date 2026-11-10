@@ -57,7 +57,13 @@ class _BokforingAppState extends State<BokforingApp> {
             GlobalCupertinoLocalizations.delegate,
           ],
           theme: AppTheme.light(),
-          builder: (context, child) => _Readable(child: child ?? const SizedBox.shrink()),
+          // Every page and sheet ends above the phone's navigation buttons.
+          builder: (context, child) => _Readable(
+            child: ColoredBox(
+              color: Colors.white,
+              child: SafeArea(top: false, left: false, right: false, child: child ?? const SizedBox.shrink()),
+            ),
+          ),
           home: _setupDone
               ? const Shell()
               : SetupWizard(onDone: () => setState(() => _setupDone = true)),

@@ -412,6 +412,7 @@ class Repository {
         'bankgiro': inv.bankgiro.trim(),
         'plusgiro': inv.plusgiro.trim(),
         'cost_type': inv.costType,
+        'no_vat': inv.noVat ? 1 : 0,
         'updated_at': _now(),
       };
       int id;
@@ -672,6 +673,7 @@ class Repository {
       bankgiro: r['bankgiro'] as String? ?? '',
       plusgiro: r['plusgiro'] as String? ?? '',
       costType: r['cost_type'] as String? ?? '',
+      noVat: (r['no_vat'] as int? ?? 0) == 1,
       vatLines: [
         for (final v in vat)
           InvoiceVatLine(

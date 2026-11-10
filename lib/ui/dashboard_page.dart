@@ -98,28 +98,7 @@ class DashboardPage extends StatelessWidget {
             if (categories.isNotEmpty)
               _Panel(
                 title: 'Försäljning per kategori',
-                child: Column(children: [
-                  for (final c in categories.take(5))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        Row(children: [
-                          Expanded(child: Text(c.$1, style: t.bodyMedium)),
-                          Text(c.$2.format(compact: true), style: moneyStyle),
-                        ]),
-                        const SizedBox(height: 4),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(3),
-                          child: LinearProgressIndicator(
-                            value: topCategory.ore <= 0 ? 0 : (c.$2.ore / topCategory.ore).clamp(0.0, 1.0),
-                            minHeight: 6,
-                            backgroundColor: AppTheme.hairline,
-                            color: AppTheme.seed,
-                          ),
-                        ),
-                      ]),
-                    ),
-                ]),
+                child: _CategoryBars(categories: categories, top: topCategory),
               ),
             _Panel(
               child: Row(children: [
@@ -155,6 +134,56 @@ class DashboardPage extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+/// The five largest categories, and all of them after "Visa alla".
+class _CategoryBars extends StatefulWidget {
+  static const shown = 5;
+  final List<(String, Money)> categories;
+  final Money top;
+  const _CategoryBars({required this.categories, required this.top});
+
+  @override
+  State<_CategoryBars> createState() => _CategoryBarsState();
+}
+
+class _CategoryBarsState extends State<_CategoryBars> {
+  bool _all = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final list = widget.categories;
+    final more = list.length - _CategoryBars.shown;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      for (final c in _all ? list : list.take(_CategoryBars.shown))
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Expanded(child: Text(c.$1, style: t.bodyMedium)),
+              Text(c.$2.format(compact: true), style: moneyStyle),
+            ]),
+            const SizedBox(height: 4),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: widget.top.ore <= 0 ? 0 : (c.$2.ore / widget.top.ore).clamp(0.0, 1.0),
+                minHeight: 6,
+                backgroundColor: AppTheme.hairline,
+                color: AppTheme.seed,
+              ),
+            ),
+          ]),
+        ),
+      if (more > 0)
+        TextButton.icon(
+          onPressed: () => setState(() => _all = !_all),
+          icon: Icon(_all ? AppIcons.collapse : AppIcons.expand),
+          label: Text(_all ? 'Visa färre' : 'Visa alla ($more till)'),
+        ),
+    ]);
   }
 }
 

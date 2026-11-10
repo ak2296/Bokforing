@@ -127,10 +127,24 @@ Widget _historyAndScan(BuildContext context, String entity, int id, int? scanId)
               for (final path in (scan['image_path'] as String).split(';')) StoredImage(path),
             ]),
           if (scan != null)
-            _section(context, 'Avläst text från dokumentet', [
-              SelectableText(scan['ocr_text'] as String,
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
-            ]),
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Card(
+                clipBehavior: Clip.antiAlias,
+                child: ExpansionTile(
+                  title: Text('Avläst text från dokumentet', style: Theme.of(context).textTheme.titleSmall),
+                  subtitle: const Text('Tryck för att visa'),
+                  shape: const Border(),
+                  collapsedShape: const Border(),
+                  childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SelectableText(scan['ocr_text'] as String,
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                  ],
+                ),
+              ),
+            ),
         ],
       );
     },

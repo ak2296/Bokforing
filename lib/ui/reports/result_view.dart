@@ -10,6 +10,7 @@ import '../../export/sie_export.dart';
 import '../../export/table_export.dart';
 import '../app_icons.dart';
 import '../export_actions.dart';
+import '../incomplete_page.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -213,15 +214,15 @@ class _ResultBody extends StatelessWidget {
             ]),
           ),
         ),
-        if (r.unclassified > 0)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              '${r.unclassified} ${r.unclassified == 1 ? 'faktura saknar' : 'fakturor saknar'} kostnadstyp. '
-              'Öppna dem och välj kostnadstyp för en tydligare rapport.',
-              style: t.bodySmall?.copyWith(color: AppTheme.warning),
-            ),
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: IncompleteNotice(
+            count: data.invoices.where((i) => i.isIncomplete).length,
+            from: data.period.from,
+            to: data.period.to,
+            period: data.period.title,
           ),
+        ),
         const SizedBox(height: 8),
         Text(
           'Bygger bara på det som är registrerat i appen. Den officiella resultaträkningen görs i bokföringen, '

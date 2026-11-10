@@ -52,4 +52,15 @@ class SwedishDates {
   static String monthKey(int year, int month) => '${year.toString().padLeft(4, '0')}-${_two(month)}';
 
   static String _two(int v) => v.toString().padLeft(2, '0');
+
+  /// The Monday of [d]'s week (Swedish weeks start on Monday).
+  static DateTime mondayOf(DateTime d) => DateTime(d.year, d.month, d.day - (d.weekday - 1));
+
+  /// ISO 8601 week number, as on Swedish calendars: week 1 holds the year's first Thursday.
+  static int isoWeek(DateTime d) {
+    // UTC, so a summer-time hour never shortens a day in the subtraction.
+    final thursday = DateTime.utc(d.year, d.month, d.day + 4 - d.weekday);
+    final dayOfYear = thursday.difference(DateTime.utc(thursday.year, 1, 1)).inDays;
+    return dayOfYear ~/ 7 + 1;
+  }
 }

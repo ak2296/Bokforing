@@ -73,6 +73,9 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   late String _costType = widget.existing?.costType ?? '';
   bool _costSuggested = false;
 
+  /// The user says the document has no VAT, so 0 kr moms is not missing.
+  late bool _noVat = widget.existing?.noVat ?? false;
+
   /// Also true before a total is filled in, when the paper says Kreditnota.
   late bool _isCredit =
       (widget.draft?.isCredit ?? false) || (widget.existing?.total.isNegative ?? false);
@@ -247,6 +250,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       bankgiro: _bankgiro.text.trim(),
       plusgiro: _plusgiro.text.trim(),
       costType: _costType,
+      noVat: _noVat && vat.isZero,
     );
   }
 
@@ -453,6 +457,20 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
                 _changed();
               },
             ),
+            if (vatValue == null || vatValue.isZero)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text('Ingen moms på detta dokument'),
+                subtitle: const Text('Markera om dokumentet saknar moms, så räknas det inte som ofullständigt'),
+                value: _noVat,
+                onChanged: !_editing
+                    ? null
+                    : (v) => setState(() {
+                          _noVat = v ?? false;
+                          _edited = true;
+                        }),
+              ),
             const SizedBox(height: 8),
             _vatSection(linesSum, vatValue),
             const SizedBox(height: 12),

@@ -6,7 +6,7 @@ import 'package:sqflite/sqflite.dart';
 /// except amounts printed on the document itself (e.g. reported Z total).
 class AppDatabase {
   static const fileName = 'bokforing.db';
-  static const version = 8;
+  static const version = 9;
 
   static Future<Database> open({DatabaseFactory? factory, String? path}) async {
     final f = factory ?? databaseFactory;
@@ -39,6 +39,11 @@ class AppDatabase {
           if (oldVersion < 8) {
             final batch = db.batch();
             _v8Tables(batch);
+            await batch.commit(noResult: true);
+          }
+          if (oldVersion < 9) {
+            final batch = db.batch();
+            _v9Changes(batch);
             await batch.commit(noResult: true);
           }
           if (oldVersion < 7) {
@@ -170,6 +175,7 @@ class AppDatabase {
     _v5Changes(batch);
     _v6Changes(batch);
     _v8Tables(batch);
+    _v9Changes(batch);
     for (final bp in const [0, 600, 1200, 2500]) {
       batch.insert('vat_rates', {'basis_points': bp, 'active': 1});
     }
@@ -234,6 +240,12 @@ class AppDatabase {
         updated_at TEXT NOT NULL,
         PRIMARY KEY (supplier_key, field)
       )''');
+  }
+
+  /// v9: the user confirmed that a document carries no VAT, so 0 kr moms is
+  /// not reported as missing.
+  static void _v9Changes(Batch batch) {
+    batch.execute('ALTER TABLE invoices ADD COLUMN no_vat INTEGER NOT NULL DEFAULT 0');
   }
 
   /// v6: cost type of an invoice, for the resultatrapport and SIE export.
