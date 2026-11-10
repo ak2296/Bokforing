@@ -511,6 +511,9 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
   ({int? categoryId, int? suggested, MatchKind match, String? warning}) _match(String label, VatRate? printed) {
     final n = normalizeLabel(label);
     final active = categories.where((c) => c.active && c.id != null).toList();
+    // Rules may be stored in any case ("Öl" or "öl"); compare them the same way.
+    final aliases = {for (final e in this.aliases.entries) normalizeLabel(e.key): e.value};
+    final ignored = {for (final l in this.ignored) normalizeLabel(l)};
 
     String? rateWarning(Category c) => printed != null && printed != c.vat
         ? 'Rapporten visar ${printed.label} men ${c.name} har ${c.vat.label}.'

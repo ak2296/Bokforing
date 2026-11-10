@@ -426,13 +426,6 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
               value: _isCredit,
               onChanged: !_editing ? null : _setCredit,
             ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Ingen moms'),
-              subtitle: const Text('Dokumentet har ingen moms, t.ex. inbetalningskort eller momsfri tjänst'),
-              value: _noVat,
-              onChanged: !_editing ? null : _setNoVat,
-            ),
             const SizedBox(height: 4),
             PlainField(controller: _supplier, label: 'Leverantör', confidence: conf(d?.supplier), enabled: _editing, onChanged: _changed),
             if (d?.ownNameQuestion != null) _ownNameCard(d!.ownNameQuestion!),
@@ -475,7 +468,13 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
                 _changed();
               },
             ),
-            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Ingen moms'),
+              subtitle: const Text('Dokumentet har ingen moms, t.ex. inbetalningskort eller momsfri tjänst'),
+              value: _noVat,
+              onChanged: !_editing ? null : _setNoVat,
+            ),
             _vatSection(linesSum, vatValue),
             const SizedBox(height: 12),
             PlainField(controller: _number, label: 'Fakturanummer', confidence: optional(d?.invoiceNumber), enabled: _editing, onChanged: _changed),

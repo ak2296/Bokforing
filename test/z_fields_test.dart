@@ -19,6 +19,18 @@ const _report = 'Z-rapport\nFrån 2026-10-31\nFörsäljning per varugrupp\n'
     'Total försäljning 3 664,00';
 
 void main() {
+  test('öl, Öl and ÖL match the same category and rules, whatever the case', () {
+    const cats = [Category(id: 1, name: 'öl', vat: VatRate.twentyFive), Category(id: 2, name: 'Vin', vat: VatRate.twentyFive)];
+    final d = const ZReportParser(cats, aliases: {'Starköl': 1}, ignored: {'PANT'}).parse(OcrResult.fromPlainText(
+        'Z-rapport\nFörsäljning per varugrupp\nÖL 100,00\nVIN 50,00\nSTARKÖL 30,00\nPant 5,00\nTotal försäljning 185,00'));
+    ZLine line(String l) => d.lines.firstWhere((x) => x.label.toLowerCase() == l);
+    expect(line('öl').categoryId, 1);
+    expect(line('öl').match, MatchKind.exact);
+    expect(line('vin').categoryId, 2);
+    expect(line('starköl').match, MatchKind.remembered);
+    expect(line('pant').match, MatchKind.ignored);
+  });
+
   test('owner rules: several lines add up in one category, ignored lines are not counted', () {
     final d = const ZReportParser(_cats, aliases: {
       'drycka': 2,
