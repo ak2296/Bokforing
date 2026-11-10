@@ -226,10 +226,10 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     <div>
       <p class="lead">Längst ner finns fem flikar. Kugghjulet uppe till höger öppnar Inställningar.</p>
       <table class="t">
-        <tr><td><b>Översikt</b></td><td>Månadens försäljning och utgifter jämfört med förra månaden, ett diagram för sex månader, försäljning per kategori, beräknad moms och de senaste registreringarna.</td></tr>
+        <tr><td><b>Översikt</b></td><td>Månadens försäljning och utgifter jämfört med förra månaden, ett diagram för sex månader, försäljning per kategori (de fem största; <b>Visa alla</b> visar resten), beräknad moms och de senaste registreringarna.</td></tr>
         <tr><td><b>Försäljning</b></td><td>Z-rapporter och onlineförsäljning, dag för dag.</td></tr>
         <tr><td><b>Skanna</b></td><td>Den gröna knappen i mitten. Här börjar allt nytt.</td></tr>
-        <tr><td><b>Utgifter</b></td><td>Fakturor och kvitton, och vad som återstår att betala.</td></tr>
+        <tr><td><b>Utgifter</b></td><td>Fakturor och kvitton med sökfält, och vad som återstår att betala.</td></tr>
         <tr><td><b>Rapporter</b></td><td>Månad, år, jämförelse och resultat – som PDF, Excel eller utskrift.</td></tr>
       </table>
       <div class="tip"><b>Ett kort "Att betala"</b> visas överst på Översikt när det finns obetalda fakturor. Det blir orange när en faktura förfaller inom tre dagar.</div>
@@ -340,19 +340,19 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <div class="kicker">6 · Utgifter</div>
   <h1>Fakturor, kvitton och kreditnotor</h1>
   <h2>Betald eller inte?</h2>
-  <p>Under <b>Betalning</b> föreslår appen om pappret redan är betalt (kvitto, kortbetalning, stämpel BETALD) eller ska betalas (faktura med förfallodatum, bankgiro och OCR). Du bekräftar alltid själv.</p>
+  <p>Under <b>Betalning</b> föreslår appen om pappret redan är betalt (kvitto, kortbetalning, stämpel BETALD) eller ska betalas. Du bekräftar alltid själv.</p>
   <ul>
     <li><b>Betald (kvitto):</b> ange betaldatum. Inget mer att göra.</li>
-    <li><b>Obetald (faktura):</b> fakturan hamnar under "Att betala". Bankgiro, plusgiro och OCR-nummer sparas så att du kan betala i banken.</li>
+    <li><b>Obetald (faktura):</b> hamnar under "Att betala", med bankgiro, plusgiro och OCR-nummer sparade.</li>
   </ul>
   <h2>Inbetalningskortets kodrad</h2>
-  <p>Längst ner på många fakturor finns en rad med siffror och tecknen # och &gt;. Den har kontrollsiffror. När appen hittar raden kontrollerar den i tur och ordning <b>OCR-numret</b>, <b>beloppet</b> och <b>bankgiro/plusgiro</b> – det som klarar kontrollen är rätt läst.</p>
+  <p>Raden längst ner med siffror, # och &gt; har kontrollsiffror. Appen kontrollerar med den <b>OCR-numret</b>, <b>beloppet</b> och <b>bankgiro/plusgiro</b>.</p>
   <h2>Kreditnota</h2>
   <p>Slå på <span class="kbd">Kreditnota</span> när leverantören krediterar. Beloppen blir minus och dras av från utgifterna och den ingående momsen.</p>
+  <h2>Moms</h2>
+  <p>Har fakturan flera momssatser (t.ex. 12 % och 25 %) visas en rad per sats. Saknar pappret moms, t.ex. ett inbetalningskort, slå på <span class="kbd">Ingen moms</span> under fältet Moms. Appen gör det själv när pappret säger att det saknar moms; annars räknas momsen som saknad.</p>
   <h2>Kostnadstyp</h2>
-  <p>Välj vad fakturan gäller: Varuinköp, Lokalhyra, El, Telefon och internet med flera. Nästa faktura från samma leverantör får samma typ föreslagen. Kostnadstypen används i resultatrapporten och SIE-filen.</p>
-  <h2>Moms per momssats</h2>
-  <p>Har fakturan flera momssatser (t.ex. mat 12 % och dryck 25 %) visas en rad per sats. Lägg till eller ändra om fakturan visar en uppdelning.</p>
+  <p>Välj vad fakturan gäller, t.ex. Varuinköp, Lokalhyra eller El. Samma leverantör får samma typ föreslagen nästa gång. Typen visas överst på fakturans sida och används i resultatrapporten och SIE-filen.</p>
   <div class="tip"><b>Ditt eget företag på pappret?</b> Om appen är osäker frågar den: "Är detta ditt företag?" Svaret sparas, så att namnet inte blir leverantör nästa gång.</div>
   <div class="folio"><span>Fakturor och kvitton</span><span>8</span></div>
 </section>
@@ -432,6 +432,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
           <div class="card" style="padding:0.6mm 1.6mm">
             <div class="row"><div class="date c">05<i>tor</i></div><div class="grow"><b>Snabbgross</b><span>Varuinköp</span></div><div class="amt">5 443</div></div>
             <div class="row"><div class="date c">02<i>mån</i></div><div class="grow"><b>Telenor</b><span class="chip">Obetald · 13 d kvar</span></div><div class="amt">1 433</div></div>
+            <div class="row"><div class="date c">01<i>sön</i></div><div class="grow"><b>Elbolaget</b><span class="chip" style="background:#EEEDFE;color:#3C3489">Fyll i: kostnadstyp</span></div><div class="amt">1 860</div></div>
           </div>
         </div>
       </div></div>
@@ -441,13 +442,14 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
       <ul>
         <li><b>Det stora kortet</b> visar månadens summa och moms.</li>
         <li><b>Stapeln</b> visar fördelningen per kategori eller kostnadstyp.</li>
-        <li><b>Listan</b> visar varje dag eller faktura. Tryck på en rad för att se, ändra eller ta bort den.</li>
-        <li><b>Gula etiketter:</b> "Skillnad" (Z-rapportens rader och total skiljer sig), "Obetald", "Förfallen".</li>
+        <li><b>Listan</b> visar varje dag eller faktura; tryck för att se, ändra eller ta bort. Försäljningen visas vecka för vecka.</li>
+        <li><b>Etiketter:</b> gul "Obetald" och "Skillnad", röd "Förfallen", lila <b>"Fyll i: …"</b> när en uppgift saknas.</li>
+        <li><b>Sök</b> i Fakturor och kvitton på leverantör, nummer eller typ, eller filtrera. Gäller alla månader.</li>
       </ul>
-      <h3>Att betala</h3>
-      <p>Tryck på kortet <b>Att betala</b> för listan med obetalda fakturor, med bankgiro och OCR. Markera en faktura som betald när du har betalat den i banken.</p>
+      <h3>Att betala och saknade uppgifter</h3>
+      <p>Kortet <b>Att betala</b> listar obetalda fakturor med bankgiro och OCR. Den lila rutan listar fakturor som saknar uppgifter.</p>
       <h3>Påminnelser</h3>
-      <p>Appen påminner före förfallodagen och på förfallodagen. Antal dagar ställs in under Inställningar → Påminnelser.</p>
+      <p>Före och på förfallodagen (Inställningar → Påminnelser).</p>
     </div>
   </div>
   <div class="folio"><span>Försäljning och utgifter</span><span>11</span></div>
@@ -460,10 +462,10 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <div class="two">
     <div>
       <table class="t">
-        <tr><td style="width:17mm"><b>Månad</b></td><td>En rad per dag: försäljning per kategori, utgifter, utgående och ingående moms. Tryck på en dag för detaljer.</td></tr>
+        <tr><td style="width:17mm"><b>Månad</b></td><td>En rad per dag: försäljning per kategori, utgifter och moms. Tryck på en dag för detaljer.</td></tr>
         <tr><td><b>År</b></td><td>Varje månad under året. Tryck på en månad för att öppna den.</td></tr>
         <tr><td><b>Jämför</b></td><td>Två år månad för månad: försäljning, utgifter eller moms, med procent.</td></tr>
-        <tr><td><b>Resultat</b></td><td>Intäkter och kostnader utan moms, per kostnadstyp, och resultatet – för en månad eller ett räkenskapsår.</td></tr>
+        <tr><td><b>Resultat</b></td><td>Intäkter, kostnader per typ och resultatet, utan moms, för en månad eller ett år. En lila ruta överst visar fakturor att rätta.</td></tr>
       </table>
       <p>Varje rapport har knapparna <span class="kbd">PDF</span>, <span class="kbd">Excel</span> och <span class="kbd">Skriv ut</span>. Excel-filen öppnas direkt i Excel och Google Kalkylark.</p>
       <h2>SIE-fil till redovisaren</h2>
