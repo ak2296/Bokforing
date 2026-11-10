@@ -10,9 +10,12 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Repo variable RUNNER=self-hosted sends the build to your own machine.
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     steps:
       - name: Frigör diskutrymme
+        # Never delete system folders on your own machine.
+        if: runner.environment == 'github-hosted'
         run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL /usr/local/lib/node_modules
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -110,6 +113,8 @@ jobs:
           keytool -list -v -keystore "$store" -storepass android -alias androiddebugkey | grep -i "SHA256:" | head -1
 
       - name: SQLite för databastester
+        # On your own machine, install libsqlite3-dev once by hand (sudo asks for a password).
+        if: runner.environment == 'github-hosted'
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libsqlite3-dev
 
       - run: flutter pub get
