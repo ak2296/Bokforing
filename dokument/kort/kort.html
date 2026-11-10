@@ -4,40 +4,39 @@
 <meta charset="utf-8">
 <title>Quee – kort med nedladdning</title>
 <!--
-  Kort i visitkortsformat 85 × 55 mm, med 3 mm utfallande kant (91 × 61 mm).
+  Kort i visitkortsformat, stående 55 × 85 mm, med 3 mm utfallande kant (61 × 91 mm).
   Sida 1 = framsida, sida 2 = baksida. PDF: python dokument/verktyg/make_docs.py
   QR-koden leder till nedladdningssidan; byt bilden om adressen ändras.
 -->
 <style>
 @font-face { font-family: Inter; src: url(../../assets/fonts/Inter-Regular.otf); font-weight: 400; }
 @font-face { font-family: Inter; src: url(../../assets/fonts/Inter-Medium.otf); font-weight: 500; }
-@page { size: 91mm 61mm; margin: 0; }
+@page { size: 61mm 91mm; margin: 0; }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body { font-family: Inter, Arial, sans-serif; color: #10201B; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-.side { width: 91mm; height: 61mm; position: relative; overflow: hidden; page-break-after: always; }
+.side { width: 61mm; height: 91mm; position: relative; overflow: hidden; page-break-after: always; }
 .side:last-child { page-break-after: auto; }
 /* Safe area: 3 mm bleed + 4 mm margin. */
 .safe { position: absolute; inset: 7mm; }
 .front { background: #0B6B4E; color: #fff; }
-.front .ring { position: absolute; right: -16mm; top: -14mm; width: 52mm; height: 52mm; border-radius: 50%; border: 6mm solid rgba(255,255,255,0.07); }
-.front .ring2 { position: absolute; right: 6mm; bottom: -20mm; width: 34mm; height: 34mm; border-radius: 50%; background: rgba(255,255,255,0.06); }
-.front .logo { width: 13mm; height: 13mm; border-radius: 3.2mm; box-shadow: 0 0 0 0.35mm rgba(255,255,255,.35); overflow: hidden; }
-.front .logo img { width: 13mm; height: 13mm; display: block; }
-.front .name { position: absolute; left: 0; top: 17mm; font-size: 17pt; font-weight: 500; letter-spacing: -0.4pt; }
-.front .tag { position: absolute; left: 0; top: 27.5mm; font-size: 7pt; opacity: 0.88; line-height: 1.4; max-width: 50mm; }
+.front .ring { position: absolute; right: -18mm; top: -14mm; width: 52mm; height: 52mm; border-radius: 50%; border: 6mm solid rgba(255,255,255,0.07); }
+.front .ring2 { position: absolute; left: -12mm; bottom: -16mm; width: 40mm; height: 40mm; border-radius: 50%; background: rgba(255,255,255,0.06); }
+.front .logo { width: 15mm; height: 15mm; border-radius: 3.6mm; box-shadow: 0 0 0 0.35mm rgba(255,255,255,.35); overflow: hidden; }
+.front .logo img { width: 15mm; height: 15mm; display: block; }
+.front .name { position: absolute; left: 0; top: 30mm; font-size: 24pt; font-weight: 500; letter-spacing: -0.4pt; color: #F2832E; }
+.front .tag { position: absolute; left: 0; right: 0; top: 43mm; font-size: 7.4pt; opacity: 0.9; line-height: 1.45; }
 .front .foot { position: absolute; left: 0; bottom: 0; font-size: 5.6pt; opacity: 0.75; letter-spacing: 0.3pt; }
 .back { background: #fff; }
-.back .qr { position: absolute; left: 0; top: 0; width: 25mm; }
-.back .qr img { width: 25mm; height: 25mm; display: block; }
-.back .qr small { display: block; text-align: center; font-size: 4.6pt; color: #62706A; margin-top: 1mm; }
-.back .info { position: absolute; left: 29mm; right: 0; top: 0; }
-.back h2 { margin: 0 0 1.4mm; font-size: 8.6pt; font-weight: 500; color: #0B6B4E; }
-.back ol { margin: 0; padding: 0; list-style: none; counter-reset: s; font-size: 5.8pt; line-height: 1.35; }
-.back li { counter-increment: s; position: relative; padding-left: 4mm; margin-bottom: 1mm; }
-.back li::before { content: counter(s); position: absolute; left: 0; top: 0.1mm; width: 2.8mm; height: 2.8mm; border-radius: 50%; background: #0B6B4E; color: #fff; font-size: 4.6pt; font-weight: 500; display: flex; align-items: center; justify-content: center; }
-.back .code { position: absolute; left: 0; right: 0; bottom: 0; height: 10mm; border: 0.3mm dashed #0B6B4E; border-radius: 2mm; background: #E4F2EC; padding: 1.2mm 2.4mm; }
-.back .code label { display: block; font-size: 4.8pt; color: #0B6B4E; font-weight: 500; letter-spacing: 0.3pt; }
+.back h2 { margin: 0 0 2.4mm; font-size: 9pt; font-weight: 500; color: #0B6B4E; text-align: center; }
+.back .qr { width: 27mm; margin: 0 auto; }
+.back .qr img { width: 27mm; height: 27mm; display: block; }
+.back .qr small { display: block; text-align: center; font-size: 4.8pt; color: #62706A; margin-top: 0.8mm; }
+.back ol { margin: 3mm 0 0; padding: 0; list-style: none; counter-reset: s; font-size: 6pt; line-height: 1.35; }
+.back li { counter-increment: s; position: relative; padding-left: 4.4mm; margin-bottom: 1.2mm; }
+.back li::before { content: counter(s); position: absolute; left: 0; top: 0.1mm; width: 3mm; height: 3mm; border-radius: 50%; background: #E2600D; color: #fff; font-size: 4.8pt; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+.back .code { position: absolute; left: 0; right: 0; bottom: 0; height: 12mm; border: 0.3mm dashed #0B6B4E; border-radius: 2mm; background: #E4F2EC; padding: 1.4mm 2.4mm; }
+.back .code label { display: block; font-size: 5pt; color: #C4540A; font-weight: 500; letter-spacing: 0.3pt; }
 .back .code .note { font-size: 5.4pt; line-height: 1.35; margin-top: 0.6mm; }
 </style>
 </head>
@@ -55,15 +54,13 @@ body { font-family: Inter, Arial, sans-serif; color: #10201B; -webkit-print-colo
 
 <section class="side back">
   <div class="safe">
+    <h2>Ladda ner appen</h2>
     <div class="qr"><img src="../bilder/qr-ladda-ner.svg" alt="QR-kod för nedladdning"><small>Skanna med kameran</small></div>
-    <div class="info">
-      <h2>Ladda ner appen</h2>
-      <ol>
-        <li>Skanna QR-koden och tryck <b>Ladda ner</b>.</li>
-        <li>Öppna filen och tryck <b>Installera</b>.</li>
-        <li>Öppna appen: Inställningar → Aktivering. Klistra in koden du fått.</li>
-      </ol>
-    </div>
+    <ol>
+      <li>Skanna QR-koden och tryck <b>Ladda ner</b>.</li>
+      <li>Öppna filen och tryck <b>Installera</b>.</li>
+      <li>Öppna appen: Inställningar → Aktivering. Klistra in koden du fått.</li>
+    </ol>
     <div class="code"><label>AKTIVERINGSKOD</label><div class="note">Koden kommer via e-post eller SMS. Håll in fältet i appen och välj Klistra in.</div></div>
   </div>
 </section>
