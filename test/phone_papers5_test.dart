@@ -221,6 +221,9 @@ SMÅA
 159 00
 #   12345678   #   4 >''');
     expect(d.total.value, Money.parse('159,00'));
+    // No moms on a giro slip: a 0 % row, so the saved invoice is not "missing moms".
+    expect(d.vatTotal.value, Money.zero);
+    expect(d.vatLines.single.rate.basisPoints, 0);
   });
 
   test('Rows read right to left look upside down', () {

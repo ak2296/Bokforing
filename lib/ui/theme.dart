@@ -13,6 +13,10 @@ class AppTheme {
   static const warningTint = Color(0xFFFFF6E5);
   static const warningBorder = Color(0xFFF4E2BC);
   static const ok = Color(0xFF0B6B4E);
+  /// Invoices missing data the reports need ("Fyll i"); red stays for overdue.
+  static const fix = Color(0xFF3C3489);
+  static const fixTint = Color(0xFFEEEDFE);
+  static const fixBorder = Color(0xFFCECBF6);
   static const online = Color(0xFF7E3D12);
   static const onlineTint = Color(0xFFFCEBDD);
 

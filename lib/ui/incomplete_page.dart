@@ -41,10 +41,10 @@ class IncompletePage extends StatelessWidget {
                     LedgerRow(
                       isoDate: inv.invoiceDate,
                       title: inv.supplier.isEmpty ? 'Okänd leverantör' : inv.supplier,
-                      subtitle: 'Saknar: ${inv.missingFields.join(', ')}',
+                      subtitle: 'Fyll i: ${inv.missingFields.join(', ')}',
                       amount: inv.total,
-                      badgeBackground: AppTheme.warningTint,
-                      badgeColor: AppTheme.warning,
+                      badgeBackground: AppTheme.fixTint,
+                      badgeColor: AppTheme.fix,
                       onTap: () => Navigator.of(context)
                           .push(MaterialPageRoute(builder: (_) => InvoiceReviewPage(existing: inv))),
                     ),
@@ -68,10 +68,10 @@ class IncompleteNotice extends StatelessWidget {
   Widget build(BuildContext context) {
     if (count == 0) return const SizedBox.shrink();
     return Material(
-      color: AppTheme.warningTint,
+      color: AppTheme.fixTint,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppTheme.warningBorder),
+        side: const BorderSide(color: AppTheme.fixBorder),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -80,16 +80,16 @@ class IncompleteNotice extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(children: [
-            const Icon(AppIcons.warning, size: 18, color: AppTheme.warning),
+            const Icon(AppIcons.edit, size: 18, color: AppTheme.fix),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 '$count ${count == 1 ? 'faktura saknar' : 'fakturor saknar'} uppgifter '
                 '(kostnadstyp, leverantör, belopp eller moms). Tryck för att rätta.',
-                style: const TextStyle(color: AppTheme.warning, fontSize: 13),
+                style: const TextStyle(color: AppTheme.fix, fontSize: 13),
               ),
             ),
-            const Icon(AppIcons.chevronRight, size: 18, color: AppTheme.warning),
+            const Icon(AppIcons.chevronRight, size: 18, color: AppTheme.fix),
           ]),
         ),
       ),

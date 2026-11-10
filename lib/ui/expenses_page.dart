@@ -38,51 +38,69 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
   void _setFilter(InvoiceFilter f) => setState(() => _filter = f);
 
-  @override
-  Widget build(BuildContext context) => Column(children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-          child: TextField(
-            controller: _search,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              hintText: 'Sök leverantör, nummer eller typ',
-              prefixIcon: const Icon(AppIcons.search),
-              suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
-                if (_filter.active)
-                  IconButton(
-                    tooltip: 'Rensa sökningen',
-                    icon: const Icon(AppIcons.close),
-                    onPressed: () {
-                      _search.clear();
-                      FocusScope.of(context).unfocus();
-                      _setFilter(const InvoiceFilter());
-                    },
-                  ),
-                IconButton(
-                  tooltip: 'Filtrera',
-                  icon: Icon(AppIcons.filter,
-                      color: _filter.supplier != null || _filter.costType != null || _filter.from != null
-                          ? AppTheme.seed
-                          : null),
-                  onPressed: () async {
-                    final f = await showFilterSheet(context, _filter);
-                    if (f != null) _setFilter(f);
-                  },
-                ),
-              ]),
+  Widget _searchField(BuildContext context) => TextField(
+        controller: _search,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: 'Sök i alla månader: leverantör, nummer, typ',
+          prefixIcon: const Icon(AppIcons.search),
+          suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (_filter.active)
+              IconButton(
+                tooltip: 'Rensa sökningen',
+                icon: const Icon(AppIcons.close),
+                onPressed: () {
+                  _search.clear();
+                  FocusScope.of(context).unfocus();
+                  _setFilter(const InvoiceFilter());
+                },
+              ),
+            IconButton(
+              tooltip: 'Filtrera',
+              icon: Icon(AppIcons.filter,
+                  color: _filter.supplier != null || _filter.costType != null || _filter.from != null
+                      ? AppTheme.seed
+                      : null),
+              onPressed: () async {
+                final f = await showFilterSheet(context, _filter);
+                if (f != null) _setFilter(f);
+              },
             ),
-            onChanged: (v) => _setFilter(_filter.copyWith(query: v)),
-          ),
+          ]),
         ),
-        Expanded(child: _filter.active ? _SearchResults(_filter, onChanged: _setFilter) : _month(context)),
-      ]);
+        onChanged: (v) => _setFilter(_filter.copyWith(query: v)),
+      );
 
-  Widget _month(BuildContext context) => Reloading<(MonthData, List<Invoice>)>(
+  List<Widget> _filterChips() => [
+        if (_filter.supplier != null)
+          InputChip(
+            label: Text(_filter.supplier!),
+            onDeleted: () => _setFilter(_filter.copyWith(clearSupplier: true)),
+          ),
+        if (_filter.costType != null)
+          InputChip(
+            label: Text(CostType.labelFor(_filter.costType!)),
+            onDeleted: () => _setFilter(_filter.copyWith(clearCostType: true)),
+          ),
+        if (_filter.from != null || _filter.to != null)
+          InputChip(
+            label: Text('${_filter.from ?? '…'} – ${_filter.to ?? '…'}'),
+            onDeleted: () => _setFilter(_filter.copyWith(clearDates: true)),
+          ),
+      ];
+
+  // Every invoice is loaded with the month, so typing filters in place and
+  // the search field keeps its focus (no reload between letters).
+  @override
+  Widget build(BuildContext context) => Reloading<(MonthData, List<Invoice>, List<Invoice>)>(
         deps: _ym.title,
-        loader: (c) async => (await MonthData.load(c, _ym), await c.repo.unpaidInvoices()),
+        loader: (c) async => (
+          await MonthData.load(c, _ym),
+          await c.repo.unpaidInvoices(),
+          await c.repo.invoicesBetween('0000-01-01', '9999-12-31'),
+        ),
         builder: (context, data) {
-          final (m, unpaid) = data;
+          final (m, unpaid, all) = data;
           final r = m.report;
           final byType = <String, Money>{};
           for (final i in m.invoices) {
@@ -94,6 +112,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
           final invoices = [...m.invoices]..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate));
           final unpaidThisMonth = m.invoices.where((i) => !i.paid).length;
           final incomplete = m.invoices.where((i) => i.isIncomplete).length;
+          final searching = _filter.active;
+          final hits = all.where(_filter.matches).toList()..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate));
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -125,8 +145,24 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 const SectionTitle('Per kostnadstyp', trailing: 'exkl. moms'),
                 ShareBar(parts: parts, colors: costPalette),
               ],
-              SectionTitle('Fakturor och kvitton', trailing: invoices.isEmpty ? null : '${invoices.length} st'),
-              if (invoices.isEmpty)
+              SectionTitle('Fakturor och kvitton',
+                  trailing: searching
+                      ? '${hits.length} träffar · ${Money.sum(hits.map((i) => i.total)).format(compact: true)}'
+                      : (invoices.isEmpty ? null : '${invoices.length} st')),
+              _searchField(context),
+              const SizedBox(height: 8),
+              if (_filterChips().isNotEmpty) ...[
+                Wrap(spacing: 6, runSpacing: 6, children: _filterChips()),
+                const SizedBox(height: 8),
+              ],
+              if (searching)
+                hits.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(child: Text('Inga fakturor eller kvitton matchar sökningen.')),
+                      )
+                    : LedgerCard(children: [for (final inv in hits) _invoiceRow(context, inv)])
+              else if (invoices.isEmpty)
                 Card(
                   margin: EdgeInsets.zero,
                   child: Padding(
@@ -159,9 +195,10 @@ Widget _invoiceRow(BuildContext context, Invoice inv) => LedgerRow(
       badgeBackground: _expenseTint,
       badgeColor: _expense,
       chips: [
-        if (inv.isIncomplete) const StatusChip('Saknar uppgifter'),
         if (inv.total.isNegative) const StatusChip('Kreditnota', color: AppTheme.seed, background: AppTheme.tint),
         if (!inv.paid) _dueChip(inv),
+        if (inv.isIncomplete)
+          StatusChip('Fyll i: ${inv.missingFields.join(', ')}', color: AppTheme.fix, background: AppTheme.fixTint),
       ],
       onTap: () => openRecord(context, 'invoice', inv.id!),
     );
@@ -172,53 +209,6 @@ Widget _dueChip(Invoice inv) {
   if (days < 0) return const StatusChip('Förfallen', color: Color(0xFFB3261E), background: Color(0xFFFDECEA));
   if (days == 0) return const StatusChip('Förfaller i dag');
   return StatusChip('Obetald · $days d kvar');
-}
-
-/// Every invoice and receipt, scanned or imported, that matches [filter].
-class _SearchResults extends StatelessWidget {
-  final InvoiceFilter filter;
-  final ValueChanged<InvoiceFilter> onChanged;
-  const _SearchResults(this.filter, {required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) => Reloading<List<Invoice>>(
-        loader: (c) => c.repo.invoicesBetween('0000-01-01', '9999-12-31'),
-        builder: (context, all) {
-          final hits = all.where(filter.matches).toList()..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate));
-          final chips = <Widget>[
-            if (filter.supplier != null)
-              InputChip(
-                label: Text(filter.supplier!),
-                onDeleted: () => onChanged(filter.copyWith(clearSupplier: true)),
-              ),
-            if (filter.costType != null)
-              InputChip(
-                label: Text(CostType.labelFor(filter.costType!)),
-                onDeleted: () => onChanged(filter.copyWith(clearCostType: true)),
-              ),
-            if (filter.from != null || filter.to != null)
-              InputChip(
-                label: Text('${filter.from ?? '…'} – ${filter.to ?? '…'}'),
-                onDeleted: () => onChanged(filter.copyWith(clearDates: true)),
-              ),
-          ];
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            children: [
-              if (chips.isNotEmpty) Wrap(spacing: 6, runSpacing: 6, children: chips),
-              SectionTitle('Sökresultat',
-                  trailing: hits.isEmpty ? null : '${hits.length} st · ${Money.sum(hits.map((i) => i.total)).format(compact: true)}'),
-              if (hits.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: Text('Inga fakturor eller kvitton matchar sökningen.')),
-                )
-              else
-                LedgerCard(children: [for (final inv in hits) _invoiceRow(context, inv)]),
-            ],
-          );
-        },
-      );
 }
 
 /// Supplier, cost type and date range. Returns the new filter, or null when

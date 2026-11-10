@@ -168,6 +168,11 @@ class _ResultBody extends StatelessWidget {
     final r = data.report;
     final t = Theme.of(context).textTheme;
     final bold = moneyStyle.copyWith(fontWeight: FontWeight.bold);
+    final p = data.period;
+    // data.invoices reaches back before the period (for the SIE file); count this period only.
+    final incomplete = data.invoices
+        .where((i) => i.invoiceDate.compareTo(p.from) >= 0 && i.invoiceDate.compareTo(p.to) <= 0 && i.isIncomplete)
+        .length;
     Widget row(String label, Money v, {bool strong = false, String? sub}) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(children: [
@@ -183,6 +188,10 @@ class _ResultBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (incomplete > 0) ...[
+          IncompleteNotice(count: incomplete, from: p.from, to: p.to, period: p.title),
+          const SizedBox(height: 12),
+        ],
         ExportButtons(
           onPdf: () => exportTablePdf(context, data.table(), data.profile),
           onExcel: () => exportTableCsv(context, data.table()),
@@ -212,15 +221,6 @@ class _ResultBody extends StatelessWidget {
               const Divider(),
               row('Resultat', r.result, strong: true),
             ]),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: IncompleteNotice(
-            count: data.invoices.where((i) => i.isIncomplete).length,
-            from: data.period.from,
-            to: data.period.to,
-            period: data.period.title,
           ),
         ),
         const SizedBox(height: 8),

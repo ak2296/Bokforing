@@ -348,6 +348,10 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     final giroSlip = norm.any((n) => RegExp(r'girering\s*av').hasMatch(n));
     if (!vatTotal.hasValue && giroSlip) {
       vatTotal = const Extracted(Money.zero, Confidence.medium, note: 'Inbetalningskort utan moms. Kontrollera.');
+      // A 0 % row is saved with the paper, so it is not later listed as missing moms.
+      vat = _VatInfo([
+        InvoiceVatLine(rate: VatRate.zero, vat: Money.zero, gross: total.value?.abs(), calculated: true),
+      ], null, null, null, false, note: vat.note);
     }
     if (!vatTotal.hasValue) notes.add('Ingen moms hittades på dokumentet. Kontrollera om momsen saknas eller fyll i den.');
     if (vatTotal.value != null && total.value != null && vatTotal.value!.abs() > total.value!.abs()) {
