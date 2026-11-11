@@ -7,6 +7,7 @@ import '../domain/invoice_filter.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
 import 'app_icons.dart';
+import 'bank_import_page.dart';
 import 'incomplete_page.dart';
 import 'record_details.dart';
 import 'theme.dart';
@@ -138,6 +139,13 @@ class _ExpensesPageState extends State<ExpensesPage> {
               ),
               const SizedBox(height: 10),
               _UnpaidTile(unpaid),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                icon: const Icon(AppIcons.file, size: 18),
+                label: const Text('Matcha betalningar från bankfil'),
+                onPressed: () =>
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BankImportPage())),
+              ),
               if (incomplete > 0) ...[
                 const SizedBox(height: 10),
                 IncompleteNotice(count: incomplete, from: _ym.firstDay, to: _ym.lastDay, period: _ym.title),
