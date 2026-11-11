@@ -101,8 +101,8 @@ class _CompanyTitle extends StatelessWidget {
 }
 
 /// Bottom navigation with a spotlight over the chosen tab: a glowing lamp on
-/// the top edge and a pumpkin light cone below it. Dark theme: a floating dark
-/// pill. Light theme: a plain white bar.
+/// the top edge and a pumpkin light cone below it. A floating pill in both
+/// themes: white in the light theme, dark in the dark theme.
 class _BottomBar extends StatelessWidget {
   final int index;
   final ValueChanged<int> onTap;
@@ -137,24 +137,16 @@ class _BottomBar extends StatelessWidget {
         ],
       ),
     );
-    if (!dark) {
-      return Container(
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          border: Border(top: BorderSide(color: AppTheme.hairline)),
-        ),
-        child: SafeArea(top: false, child: bar),
-      );
-    }
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF0B100E),
+            color: dark ? const Color(0xFF0B100E) : AppTheme.surface,
             borderRadius: BorderRadius.circular(30),
             border: Border.all(color: AppTheme.hairline),
+            boxShadow: dark ? null : const [BoxShadow(color: Color(0x1A000000), blurRadius: 16, offset: Offset(0, 4))],
           ),
           clipBehavior: Clip.antiAlias,
           child: bar,
