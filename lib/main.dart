@@ -32,8 +32,9 @@ Future<void> main() async {
   // Read before the first screen so a locked app never shows its content.
   final pinLock = PinLock(SecureLockStore());
   await pinLock.load();
+  final themeMode = AppController.parseThemeMode(await repo.setting(SettingsKeys.themeMode));
   runApp(BokforingApp(
-      controller: AppController(repo, reminders: reminders, autoBackup: autoBackup, pinLock: pinLock),
+      controller: AppController(repo, reminders: reminders, autoBackup: autoBackup, pinLock: pinLock, themeMode: themeMode),
       setupDone: setupDone));
 }
 
@@ -52,7 +53,9 @@ class _BokforingAppState extends State<BokforingApp> {
   @override
   Widget build(BuildContext context) => AppScope(
         controller: widget.controller,
-        child: MaterialApp(
+        child: ValueListenableBuilder<ThemeMode>(
+          valueListenable: widget.controller.themeMode,
+          builder: (context, mode, _) => MaterialApp(
           title: 'Quee',
           debugShowCheckedModeBanner: false,
           locale: const Locale('sv', 'SE'),
@@ -63,11 +66,15 @@ class _BokforingAppState extends State<BokforingApp> {
             GlobalCupertinoLocalizations.delegate,
           ],
           theme: AppTheme.light(),
+          darkTheme: AppTheme.darkTheme(),
+          themeMode: mode,
           // Every page and sheet ends above the phone's navigation buttons.
           builder: (context, child) {
+            // The colours in AppTheme follow the resolved brightness.
+            AppTheme.dark = Theme.of(context).brightness == Brightness.dark;
             final content = _Readable(
               child: ColoredBox(
-                color: Colors.white,
+                color: AppTheme.surface,
                 child: SafeArea(top: false, left: false, right: false, child: child ?? const SizedBox.shrink()),
               ),
             );
@@ -77,6 +84,7 @@ class _BokforingAppState extends State<BokforingApp> {
           home: _setupDone
               ? const Shell()
               : SetupWizard(onDone: () => setState(() => _setupDone = true)),
+        ),
         ),
       );
 }
@@ -94,7 +102,7 @@ class _Readable extends StatelessWidget {
     if (mq.size.width <= maxWidth) return child;
     final side = (mq.size.width - maxWidth) / 2;
     return ColoredBox(
-      color: const Color(0xFFE6EBE5),
+      color: AppTheme.dark ? const Color(0xFF0B100E) : const Color(0xFFE6EBE5),
       child: Center(
         child: SizedBox(
           width: maxWidth,

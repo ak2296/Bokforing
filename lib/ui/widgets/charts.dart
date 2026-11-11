@@ -32,6 +32,7 @@ class _BarsPainter extends CustomPainter {
   final List<double> first;
   final List<double> second;
   _BarsPainter(this.labels, this.first, this.second);
+  final bool _dark = AppTheme.dark;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -53,7 +54,7 @@ class _BarsPainter extends CustomPainter {
       bar(center - barW - 1, first[i], AppTheme.seed);
       bar(center + 1, second[i], chartSecond);
       final tp = TextPainter(
-          text: TextSpan(text: labels[i], style: const TextStyle(fontSize: 10, color: AppTheme.muted)),
+          text: TextSpan(text: labels[i], style: TextStyle(fontSize: 10, color: AppTheme.muted)),
           textDirection: TextDirection.ltr)
         ..layout();
       tp.paint(canvas, Offset(center - tp.width / 2, chartH + 4));
@@ -62,7 +63,7 @@ class _BarsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _BarsPainter old) => old.first != first || old.second != second;
+  bool shouldRepaint(covariant _BarsPainter old) => old.first != first || old.second != second || old._dark != _dark;
 }
 
 /// Two lines over twelve months: this year solid, the year compared dashed.
@@ -87,6 +88,7 @@ class _LinesPainter extends CustomPainter {
   final List<double> current;
   final List<double> previous;
   _LinesPainter(this.current, this.previous);
+  final bool _dark = AppTheme.dark;
 
   static const _ticks = {0: 'jan', 3: 'apr', 6: 'jul', 9: 'okt'};
 
@@ -134,7 +136,7 @@ class _LinesPainter extends CustomPainter {
 
     for (final e in _ticks.entries) {
       final tp = TextPainter(
-          text: TextSpan(text: e.value, style: const TextStyle(fontSize: 10, color: AppTheme.muted)),
+          text: TextSpan(text: e.value, style: TextStyle(fontSize: 10, color: AppTheme.muted)),
           textDirection: TextDirection.ltr)
         ..layout();
       tp.paint(canvas, Offset(math.max(0, x(e.key) - tp.width / 2), chartH + 4));
@@ -142,7 +144,7 @@ class _LinesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _LinesPainter old) => old.current != current || old.previous != previous;
+  bool shouldRepaint(covariant _LinesPainter old) => old.current != current || old.previous != previous || old._dark != _dark;
 }
 
 /// A small coloured square and a label, for chart legends.

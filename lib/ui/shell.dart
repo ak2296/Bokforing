@@ -100,6 +100,9 @@ class _CompanyTitle extends StatelessWidget {
       );
 }
 
+/// Bottom navigation with a spotlight over the chosen tab: a glowing lamp on
+/// the top edge and a pumpkin light cone below it. Dark theme: a floating dark
+/// pill. Light theme: a plain white bar.
 class _BottomBar extends StatelessWidget {
   final int index;
   final ValueChanged<int> onTap;
@@ -114,58 +117,137 @@ class _BottomBar extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+  Widget build(BuildContext context) {
+    final dark = AppTheme.dark;
+    final bar = SizedBox(
+      height: 64,
+      child: Row(
+        children: [
+          for (var i = 0; i < _items.length; i++)
+            Expanded(
+              child: _Tab(
+                label: _items[i].$1,
+                icon: _items[i].$2,
+                selected: i == index,
+                scan: i == 2,
+                dark: dark,
+                onTap: () => onTap(i),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (!dark) {
+      return Container(
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
           border: Border(top: BorderSide(color: AppTheme.hairline)),
         ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 64,
-            child: Row(
-              children: [
-                for (var i = 0; i < _items.length; i++)
-                  Expanded(
-                    child: InkResponse(
-                      onTap: () => onTap(i),
-                      child: Semantics(
-                        selected: i == index,
-                        button: true,
-                        // Every tab has the same icon and label layout, so the
-                        // labels line up; the scan tab sits in a green tile.
-                        child: Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                            decoration: i == 2
-                                ? BoxDecoration(color: AppTheme.seed, borderRadius: BorderRadius.circular(14))
-                                : null,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(_items[i].$2,
-                                    size: 22,
-                                    color: i == 2 ? Colors.white : (i == index ? AppTheme.seed : AppTheme.muted)),
-                                const SizedBox(height: 2),
-                                Text(
-                                  _items[i].$1,
-                                  maxLines: 1,
-                                  style: TextStyle(
-                                    fontSize: 10.5,
-                                    fontWeight: i == index || i == 2 ? FontWeight.w500 : FontWeight.w400,
-                                    color: i == 2 ? Colors.white : (i == index ? AppTheme.seed : AppTheme.muted),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+        child: SafeArea(top: false, child: bar),
+      );
+    }
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B100E),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: AppTheme.hairline),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: bar,
+        ),
+      ),
+    );
+  }
+}
+
+class _Tab extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final bool scan;
+  final bool dark;
+  final VoidCallback onTap;
+  const _Tab(
+      {required this.label,
+      required this.icon,
+      required this.selected,
+      required this.scan,
+      required this.dark,
+      required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final onColor = scan ? Colors.white : (selected ? AppTheme.pumpkin : AppTheme.muted);
+    return InkResponse(
+      onTap: onTap,
+      child: Semantics(
+        selected: selected,
+        button: true,
+        child: Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            // The light cone, widening from the lamp down over the tab.
+            Positioned.fill(
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 220),
+                opacity: selected ? 1 : 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AppTheme.pumpkin.withValues(alpha: dark ? 0.32 : 0.20),
+                        AppTheme.pumpkin.withValues(alpha: 0),
+                      ],
                     ),
                   ),
-              ],
+                ),
+              ),
             ),
-          ),
+            // The lamp.
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 220),
+              opacity: selected ? 1 : 0,
+              child: Container(
+                width: 30,
+                height: 3.5,
+                decoration: BoxDecoration(
+                  color: AppTheme.pumpkinLight,
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(4)),
+                  boxShadow: [BoxShadow(color: AppTheme.pumpkin.withValues(alpha: 0.85), blurRadius: dark ? 14 : 8, spreadRadius: 1)],
+                ),
+              ),
+            ),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: scan ? BoxDecoration(color: AppTheme.seed, borderRadius: BorderRadius.circular(14)) : null,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: 22, color: onColor),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: selected || scan ? FontWeight.w500 : FontWeight.w400,
+                        color: onColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }

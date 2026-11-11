@@ -29,7 +29,7 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ym = YearMonth.now();
-    return Reloading<(MonthData, List<RegistrationSummary>, int, List<Invoice>, LicenseState, YearReport, YearReport)>(
+    return Reloading<(MonthData, List<RegistrationSummary>, int, List<Invoice>, LicenseState, YearReport, YearReport, DashboardExtras)>(
       deps: ym.title,
       loader: (c) async => (
         await MonthData.load(c, ym),
@@ -39,9 +39,10 @@ class DashboardPage extends StatelessWidget {
         await c.repo.licenseState(),
         await _year(c, ym.year),
         await _year(c, ym.year - 1),
+        await DashboardExtras.load(c),
       ),
       builder: (context, data) {
-        final (month, recent, count, unpaid, license, thisYear, lastYear) = data;
+        final (month, recent, count, unpaid, license, thisYear, lastYear, extras) = data;
         final r = month.report;
         final t = Theme.of(context).textTheme;
         // The last six months, oldest first, across the turn of the year.
@@ -52,11 +53,6 @@ class DashboardPage extends StatelessWidget {
                 : (ym.month - back + 12, lastYear.rows[ym.month - back + 11]),
         ];
         final previous = months[months.length - 2].$2;
-        final categories = [
-          for (final c in r.columns) (c.name, r.columnTotals[c.key] ?? Money.zero),
-          if (!r.totalOnline.isZero) ('Online', r.totalOnline),
-        ]..sort((a, b) => b.$2.ore.compareTo(a.$2.ore));
-        final topCategory = categories.isEmpty ? Money.zero : categories.first.$2;
         final diff = r.vatDifference;
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
@@ -89,20 +85,18 @@ class DashboardPage extends StatelessWidget {
                   semanticLabel: 'Försäljning och utgifter för de senaste sex månaderna',
                 ),
                 const SizedBox(height: 6),
-                const Wrap(spacing: 14, children: [
+                Wrap(spacing: 14, children: [
                   LegendDot(AppTheme.seed, 'Försäljning'),
                   LegendDot(chartSecond, 'Utgifter'),
                 ]),
               ]),
             ),
-            if (categories.isNotEmpty)
-              _Panel(
-                title: 'Försäljning per kategori',
-                child: _CategoryBars(categories: categories, top: topCategory),
-              ),
+            _Panel(title: 'Hittills denna månad', child: _MonthToDate(extras)),
+            _Panel(title: 'Veckodagar, snitt senaste 12 veckorna', child: _Weekdays(extras.weekdayAverages)),
+            if (extras.upcoming.isNotEmpty) _Panel(title: 'Kommande betalningar', child: _Upcoming(extras.upcoming)),
             _Panel(
               child: Row(children: [
-                const Icon(AppIcons.vat, color: AppTheme.seed),
+                Icon(AppIcons.vat, color: AppTheme.seed),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -134,56 +128,6 @@ class DashboardPage extends StatelessWidget {
         );
       },
     );
-  }
-}
-
-/// The five largest categories, and all of them after "Visa alla".
-class _CategoryBars extends StatefulWidget {
-  static const shown = 5;
-  final List<(String, Money)> categories;
-  final Money top;
-  const _CategoryBars({required this.categories, required this.top});
-
-  @override
-  State<_CategoryBars> createState() => _CategoryBarsState();
-}
-
-class _CategoryBarsState extends State<_CategoryBars> {
-  bool _all = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final list = widget.categories;
-    final more = list.length - _CategoryBars.shown;
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      for (final c in _all ? list : list.take(_CategoryBars.shown))
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Row(children: [
-              Expanded(child: Text(c.$1, style: t.bodyMedium)),
-              Text(c.$2.format(compact: true), style: moneyStyle),
-            ]),
-            const SizedBox(height: 4),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(
-                value: widget.top.ore <= 0 ? 0 : (c.$2.ore / widget.top.ore).clamp(0.0, 1.0),
-                minHeight: 6,
-                backgroundColor: AppTheme.hairline,
-                color: AppTheme.seed,
-              ),
-            ),
-          ]),
-        ),
-      if (more > 0)
-        TextButton.icon(
-          onPressed: () => setState(() => _all = !_all),
-          icon: Icon(_all ? AppIcons.collapse : AppIcons.expand),
-          label: Text(_all ? 'Visa färre' : 'Visa alla ($more till)'),
-        ),
-    ]);
   }
 }
 
@@ -313,5 +257,181 @@ class _UnpaidCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// What the overview panels need beyond the month's report.
+class DashboardExtras {
+  /// Sales and expenses from the 1st up to today, and for the same days of the
+  /// month before.
+  final Money salesNow, salesBefore, expensesNow, expensesBefore;
+  final int dayOfMonth;
+
+  /// Average sales per weekday (Monday first) over the last 12 weeks, in kr.
+  final List<double> weekdayAverages;
+
+  /// Unpaid invoices with a due date, soonest first.
+  final List<Invoice> upcoming;
+  const DashboardExtras(this.salesNow, this.salesBefore, this.expensesNow, this.expensesBefore, this.dayOfMonth,
+      this.weekdayAverages, this.upcoming);
+
+  static Future<DashboardExtras> load(AppController c, {DateTime? now}) async {
+    final today = now ?? DateTime.now();
+    final ym = YearMonth(today.year, today.month);
+    final prev = ym.previous;
+    String day(YearMonth m, int d) => '${SwedishDates.monthKey(m.year, m.month)}-${d.toString().padLeft(2, '0')}';
+    final to = today.day;
+    final salesNow = await c.repo.dailySalesBetween(ym.firstDay, day(ym, to));
+    final salesBefore = await c.repo.dailySalesBetween(prev.firstDay, day(prev, to));
+    final expNow = await c.repo.invoicesForReports(ym.firstDay, day(ym, to));
+    final expBefore = await c.repo.invoicesForReports(prev.firstDay, day(prev, to));
+    final from = today.subtract(const Duration(days: 12 * 7 - 1));
+    final recent = await c.repo.dailySalesBetween(SwedishDates.iso(from), SwedishDates.iso(today));
+    final unpaid = [for (final i in await c.repo.unpaidInvoices()) if (i.dueDate != null) i]
+      ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
+    Money sum(List<DailySales> l) => Money.sum(l.map((d) => d.detailedTotal));
+    Money cost(List<Invoice> l) => Money.sum(l.map((i) => i.total));
+    return DashboardExtras(
+        sum(salesNow), sum(salesBefore), cost(expNow), cost(expBefore), to, weekdayAverage(recent), unpaid);
+  }
+
+  /// Average of the days that have a Z-report, for each weekday.
+  static List<double> weekdayAverage(List<DailySales> days) {
+    final sums = List<double>.filled(7, 0), counts = List<int>.filled(7, 0);
+    for (final d in days) {
+      final date = SwedishDates.parseIso(d.businessDate);
+      if (date == null) continue;
+      sums[date.weekday - 1] += d.detailedTotal.ore / 100;
+      counts[date.weekday - 1]++;
+    }
+    return [for (var i = 0; i < 7; i++) counts[i] == 0 ? 0 : sums[i] / counts[i]];
+  }
+}
+
+/// Sales and expenses so far this month against the same days last month.
+class _MonthToDate extends StatelessWidget {
+  final DashboardExtras e;
+  const _MonthToDate(this.e);
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    Widget row(String label, Money now, Money before, bool higherIsGood) {
+      final change = CompareRow(0, now, before).changePercent;
+      final good = change == null || change == 0 || (change > 0) == higherIsGood;
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(children: [
+          Expanded(child: Text(label, style: t.bodyMedium)),
+          Text(now.format(compact: true), style: t.titleSmall?.merge(moneyStyle)),
+          SizedBox(
+            width: 84,
+            child: Text(change == null ? '' : formatChange(change),
+                textAlign: TextAlign.end,
+                style: t.bodySmall?.copyWith(color: good ? AppTheme.seed : AppTheme.warning)),
+          ),
+        ]),
+      );
+    }
+
+    return Column(children: [
+      row('Försäljning', e.salesNow, e.salesBefore, true),
+      row('Utgifter', e.expensesNow, e.expensesBefore, false),
+      const SizedBox(height: 4),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: Text('Dag 1–${e.dayOfMonth} mot samma dagar förra månaden', style: t.bodySmall),
+      ),
+    ]);
+  }
+}
+
+/// Seven bars, Monday to Sunday, the strongest day in pumpkin.
+class _Weekdays extends StatelessWidget {
+  final List<double> averages;
+  const _Weekdays(this.averages);
+
+  static const _names = ['mån', 'tis', 'ons', 'tor', 'fre', 'lör', 'sön'];
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final top = averages.fold<double>(0, (a, b) => b > a ? b : a);
+    if (top <= 0) return Text('Ingen försäljning registrerad de senaste veckorna.', style: t.bodySmall);
+    final best = averages.indexOf(top);
+    return Semantics(
+      label: 'Snittförsäljning per veckodag, högst på ${_names[best]}',
+      child: SizedBox(
+        height: 110,
+        child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          for (var i = 0; i < 7; i++)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  Text(averages[i] <= 0 ? '' : Money(averages[i].round() * 100).format(unit: false, compact: true),
+                      maxLines: 1, style: t.bodySmall?.copyWith(fontSize: 9.5)),
+                  const SizedBox(height: 2),
+                  Container(
+                    height: 4 + 64 * (averages[i] / top),
+                    decoration: BoxDecoration(
+                      color: i == best ? AppTheme.pumpkin : AppTheme.seed,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(_names[i], style: t.bodySmall),
+                ]),
+              ),
+            ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// The next unpaid invoices by due date.
+class _Upcoming extends StatelessWidget {
+  final List<Invoice> invoices;
+  const _Upcoming(this.invoices);
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Column(children: [
+      for (final i in invoices.take(4))
+        InkWell(
+          onTap: () => openRecord(context, 'invoice', i.id!),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(i.supplier.isEmpty ? 'Faktura' : i.supplier,
+                      maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleSmall),
+                  Text(_when(i.dueDate),
+                      style: t.bodySmall?.copyWith(color: (daysUntil(i.dueDate) ?? 1) < 0 ? AppTheme.warning : null)),
+                ]),
+              ),
+              Text(i.total.format(compact: true), style: t.titleSmall?.merge(moneyStyle)),
+            ]),
+          ),
+        ),
+      if (invoices.length > 4)
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UnpaidPage())),
+            child: Text('Visa alla (${invoices.length})'),
+          ),
+        ),
+    ]);
+  }
+
+  static String _when(String? due) {
+    final d = daysUntil(due);
+    if (d == null || due == null) return '';
+    final text = SwedishDates.shortDay(due);
+    return d < 0 ? 'Förföll $text' : d == 0 ? 'Förfaller i dag' : 'Förfaller $text (om $d d)';
   }
 }

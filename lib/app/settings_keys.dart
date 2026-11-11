@@ -5,6 +5,8 @@ class SettingsKeys {
 
   /// "Avrunda utgifter till hela kronor": reports and lists only.
   static const roundExpenses = 'round_expenses';
+  /// 'auto' (follow the phone), 'light' or 'dark'.
+  static const themeMode = 'theme_mode';
   static const companyForm = 'company_form';
   static const fiscalStartMonth = 'fiscal_start_month';
   static const ownNames = 'own_names';

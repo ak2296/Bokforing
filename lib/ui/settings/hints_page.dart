@@ -46,7 +46,7 @@ class HintsPage extends StatelessWidget {
                       subtitle: Text('Efter "${h.label}"${h.hits > 1 ? ' · stämt ${h.hits} gånger' : ''}'),
                       trailing: IconButton(
                         tooltip: 'Glöm',
-                        icon: const Icon(AppIcons.delete, color: AppTheme.muted),
+                        icon: Icon(AppIcons.delete, color: AppTheme.muted),
                         onPressed: () async {
                           final c = AppScope.read(context);
                           await c.repo.forgetHint(h.key, h.field);

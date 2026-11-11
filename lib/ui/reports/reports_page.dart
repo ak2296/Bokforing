@@ -47,7 +47,7 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
               child: TabBar(
                 controller: _tabs,
                 indicatorSize: TabBarIndicatorSize.tab,
-                indicator: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                indicator: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(10)),
                 labelColor: AppTheme.ink,
                 unselectedLabelColor: AppTheme.muted,
                 labelStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 13),

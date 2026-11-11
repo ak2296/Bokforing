@@ -217,7 +217,7 @@ Widget _payslipRow(BuildContext context, Payslip p, {bool rounded = false}) => L
       amount: rounded ? p.cost.roundedToKr() : p.cost,
       badgeBackground: _expenseTint,
       badgeColor: _expense,
-      chips: const [StatusChip('Lönebesked', color: AppTheme.seed, background: AppTheme.tint)],
+      chips: [StatusChip('Lönebesked', color: AppTheme.seed, background: AppTheme.tint)],
       onTap: () => openRecord(context, 'payslip', p.id!),
     );
 
@@ -235,7 +235,7 @@ Widget _invoiceRow(BuildContext context, Invoice inv, {bool rounded = false}) =>
       badgeBackground: _expenseTint,
       badgeColor: _expense,
       chips: [
-        if (inv.total.isNegative) const StatusChip('Kreditnota', color: AppTheme.seed, background: AppTheme.tint),
+        if (inv.total.isNegative) StatusChip('Kreditnota', color: AppTheme.seed, background: AppTheme.tint),
         if (!inv.paid) _dueChip(inv),
         if (inv.isIncomplete)
           StatusChip('Fyll i: ${inv.missingFields.join(', ')}', color: AppTheme.fix, background: AppTheme.fixTint),
@@ -347,7 +347,7 @@ class _UnpaidTile extends StatelessWidget {
     final color = none ? AppTheme.seed : (late ? const Color(0xFFB3261E) : AppTheme.warning);
     return Card(
       margin: EdgeInsets.zero,
-      color: none ? Colors.white : (late ? const Color(0xFFFDECEA) : AppTheme.warningTint),
+      color: none ? AppTheme.surface : (late ? const Color(0xFFFDECEA) : AppTheme.warningTint),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: BorderSide(color: none ? AppTheme.hairline : (late ? const Color(0xFFF5C6C2) : AppTheme.warningBorder)),
@@ -374,7 +374,7 @@ class _UnpaidTile extends StatelessWidget {
             ),
             if (!none) Text(total.format(compact: true), style: t.titleSmall?.merge(moneyStyle).copyWith(color: color)),
             const SizedBox(width: 4),
-            const Icon(AppIcons.chevronRight, size: 18, color: AppTheme.muted),
+            Icon(AppIcons.chevronRight, size: 18, color: AppTheme.muted),
           ]),
         ),
       ),

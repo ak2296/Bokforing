@@ -65,7 +65,7 @@ class ScanTab extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Row(children: [
-                  const Icon(AppIcons.info, color: AppTheme.seed),
+                  Icon(AppIcons.info, color: AppTheme.seed),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text('Lägg pappret på en mörk yta i bra ljus. Efter bilden justerar du hörnen.',
@@ -157,14 +157,14 @@ class _Tile extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final Color color;
-  final Color background;
+  final Color? color;
+  final Color? background;
   const _Tile({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.color = AppTheme.seed,
-    this.background = AppTheme.tint,
+    this.color,
+    this.background,
   });
 
   @override
@@ -177,7 +177,7 @@ class _Tile extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
               child: Column(children: [
-                IconTile(icon, background: background, color: color),
+                IconTile(icon, background: background ?? AppTheme.tint, color: color ?? AppTheme.seed),
                 const SizedBox(height: 8),
                 Text(label, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.ink)),
               ]),

@@ -3,16 +3,23 @@ import 'package:flutter/material.dart';
 class AppTheme {
   const AppTheme._();
 
-  static const seed = Color(0xFF0B6B4E);
-  static const ink = Color(0xFF10201B);
-  static const muted = Color(0xFF62706A);
-  static const background = Color(0xFFF5F7F4);
-  static const hairline = Color(0xFFE8ECE6);
-  static const tint = Color(0xFFE4F2EC);
+  /// Set from the app's resolved brightness before each frame; the colours
+  /// below follow it, so they cannot be used in const expressions.
+  static bool dark = false;
+
+  static Color get seed => dark ? const Color(0xFF2FA07A) : const Color(0xFF0B6B4E);
+  static Color get ink => dark ? const Color(0xFFE6EEEA) : const Color(0xFF10201B);
+  static Color get muted => dark ? const Color(0xFF9AA8A1) : const Color(0xFF62706A);
+  static Color get background => dark ? const Color(0xFF111917) : const Color(0xFFF5F7F4);
+  static Color get hairline => dark ? const Color(0xFF2B3833) : const Color(0xFFE8ECE6);
+  static Color get tint => dark ? const Color(0xFF1D3A30) : const Color(0xFFE4F2EC);
+
+  /// Cards, sheets and fields: white in the light theme.
+  static Color get surface => dark ? const Color(0xFF1A2420) : Colors.white;
   static const warning = Color(0xFF8A5300);
   static const warningTint = Color(0xFFFFF6E5);
   static const warningBorder = Color(0xFFF4E2BC);
-  static const ok = Color(0xFF0B6B4E);
+  static Color get ok => seed;
   /// Pumpkin orange, the second brand colour: expenses and "Osäker" readings.
   static const pumpkin = Color(0xFFE2600D);
   static const pumpkinLight = Color(0xFFF2832E);
@@ -32,19 +39,33 @@ class AppTheme {
   static const online = Color(0xFF7E3D12);
   static const onlineTint = Color(0xFFFCEBDD);
 
-  static ThemeData light() {
-    final scheme = ColorScheme.fromSeed(seedColor: seed).copyWith(
+  static ThemeData light() => _build(false);
+  static ThemeData darkTheme() => _build(true);
+
+  static ThemeData _build(bool isDark) {
+    // The getters read [dark], so set it while this theme is built.
+    final before = dark;
+    dark = isDark;
+    try {
+      return _theme(isDark);
+    } finally {
+      dark = before;
+    }
+  }
+
+  static ThemeData _theme(bool isDark) {
+    final scheme = ColorScheme.fromSeed(seedColor: const Color(0xFF0B6B4E), brightness: isDark ? Brightness.dark : Brightness.light).copyWith(
       primary: seed,
       onSurface: ink,
       onSurfaceVariant: muted,
       surface: background,
-      surfaceContainerLowest: Colors.white,
-      surfaceContainerLow: Colors.white,
-      surfaceContainer: Colors.white,
+      surfaceContainerLowest: surface,
+      surfaceContainerLow: surface,
+      surfaceContainer: surface,
       surfaceContainerHigh: tint,
       outlineVariant: hairline,
     );
-    final base = ThemeData(useMaterial3: true, colorScheme: scheme, fontFamily: 'Inter');
+    final base = ThemeData(useMaterial3: true, colorScheme: scheme, fontFamily: 'Inter', brightness: isDark ? Brightness.dark : Brightness.light);
     final text = base.textTheme;
     final radius12 = BorderRadius.circular(14);
     return base.copyWith(
@@ -60,7 +81,7 @@ class AppTheme {
         bodySmall: text.bodySmall?.copyWith(fontSize: 12, color: muted),
         labelLarge: text.labelLarge?.copyWith(fontSize: 14, fontWeight: FontWeight.w500),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: background,
         foregroundColor: ink,
         elevation: 0,
@@ -70,20 +91,20 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: Colors.white,
+        color: surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: hairline),
+          side: BorderSide(color: hairline),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: radius12, borderSide: const BorderSide(color: hairline)),
-        enabledBorder: OutlineInputBorder(borderRadius: radius12, borderSide: const BorderSide(color: hairline)),
-        disabledBorder: OutlineInputBorder(borderRadius: radius12, borderSide: const BorderSide(color: hairline)),
-        focusedBorder: OutlineInputBorder(borderRadius: radius12, borderSide: const BorderSide(color: seed, width: 1.5)),
+        fillColor: surface,
+        border: OutlineInputBorder(borderRadius: radius12, borderSide: BorderSide(color: hairline)),
+        enabledBorder: OutlineInputBorder(borderRadius: radius12, borderSide: BorderSide(color: hairline)),
+        disabledBorder: OutlineInputBorder(borderRadius: radius12, borderSide: BorderSide(color: hairline)),
+        focusedBorder: OutlineInputBorder(borderRadius: radius12, borderSide: BorderSide(color: seed, width: 1.5)),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -95,8 +116,8 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: ink,
-          backgroundColor: Colors.white,
-          side: const BorderSide(color: hairline),
+          backgroundColor: surface,
+          side: BorderSide(color: hairline),
           minimumSize: const Size(0, 46),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
@@ -104,18 +125,19 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(foregroundColor: seed, textStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500)),
       ),
-      dividerTheme: const DividerThemeData(color: hairline, space: 1, thickness: 1),
+      dividerTheme: DividerThemeData(color: hairline, space: 1, thickness: 1),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: ink,
+        backgroundColor: isDark ? const Color(0xFF2B3833) : ink,
+        contentTextStyle: TextStyle(fontFamily: 'Inter', color: isDark ? const Color(0xFFE6EEEA) : Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: Colors.white,
+        backgroundColor: surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
-      bottomSheetTheme: const BottomSheetThemeData(backgroundColor: Colors.white, surfaceTintColor: Colors.transparent),
+      bottomSheetTheme: BottomSheetThemeData(backgroundColor: surface, surfaceTintColor: Colors.transparent),
       tabBarTheme: const TabBarThemeData(dividerColor: Colors.transparent),
     );
   }
@@ -127,15 +149,17 @@ const moneyStyle = TextStyle(fontFeatures: [FontFeature.tabularFigures()]);
 /// A small rounded icon tile, as in the lists on the overview.
 class IconTile extends StatelessWidget {
   final IconData icon;
-  final Color background;
-  final Color color;
-  const IconTile(this.icon, {super.key, this.background = AppTheme.tint, this.color = AppTheme.seed});
+  final Color? _background;
+  final Color? _color;
+  const IconTile(this.icon, {super.key, Color? background, Color? color})
+      : _background = background,
+        _color = color;
 
   @override
   Widget build(BuildContext context) => Container(
         width: 34,
         height: 34,
-        decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(11)),
-        child: Icon(icon, size: 18, color: color),
+        decoration: BoxDecoration(color: _background ?? AppTheme.tint, borderRadius: BorderRadius.circular(11)),
+        child: Icon(icon, size: 18, color: _color ?? AppTheme.seed),
       );
 }

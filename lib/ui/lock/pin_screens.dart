@@ -170,7 +170,7 @@ class _PinScreenState extends State<PinScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(AppIcons.lock, size: 36, color: AppTheme.seed),
+              Icon(AppIcons.lock, size: 36, color: AppTheme.seed),
               const SizedBox(height: 12),
               Text(widget.title, style: t.titleLarge),
               const SizedBox(height: 4),

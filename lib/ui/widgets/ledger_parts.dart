@@ -94,7 +94,7 @@ class MonthPill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         height: 44,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: AppTheme.hairline),
         ),
@@ -106,7 +106,7 @@ class MonthPill extends StatelessWidget {
               onPressed: onPrevious),
           Expanded(
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(AppIcons.calendar, size: 16, color: AppTheme.muted),
+              Icon(AppIcons.calendar, size: 16, color: AppTheme.muted),
               const SizedBox(width: 6),
               Text(title, style: Theme.of(context).textTheme.titleSmall),
             ]),
@@ -142,19 +142,20 @@ class SectionTitle extends StatelessWidget {
 /// Day number over a short weekday, in a rounded tile: "05 / tis".
 class DateBadge extends StatelessWidget {
   final String isoDate;
-  final Color background;
-  final Color color;
-  const DateBadge(this.isoDate, {super.key, this.background = AppTheme.tint, this.color = AppTheme.seed});
+  final Color? background;
+  final Color? color;
+  const DateBadge(this.isoDate, {super.key, this.background, this.color});
 
   static const _weekdays = ['mån', 'tis', 'ons', 'tor', 'fre', 'lör', 'sön'];
 
   @override
   Widget build(BuildContext context) {
     final d = SwedishDates.parseIso(isoDate);
+    final color = this.color ?? AppTheme.seed;
     return Container(
       width: 44,
       height: 46,
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(13)),
+      decoration: BoxDecoration(color: background ?? AppTheme.tint, borderRadius: BorderRadius.circular(13)),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Text(d == null ? '–' : d.day.toString().padLeft(2, '0'),
             style: TextStyle(fontSize: 16, height: 1.1, fontWeight: FontWeight.w600, color: color)),
@@ -188,8 +189,8 @@ class LedgerRow extends StatelessWidget {
   final Money amount;
   final List<Widget> chips;
   final VoidCallback onTap;
-  final Color badgeBackground;
-  final Color badgeColor;
+  final Color? badgeBackground;
+  final Color? badgeColor;
   const LedgerRow({
     super.key,
     required this.isoDate,
@@ -198,8 +199,8 @@ class LedgerRow extends StatelessWidget {
     required this.amount,
     required this.onTap,
     this.chips = const [],
-    this.badgeBackground = AppTheme.tint,
-    this.badgeColor = AppTheme.seed,
+    this.badgeBackground,
+    this.badgeColor,
   });
 
   @override
@@ -273,8 +274,10 @@ class ShareBar extends StatelessWidget {
             child: SizedBox(
               height: 12,
               child: Row(children: [
-                for (final (i, p) in positive.indexed)
+                for (final (i, p) in positive.indexed) ...[
+                  if (i > 0) const SizedBox(width: 2),
                   Expanded(flex: (p.$2.ore * 1000 ~/ total).clamp(1, 1000), child: Container(color: colorAt(i))),
+                ],
               ]),
             ),
           ),
@@ -300,6 +303,8 @@ class ShareBar extends StatelessWidget {
   }
 }
 
-/// Greens for sales, warm tones for costs; both readable on white.
-const salesPalette = [Color(0xFF0B6B4E), Color(0xFF3E9B7A), Color(0xFF7CC4A6), Color(0xFFB9DFCC), Color(0xFF5B7F72), Color(0xFF9AA9A2)];
-const costPalette = [AppTheme.pumpkin, AppTheme.pumpkinLight, AppTheme.pumpkinPale, Color(0xFF8A5300), Color(0xFFD9A066), Color(0xFFB0A08A)];
+/// Greens for sales, warm tones for costs. Neighbours alternate dark and
+/// light, and the bar keeps a small gap between them, so each part is easy
+/// to tell apart.
+const salesPalette = [Color(0xFF0B6B4E), Color(0xFFB9DFCC), Color(0xFF3E9B7A), Color(0xFF9AA9A2), Color(0xFF5B7F72), Color(0xFF7CC4A6)];
+const costPalette = [AppTheme.pumpkin, AppTheme.pumpkinPale, Color(0xFF8A5300), Color(0xFFD9A066), AppTheme.pumpkinLight, Color(0xFFB0A08A)];

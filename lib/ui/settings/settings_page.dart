@@ -97,6 +97,23 @@ class _SettingsPageState extends State<SettingsPage> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
+                header('Utseende'),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: ValueListenableBuilder<ThemeMode>(
+                    valueListenable: AppScope.read(context).themeMode,
+                    builder: (context, mode, _) => SegmentedButton<ThemeMode>(
+                      segments: const [
+                        ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto), label: Text('Auto')),
+                        ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_outlined), label: Text('Ljust')),
+                        ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_outlined), label: Text('Mörkt')),
+                      ],
+                      selected: {mode},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (s) => AppScope.read(context).setThemeMode(s.first),
+                    ),
+                  ),
+                ),
                 header('Företag'),
                 ListTile(
                   leading: const Icon(AppIcons.store),
