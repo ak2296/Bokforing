@@ -6,6 +6,8 @@ import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'biometric.dart';
+
 /// Where the lock keeps its state: the phone's secure storage in the app, a
 /// map in tests. It is deliberately not the database: the database is part of
 /// every backup, so a PIN kept there would be restored on a phone that has no
@@ -58,15 +60,46 @@ class PinLock extends ChangeNotifier {
   static const _kLength = 'pin_length';
   static const _kFails = 'pin_fails';
   static const _kUntil = 'pin_locked_until';
+  static const _kBiometric = 'pin_biometric';
 
   final LockStore _store;
   final DateTime Function() _now;
   bool _enabled = false;
   int _length = minLength;
+  bool _useBiometric = false;
 
-  PinLock(this._store, {DateTime Function()? now}) : _now = now ?? DateTime.now;
+  /// The phone's fingerprint check; null in tests that do not need it.
+  final BiometricAuth? biometric;
+
+  PinLock(this._store, {DateTime Function()? now, this.biometric}) : _now = now ?? DateTime.now;
 
   bool get enabled => _enabled;
+
+  /// Fingerprint opens the app too. Never without a PIN: the PIN is what
+  /// opens it when the fingerprint does not work.
+  bool get biometricEnabled => _enabled && _useBiometric && biometric != null;
+
+  Future<bool> get biometricAvailable async => biometric != null && await biometric!.available();
+
+  /// Turning it on asks for the fingerprint once, to show that it works.
+  Future<bool> setBiometric(bool on) async {
+    if (on) {
+      if (!_enabled ||
+          biometric == null ||
+          !await biometric!.authenticate('Bekräfta för att låsa upp Quee med fingeravtryck')) {
+        return false;
+      }
+      await _store.write(_kBiometric, '1');
+    } else {
+      await _store.delete(_kBiometric);
+    }
+    _useBiometric = on;
+    notifyListeners();
+    return true;
+  }
+
+  /// The unlock screen's fingerprint try. Wrong PIN tries are not touched.
+  Future<bool> unlockWithBiometric() async => biometricEnabled && await biometric!.authenticate('Lås upp Quee');
 
   /// How many digits the PIN has, so the unlock screen can check by itself.
   int get pinLength => _length;
@@ -74,6 +107,7 @@ class PinLock extends ChangeNotifier {
   Future<void> load() async {
     _enabled = await _store.read(_kHash) != null;
     _length = int.tryParse(await _store.read(_kLength) ?? '') ?? minLength;
+    _useBiometric = await _store.read(_kBiometric) == '1';
   }
 
   Future<void> setPin(String pin) async {
@@ -113,10 +147,11 @@ class PinLock extends ChangeNotifier {
   }
 
   Future<void> clear() async {
-    for (final k in const [_kHash, _kSalt, _kLength, _kFails, _kUntil]) {
+    for (final k in const [_kHash, _kSalt, _kLength, _kFails, _kUntil, _kBiometric]) {
       await _store.delete(k);
     }
     _enabled = false;
+    _useBiometric = false;
     notifyListeners();
   }
 

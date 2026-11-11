@@ -10,6 +10,7 @@ import 'data/storage.dart';
 import 'export/auto_backup.dart';
 import 'data/repository.dart';
 import 'notify/reminders.dart';
+import 'app/biometric.dart';
 import 'app/pin_lock.dart';
 import 'ui/lock/pin_screens.dart';
 import 'ui/setup_wizard.dart';
@@ -30,7 +31,7 @@ Future<void> main() async {
   // Catches up on changes made just before the app was closed last time.
   autoBackup.runQuietly(onlyIfPending: true);
   // Read before the first screen so a locked app never shows its content.
-  final pinLock = PinLock(SecureLockStore());
+  final pinLock = PinLock(SecureLockStore(), biometric: PhoneBiometric());
   await pinLock.load();
   final themeMode = AppController.parseThemeMode(await repo.setting(SettingsKeys.themeMode));
   runApp(BokforingApp(

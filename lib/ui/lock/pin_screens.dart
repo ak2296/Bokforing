@@ -67,6 +67,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
               child: PinScreen(
                 lock: widget.lock,
                 title: 'Quee är låst',
+                useBiometric: true,
                 onUnlocked: () => setState(() => _locked = false),
               ),
             ),
@@ -86,7 +87,17 @@ class PinScreen extends StatefulWidget {
   final String title;
   final VoidCallback onUnlocked;
   final VoidCallback? onCancel;
-  const PinScreen({super.key, required this.lock, required this.title, required this.onUnlocked, this.onCancel});
+
+  /// Offer the fingerprint. Only on the lock screen, not when confirming a
+  /// change of the lock.
+  final bool useBiometric;
+  const PinScreen(
+      {super.key,
+      required this.lock,
+      required this.title,
+      required this.onUnlocked,
+      this.onCancel,
+      this.useBiometric = false});
 
   @override
   State<PinScreen> createState() => _PinScreenState();
@@ -98,6 +109,20 @@ class _PinScreenState extends State<PinScreen> {
   bool _busy = false;
   Duration _wait = Duration.zero;
   Timer? _timer;
+
+  bool get _bio => widget.useBiometric && widget.lock.biometricEnabled;
+
+  @override
+  void initState() {
+    super.initState();
+    // The phone's prompt opens at once; the PIN is there if it is dismissed.
+    if (_bio) WidgetsBinding.instance.addPostFrameCallback((_) => _tryBiometric());
+  }
+
+  Future<void> _tryBiometric() async {
+    if (_busy || !mounted) return;
+    if (await widget.lock.unlockWithBiometric() && mounted) widget.onUnlocked();
+  }
 
   @override
   void dispose() {
@@ -185,6 +210,12 @@ class _PinScreenState extends State<PinScreen> {
                 ),
               ),
               PinKeypad(onDigit: _add, onBackspace: _back, enabled: _ready),
+              if (_bio)
+                TextButton.icon(
+                  onPressed: _tryBiometric,
+                  icon: const Icon(Icons.fingerprint),
+                  label: const Text('Använd fingeravtryck'),
+                ),
               if (widget.onCancel != null) TextButton(onPressed: widget.onCancel, child: const Text('Avbryt')),
             ]),
           ),

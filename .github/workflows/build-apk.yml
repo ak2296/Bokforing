@@ -91,6 +91,15 @@ jobs:
           grep -q 'QUEE_KEYSTORE' "$f" || perl -0pi -e 's/(\n    buildTypes \{)/\n    signingConfigs {\n        getByName("debug") {\n            storeFile = file(System.getenv("QUEE_KEYSTORE") ?: error("QUEE_KEYSTORE saknas"))\n            storePassword = "android"\n            keyAlias = "androiddebugkey"\n            keyPassword = "android"\n        }\n    }$1/' "$f"
           grep -q 'QUEE_KEYSTORE' "$f" || { echo "::error title=Signering::Kunde inte lägga in signeringen i build.gradle.kts"; exit 1; }
           grep -q 'isCoreLibraryDesugaringEnabled' "$f" || perl -0pi -e 's/compileOptions \{/compileOptions {\n        isCoreLibraryDesugaringEnabled = true/' "$f"
+          # Fingerprint unlock (local_auth): needs the permission, a fragment
+          # activity and an AppCompat theme for the phone's own prompt.
+          grep -q 'USE_BIOMETRIC' $m || sed -i 's|<application|<uses-permission android:name="android.permission.USE_BIOMETRIC"/>\n    <application|' $m
+          act=$(find android/app/src/main -name 'MainActivity.*' | head -1)
+          sed -i 's/FlutterActivity/FlutterFragmentActivity/g' "$act"
+          for st in $(find android/app/src/main/res -name 'styles.xml'); do
+            sed -i 's|@android:style/Theme.Light.NoTitleBar|Theme.AppCompat.Light.NoActionBar|g; s|@android:style/Theme.Black.NoTitleBar|Theme.AppCompat.NoActionBar|g' "$st"
+          done
+          grep -q 'androidx.appcompat:appcompat' "$f" || printf '\ndependencies {\n    implementation("androidx.appcompat:appcompat:1.7.0")\n}\n' >> "$f"
           grep -q 'desugar_jdk_libs' "$f" || printf '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n' >> "$f"
           echo "----- $f"; cat "$f"
           echo "----- settings.gradle"; cat android/settings.gradle.kts 2>/dev/null || cat android/settings.gradle

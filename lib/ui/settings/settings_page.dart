@@ -32,6 +32,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _loading = true;
   bool _keepImages = false;
   bool _roundExpenses = false;
+  bool _bioAvailable = false;
   bool _reminders = true;
   int _reminderDays = Reminders.defaultDays;
   BusinessProfile _profile = const BusinessProfile();
@@ -53,6 +54,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final roundExpenses = await repo.boolSetting(SettingsKeys.roundExpenses);
     final reminders = await Reminders.enabled(repo);
     final days = await Reminders.days(repo);
+    final bio = await AppScope.read(context).pinLock?.biometricAvailable ?? false;
     if (!mounted) return;
     setState(() {
       _profile = p;
@@ -62,6 +64,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _roundExpenses = roundExpenses;
       _reminders = reminders;
       _reminderDays = days;
+      _bioAvailable = bio;
       _loading = false;
     });
   }
@@ -232,6 +235,20 @@ class _SettingsPageState extends State<SettingsPage> {
                         value: pinLock.enabled,
                         onChanged: (v) => v ? _turnOnLock(pinLock) : _turnOffLock(pinLock),
                       ),
+                      if (pinLock.enabled && _bioAvailable)
+                        SwitchListTile(
+                          secondary: const Icon(Icons.fingerprint),
+                          title: const Text('Fingeravtryck'),
+                          subtitle: const Text('Lås upp med fingeravtryck. PIN-koden finns kvar om det inte fungerar.'),
+                          value: pinLock.biometricEnabled,
+                          onChanged: (v) async {
+                            final ok = await pinLock.setBiometric(v);
+                            if (!ok && v && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Fingeravtrycket kunde inte bekräftas. Inget ändrades.')));
+                            }
+                          },
+                        ),
                       if (pinLock.enabled)
                         ListTile(
                           leading: const SizedBox(width: 24),
