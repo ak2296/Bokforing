@@ -152,12 +152,17 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 <style>
 @page { size: 210mm 297mm; margin: 0; }
 .side { width: 210mm; height: 297mm; page-break-after: always; overflow: hidden; position: relative; }
-.side:last-child { page-break-after: auto; }
+div.side:last-of-type { page-break-after: auto; }
+.side.back { transform: translateX(0.0mm); }
 .half { position: absolute; left: 0; width: 210mm; height: 148.5mm; display: flex; }
 .slot { width: 105mm; height: 148.5mm; overflow: hidden; position: relative; }
 .slot > .page { transform: scale(0.70714); transform-origin: 0 0; page-break-after: auto; }
-.mark-v { position: absolute; left: 105mm; width: 0; height: 3mm; border-left: 0.2mm solid #b9b9b9; }
-.mark-h { position: absolute; top: 148.5mm; height: 0; width: 4mm; border-top: 0.2mm solid #b9b9b9; }
+.mark-v { position: absolute; left: 105mm; width: 0; height: 3mm; border-left: 0.25mm solid #777; }
+.mark-h { position: absolute; top: 148.5mm; height: 0; width: 4mm; border-top: 0.25mm solid #777; }
+.cal { position: absolute; left: 0; width: 210mm; font-size: 6pt; color: #555; }
+.cal .t { position: absolute; left: 0; right: 0; top: 0; text-align: center; }
+.cal .tick { position: absolute; width: 0; border-left: 0.2mm solid #000; }
+.cal .lab { position: absolute; width: 8mm; margin-left: -4mm; text-align: center; font-size: 5.5pt; }
 .backcover .mark { position: absolute; left: 0; right: 0; bottom: 16mm; display: flex; flex-direction: column; align-items: center; gap: 2mm; }
 .backcover .mark img { width: 11mm; height: 11mm; border-radius: 2.6mm; }
 .backcover .mark span { font-size: 9pt; font-weight: 500; color: #0B6B4E; letter-spacing: 0.3pt; }
@@ -210,8 +215,8 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   </ul>
   <div class="tip" style="margin-top:4mm"><b>Allt stannar i telefonen.</b> Appen skickar inga uppgifter någonstans, om du inte själv slår på "Förbättrad analys online" eller skickar en säkerhetskopia. Ingen inloggning behövs.</div>
   <div class="folio"><span>Quee · Användarguide</span><span>2</span></div>
-</section></div></div><div class="mark-v" style="top:0"></div><div class="mark-v" style="top:145.5mm"></div><div class="mark-v" style="top:148.5mm"></div><div class="mark-v" style="bottom:0"></div><div class="mark-h" style="left:0"></div><div class="mark-h" style="right:0"></div></div>
-<div class="side"><div class="half" style="top:0"><div class="slot"><section class="page"></section></div><div class="slot"><section class="page"></section></div></div><div class="half" style="top:148.5mm"><div class="slot"><section class="page">
+</section></div></div><div class="mark-v" style="top:6mm"></div><div class="mark-v" style="top:145.5mm"></div><div class="mark-v" style="top:148.5mm"></div><div class="mark-v" style="bottom:6mm"></div><div class="mark-h" style="left:6mm"></div><div class="mark-h" style="right:6mm"></div></div>
+<div class="side back"><div class="half" style="top:0"><div class="slot"><section class="page"></section></div><div class="slot"><section class="page"></section></div></div><div class="half" style="top:148.5mm"><div class="slot"><section class="page">
   <div class="kicker">1 · Installera</div>
   <h1>Installera och aktivera</h1>
   <p class="lead">Appen finns för Android-mobiler och surfplattor med Android 7.0 eller senare och kamera. Installationen tar ett par minuter.</p>
@@ -236,7 +241,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <p>En ny version installeras på samma sätt och läggs över den gamla; <b>alla uppgifter finns kvar</b>. Ta aldrig bort appen före en uppdatering.</p>
   <div class="warn"><b>Tänk på:</b> en app som tas bort tar med sig sina uppgifter. Slå därför på automatisk säkerhetskopia (kapitel 11) innan du börjar på riktigt.</div>
   <div class="folio"><span>Installera och aktivera</span><span>3</span></div>
-</section></div><div class="slot"><section class="page notes"><div class="kicker">Anteckningar</div><h1>Anteckningar</h1><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="folio"><span>Anteckningar</span><span>16</span></div></section></div></div><div class="mark-v" style="top:0"></div><div class="mark-v" style="top:145.5mm"></div><div class="mark-v" style="top:148.5mm"></div><div class="mark-v" style="bottom:0"></div><div class="mark-h" style="left:0"></div><div class="mark-h" style="right:0"></div></div>
+</section></div><div class="slot"><section class="page notes"><div class="kicker">Anteckningar</div><h1>Anteckningar</h1><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="folio"><span>Anteckningar</span><span>16</span></div></section></div></div><div class="mark-v" style="top:6mm"></div><div class="mark-v" style="top:145.5mm"></div><div class="mark-v" style="top:148.5mm"></div><div class="mark-v" style="bottom:6mm"></div><div class="mark-h" style="left:6mm"></div><div class="mark-h" style="right:6mm"></div></div>
 <div class="side"><div class="half" style="top:0"><div class="slot"><section class="page">
   <div class="kicker">13 · Hjälp</div>
   <h1>Vanliga frågor</h1>
@@ -335,8 +340,8 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <p>Efter varje bild visas den med fyra gula hörn. Dra hörnen till pappersets hörn – ett förstoringsglas visar var du sätter dem. Det som ligger utanför ramen, t.ex. papper under, tas inte med, och pappret rätas upp. Tryck <span class="kbd">Klar</span>, eller <span class="kbd">Ta om</span> för en ny bild.</p>
   <div class="tip"><b>Bästa bilden:</b> lägg pappret på en mörk, slät yta i bra ljus och släta ut vikta kvitton. Upp och ner eller på sidan gör inget – appen vrider bilden själv.</div>
   <div class="folio"><span>Skanna</span><span>6</span></div>
-</section></div></div><div class="mark-v" style="top:0"></div><div class="mark-v" style="top:145.5mm"></div><div class="mark-v" style="top:148.5mm"></div><div class="mark-v" style="bottom:0"></div><div class="mark-h" style="left:0"></div><div class="mark-h" style="right:0"></div></div>
-<div class="side"><div class="half" style="top:0"><div class="slot"><section class="page">
+</section></div></div><div class="mark-v" style="top:6mm"></div><div class="mark-v" style="top:145.5mm"></div><div class="mark-v" style="top:148.5mm"></div><div class="mark-v" style="bottom:6mm"></div><div class="mark-h" style="left:6mm"></div><div class="mark-h" style="right:6mm"></div></div>
+<div class="side back"><div class="half" style="top:0"><div class="slot"><section class="page">
   <div class="kicker">3 · Översikt</div>
   <h1>Appens fem flikar</h1>
   <div class="two">
@@ -476,7 +481,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   </div>
   <div class="warn"><b>Momsen och resultatet är beräknade</b> utifrån det som finns i appen. De ersätter inte momsdeklarationen eller den officiella bokföringen.</div>
   <div class="folio"><span>Rapporter</span><span>12</span></div>
-</section></div></div><div class="mark-v" style="top:0"></div><div class="mark-v" style="top:145.5mm"></div><div class="mark-v" style="top:148.5mm"></div><div class="mark-v" style="bottom:0"></div><div class="mark-h" style="left:0"></div><div class="mark-h" style="right:0"></div></div>
+</section></div></div><div class="mark-v" style="top:6mm"></div><div class="mark-v" style="top:145.5mm"></div><div class="mark-v" style="top:148.5mm"></div><div class="mark-v" style="bottom:6mm"></div><div class="mark-h" style="left:6mm"></div><div class="mark-h" style="right:6mm"></div></div>
 <div class="side"><div class="half" style="top:0"><div class="slot"><section class="page">
   <div class="kicker">9 · Varje månad</div>
   <h1>Försäljning, utgifter och att betala</h1>
@@ -540,8 +545,8 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     </div>
   </div>
   <div class="folio"><span>Fakturor och kvitton</span><span>8</span></div>
-</section></div></div><div class="mark-v" style="top:0"></div><div class="mark-v" style="top:145.5mm"></div><div class="mark-v" style="top:148.5mm"></div><div class="mark-v" style="bottom:0"></div><div class="mark-h" style="left:0"></div><div class="mark-h" style="right:0"></div></div>
-<div class="side"><div class="half" style="top:0"><div class="slot"><section class="page">
+</section></div></div><div class="cal" style="top:170mm"><div class="t">Passningsprov. Håll arket mot ljuset: baksidans linje ska ligga på 0. Läs av siffran där den hamnar (plus åt höger, minus åt vänster).</div><div class="tick" style="left:99.0mm;top:8mm;height:4mm"></div><div class="lab" style="left:99.0mm;top:18.5mm">-6</div><div class="tick" style="left:99.5mm;top:8mm;height:1.8mm"></div><div class="tick" style="left:100.0mm;top:8mm;height:3mm"></div><div class="tick" style="left:100.5mm;top:8mm;height:1.8mm"></div><div class="tick" style="left:101.0mm;top:8mm;height:4mm"></div><div class="lab" style="left:101.0mm;top:15mm">-4</div><div class="tick" style="left:101.5mm;top:8mm;height:1.8mm"></div><div class="tick" style="left:102.0mm;top:8mm;height:3mm"></div><div class="tick" style="left:102.5mm;top:8mm;height:1.8mm"></div><div class="tick" style="left:103.0mm;top:8mm;height:4mm"></div><div class="lab" style="left:103.0mm;top:18.5mm">-2</div><div class="tick" style="left:103.5mm;top:8mm;height:1.8mm"></div><div class="tick" style="left:104.0mm;top:8mm;height:3mm"></div><div class="tick" style="left:104.5mm;top:8mm;height:1.8mm"></div><div class="tick" style="left:105.0mm;top:8mm;height:6mm"></div><div class="lab" style="left:105.0mm;top:15mm">0</div><div class="tick" style="left:105.5mm;top:8mm;height:1.8mm"></div><div class="tick" style="left:106.0mm;top:8mm;height:3mm"></div><div class="tick" style="left:106.5mm;top:8mm;height:1.8mm"></div><div class="tick" style="left:107.0mm;top:8mm;height:4mm"></div><div class="lab" style="left:107.0mm;top:18.5mm">+2</div><div class="tick" style="left:107.5mm;top:8mm;height:1.8mm"></div><div class="tick" style="left:108.0mm;top:8mm;height:3mm"></div><div class="tick" style="left:108.5mm;top:8mm;height:1.8mm"></div><div class="tick" style="left:109.0mm;top:8mm;height:4mm"></div><div class="lab" style="left:109.0mm;top:15mm">+4</div><div class="tick" style="left:109.5mm;top:8mm;height:1.8mm"></div><div class="tick" style="left:110.0mm;top:8mm;height:3mm"></div><div class="tick" style="left:110.5mm;top:8mm;height:1.8mm"></div><div class="tick" style="left:111.0mm;top:8mm;height:4mm"></div><div class="lab" style="left:111.0mm;top:18.5mm">+6</div></div><div class="mark-v" style="top:6mm"></div><div class="mark-v" style="top:145.5mm"></div><div class="mark-v" style="top:148.5mm"></div><div class="mark-v" style="bottom:6mm"></div><div class="mark-h" style="left:6mm"></div><div class="mark-h" style="right:6mm"></div></div>
+<div class="side back"><div class="half" style="top:0"><div class="slot"><section class="page">
   <div class="kicker">7 · Försäljning</div>
   <h1>Z-rapporten – dagens försäljning</h1>
   <div class="two">
@@ -607,7 +612,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   </div>
   <p style="font-size:7.6pt;color:var(--muted)"><span class="num">1</span>Onlineförsäljning &nbsp; <span class="num">2</span>Faktura som fil eller bilaga &nbsp; <span class="num">3</span>Fyll i manuellt</p>
   <div class="folio"><span>Onlineförsäljning och filer</span><span>10</span></div>
-</section></div></div><div class="mark-v" style="top:0"></div><div class="mark-v" style="top:145.5mm"></div><div class="mark-v" style="top:148.5mm"></div><div class="mark-v" style="bottom:0"></div><div class="mark-h" style="left:0"></div><div class="mark-h" style="right:0"></div></div>
+</section></div></div><div class="cal" style="top:170mm"><div class="t">Baksidan: en linje i mitten.</div><div class="tick" style="left:105mm;top:6mm;height:10mm"></div></div><div class="mark-v" style="top:6mm"></div><div class="mark-v" style="top:145.5mm"></div><div class="mark-v" style="top:148.5mm"></div><div class="mark-v" style="bottom:6mm"></div><div class="mark-h" style="left:6mm"></div><div class="mark-h" style="right:6mm"></div></div>
 <script>var n = parseInt((location.hash || '').replace('#s', ''), 10);if (n) document.querySelectorAll('.side').forEach(function (s, i) { if (i !== n - 1) s.style.display = 'none'; });</script>
 </body>
 </html>

@@ -26,8 +26,16 @@ QR-koden leder till https://ak2296.github.io/quee/, där den senaste versionen a
 Häftet är A6 (105 × 148 mm). Allt finns i en fil, `anvandarguide/anvandarguide-tryck.pdf`: 20 sidor på 3 A4-ark, fyra sidor per arksida. Framsidan, guiden, två sidor "Anteckningar" och baksidan; insidan av fram- och baksidan är vit.
 
 1. Skriv ut **dubbelsidigt**, vänd längs **långsidan**, i **verklig storlek (100 %)**.
-2. Skär varje A4-ark mitt itu på bredden (strecken i kanterna visar var). Det sista arkets nedre halva är tom och kan slängas.
+2. Skär varje A4-ark mitt itu på bredden (de små strecken, 6 mm från kanten, visar var). Det sista arkets nedre halva är tom, förutom en mätskala (se nedan), och kan slängas.
 3. Lägg halvorna i den ordning de skrevs ut, med första arkets övre halva ytterst.
-4. Vik allt på mitten (de små strecken visar mitten) och häfta två gånger i vikningen.
+4. Vik allt på mitten (strecken visar mitten) och häfta två gånger i vikningen.
+
+### Om baksidan hamnar vid sidan av framsidan
+
+Alla dubbelsidiga skrivare lägger baksidan någon millimeter åt sidan. Så här rättar du det:
+
+1. Skriv ut bara det sista A4-arket (sidorna 5–6 i PDF-filen), dubbelsidigt, 100 %.
+2. Håll arket mot ljuset. Läs av siffran på skalan där baksidans linje hamnar: plus åt höger, minus åt vänster.
+3. Ange värdet i `BACK_OFFSET_MM` överst i `dokument/verktyg/make_booklet.py` och kör `python dokument/verktyg/make_docs.py`. Baksidorna flyttas då lika långt åt andra hållet.
 
 PDF-filen görs om med `python dokument/verktyg/make_docs.py`; häftet görs samtidigt av `make_booklet.py`.
