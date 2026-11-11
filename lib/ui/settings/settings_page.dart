@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import '../app_icons.dart';
 
 import '../../app/app_controller.dart';
+import '../../app/pin_lock.dart';
 import '../../app/settings_keys.dart';
 import '../../domain/license.dart';
 import '../../domain/models.dart';
 import '../../domain/vat.dart';
 import '../../notify/reminders.dart';
 import '../history_page.dart';
+import '../lock/pin_screens.dart';
 import '../theme.dart';
 import 'activation_page.dart';
 import 'ai_settings_page.dart';
@@ -64,9 +66,27 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  Future<void> _turnOnLock(PinLock lock) async {
+    final backupOff = !(await AppScope.read(context).autoBackup?.active() ?? false);
+    if (!mounted) return;
+    await Navigator.of(context)
+        .push<bool>(MaterialPageRoute(builder: (_) => PinSetupPage(lock: lock, backupOff: backupOff)));
+  }
+
+  Future<void> _turnOffLock(PinLock lock) async {
+    if (await confirmPin(context, lock, title: 'Stäng av PIN-kod')) await lock.clear();
+  }
+
+  Future<void> _changePin(PinLock lock) async {
+    if (!await confirmPin(context, lock, title: 'Byt PIN-kod') || !mounted) return;
+    await Navigator.of(context)
+        .push<bool>(MaterialPageRoute(builder: (_) => PinSetupPage(lock: lock, backupOff: false)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final pinLock = AppScope.read(context).pinLock;
     Widget header(String s) => Padding(
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
           child: Text(s, style: t.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary)),
@@ -183,6 +203,27 @@ class _SettingsPageState extends State<SettingsPage> {
                       },
                     ),
                   ),
+                if (pinLock != null) ...[
+                  header('Säkerhet'),
+                  ListenableBuilder(
+                    listenable: pinLock,
+                    builder: (context, _) => Column(children: [
+                      SwitchListTile(
+                        secondary: const Icon(AppIcons.lock),
+                        title: const Text('Lås appen med PIN-kod'),
+                        subtitle: const Text('PIN-koden frågas när appen öppnas och efter en minut i bakgrunden.'),
+                        value: pinLock.enabled,
+                        onChanged: (v) => v ? _turnOnLock(pinLock) : _turnOffLock(pinLock),
+                      ),
+                      if (pinLock.enabled)
+                        ListTile(
+                          leading: const SizedBox(width: 24),
+                          title: const Text('Byt PIN-kod'),
+                          onTap: () => _changePin(pinLock),
+                        ),
+                    ]),
+                  ),
+                ],
                 header('Data'),
                 ListTile(
                   leading: const Icon(AppIcons.backup),

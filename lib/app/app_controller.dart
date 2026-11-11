@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../data/repository.dart';
 import '../export/auto_backup.dart';
 import '../notify/reminders.dart';
+import 'pin_lock.dart';
 
 /// Holds the repository and tells screens to reload after data changes.
 class AppController extends ChangeNotifier {
@@ -11,7 +12,10 @@ class AppController extends ChangeNotifier {
 
   /// Writes the automatic backup after changes, when it is turned on.
   final AutoBackup? autoBackup;
-  AppController(this.repo, {this.reminders, this.autoBackup});
+
+  /// The PIN that opens the app; null in tests.
+  final PinLock? pinLock;
+  AppController(this.repo, {this.reminders, this.autoBackup, this.pinLock});
 
   int _revision = 0;
   int get revision => _revision;

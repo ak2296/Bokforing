@@ -10,6 +10,8 @@ import 'data/storage.dart';
 import 'export/auto_backup.dart';
 import 'data/repository.dart';
 import 'notify/reminders.dart';
+import 'app/pin_lock.dart';
+import 'ui/lock/pin_screens.dart';
 import 'ui/setup_wizard.dart';
 import 'ui/shell.dart';
 import 'ui/theme.dart';
@@ -27,8 +29,12 @@ Future<void> main() async {
   final autoBackup = AutoBackup(repo);
   // Catches up on changes made just before the app was closed last time.
   autoBackup.runQuietly(onlyIfPending: true);
+  // Read before the first screen so a locked app never shows its content.
+  final pinLock = PinLock(SecureLockStore());
+  await pinLock.load();
   runApp(BokforingApp(
-      controller: AppController(repo, reminders: reminders, autoBackup: autoBackup), setupDone: setupDone));
+      controller: AppController(repo, reminders: reminders, autoBackup: autoBackup, pinLock: pinLock),
+      setupDone: setupDone));
 }
 
 class BokforingApp extends StatefulWidget {
@@ -58,12 +64,16 @@ class _BokforingAppState extends State<BokforingApp> {
           ],
           theme: AppTheme.light(),
           // Every page and sheet ends above the phone's navigation buttons.
-          builder: (context, child) => _Readable(
-            child: ColoredBox(
-              color: Colors.white,
-              child: SafeArea(top: false, left: false, right: false, child: child ?? const SizedBox.shrink()),
-            ),
-          ),
+          builder: (context, child) {
+            final content = _Readable(
+              child: ColoredBox(
+                color: Colors.white,
+                child: SafeArea(top: false, left: false, right: false, child: child ?? const SizedBox.shrink()),
+              ),
+            );
+            final lock = widget.controller.pinLock;
+            return lock == null ? content : AppLockGate(lock: lock, child: content);
+          },
           home: _setupDone
               ? const Shell()
               : SetupWizard(onDone: () => setState(() => _setupDone = true)),
