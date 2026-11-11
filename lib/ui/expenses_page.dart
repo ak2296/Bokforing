@@ -105,7 +105,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
           final byType = <String, Money>{};
           for (final i in m.invoices) {
             final label = CostType.labelFor(i.costType);
-            byType[label] = (byType[label] ?? Money.zero) + (i.total - i.vatTotal);
+            final shown = m.rounded ? i.roundedToKr() : i;
+            byType[label] = (byType[label] ?? Money.zero) + (shown.total - shown.vatTotal);
           }
           final parts = byType.entries.map((e) => (e.key, e.value)).toList()
             ..sort((a, b) => b.$2.ore.compareTo(a.$2.ore));
@@ -147,7 +148,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
               ],
               SectionTitle('Fakturor och kvitton',
                   trailing: searching
-                      ? '${hits.length} träffar · ${Money.sum(hits.map((i) => i.total)).format(compact: true)}'
+                      ? '${hits.length} träffar · ${Money.sum(hits.map((i) => m.rounded ? i.total.roundedToKr() : i.total)).format(compact: true)}'
                       : (invoices.isEmpty ? null : '${invoices.length} st')),
               _searchField(context),
               const SizedBox(height: 8),
@@ -161,7 +162,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         padding: EdgeInsets.symmetric(vertical: 24),
                         child: Center(child: Text('Inga fakturor eller kvitton matchar sökningen.')),
                       )
-                    : LedgerCard(children: [for (final inv in hits) _invoiceRow(context, inv)])
+                    : LedgerCard(children: [for (final inv in hits) _invoiceRow(context, inv, rounded: m.rounded)])
               else if (invoices.isEmpty)
                 Card(
                   margin: EdgeInsets.zero,
@@ -176,22 +177,24 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   ),
                 )
               else
-                LedgerCard(children: [for (final inv in invoices) _invoiceRow(context, inv)]),
+                LedgerCard(children: [for (final inv in invoices) _invoiceRow(context, inv, rounded: m.rounded)]),
             ],
           );
         },
       );
 }
 
-Widget _invoiceRow(BuildContext context, Invoice inv) => LedgerRow(
+/// One invoice row. With [rounded], summa and moms are shown in whole kronor;
+/// what is missing on the invoice is always judged on the exact invoice.
+Widget _invoiceRow(BuildContext context, Invoice inv, {bool rounded = false}) => LedgerRow(
       isoDate: inv.invoiceDate,
       title: inv.supplier.isNotEmpty ? inv.supplier : (inv.total.isNegative ? 'Kreditnota' : 'Faktura'),
       subtitle: [
         if (CostType.byKey(inv.costType) != null) CostType.labelFor(inv.costType),
         if (inv.invoiceNumber.isNotEmpty) 'Nr ${inv.invoiceNumber}',
-        'Moms ${inv.vatTotal.format(compact: true)}',
+        'Moms ${(rounded ? inv.vatTotal.roundedToKr() : inv.vatTotal).format(compact: true)}',
       ].join(' · '),
-      amount: inv.total,
+      amount: rounded ? inv.total.roundedToKr() : inv.total,
       badgeBackground: _expenseTint,
       badgeColor: _expense,
       chips: [

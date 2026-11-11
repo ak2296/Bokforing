@@ -456,6 +456,13 @@ class Repository {
   /// the user decides. The OCR number alone is enough (it is unique per
   /// faktura); otherwise the same supplier with the same invoice number, the
   /// same date and amount, or the same amount within 10 days (a misread date).
+  /// Invoices as the reports add them up: summa and moms in whole kronor when
+  /// "Avrunda utgifter" is on. The saved amounts are never changed.
+  Future<List<Invoice>> invoicesForReports(String fromIso, String toIso) async {
+    final list = await invoicesBetween(fromIso, toIso);
+    return await boolSetting(SettingsKeys.roundExpenses) ? [for (final i in list) i.roundedToKr()] : list;
+  }
+
   Future<List<Invoice>> findDuplicateInvoices(Invoice inv) async {
     final rows = await db.query('invoices', where: 'id != ?', whereArgs: [inv.id ?? -1]);
     final out = <Invoice>[];

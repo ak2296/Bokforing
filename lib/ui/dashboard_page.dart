@@ -22,7 +22,7 @@ class DashboardPage extends StatelessWidget {
   static Future<YearReport> _year(AppController c, int y) async => const ReportGenerator().yearly(
         year: y,
         sales: await c.repo.dailySalesBetween('$y-01-01', '$y-12-31'),
-        invoices: await c.repo.invoicesBetween('$y-01-01', '$y-12-31'),
+        invoices: await c.repo.invoicesForReports('$y-01-01', '$y-12-31'),
         online: await c.repo.onlineSalesBetween('$y-01-01', '$y-12-31'),
       );
 

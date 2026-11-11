@@ -113,7 +113,7 @@ class _Data {
     final start = await c.repo.fiscalStartMonth();
     final p = year ? _Period.year(y, start) : _Period.month(ym, start);
     final sales = await c.repo.dailySalesBetween(p.from, p.to);
-    final invoices = await c.repo.invoicesBetween(p.from, p.to);
+    final invoices = await c.repo.invoicesForReports(p.from, p.to);
     final online = await c.repo.onlineSalesBetween(p.from, p.to);
     // Payments made in the period for invoices from before it belong in the SIE file.
     final upToEnd = await c.repo.invoicesBetween('2000-01-01', p.to);

@@ -2,6 +2,9 @@ class SettingsKeys {
   const SettingsKeys._();
   static const setupDone = 'setup_done';
   static const keepImages = 'keep_images';
+
+  /// "Avrunda utgifter till hela kronor": reports and lists only.
+  static const roundExpenses = 'round_expenses';
   static const companyForm = 'company_form';
   static const fiscalStartMonth = 'fiscal_start_month';
   static const ownNames = 'own_names';

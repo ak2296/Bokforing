@@ -22,6 +22,10 @@ class Money implements Comparable<Money> {
   bool get isNegative => ore < 0;
   Money abs() => Money(ore.abs());
 
+  /// Whole kronor, half away from zero, so a credit note rounds like an
+  /// invoice: 12,50 becomes 13 and -12,50 becomes -13.
+  Money roundedToKr() => Money((ore.abs() + 50) ~/ 100 * 100 * (ore < 0 ? -1 : 1));
+
   static Money sum(Iterable<Money> values) =>
       values.fold(Money.zero, (a, b) => a + b);
 

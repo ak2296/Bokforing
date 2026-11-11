@@ -328,7 +328,7 @@ class _YearView extends StatelessWidget {
                 const ReportGenerator().yearly(
                   year: year,
                   sales: await c.repo.dailySalesBetween('$year-01-01', '$year-12-31'),
-                  invoices: await c.repo.invoicesBetween('$year-01-01', '$year-12-31'),
+                  invoices: await c.repo.invoicesForReports('$year-01-01', '$year-12-31'),
                   online: await c.repo.onlineSalesBetween('$year-01-01', '$year-12-31'),
                 ),
                 await c.repo.profile(),
@@ -419,7 +419,7 @@ class _CompareViewState extends State<_CompareView> {
   static Future<YearReport> _load(AppController c, int y) async => const ReportGenerator().yearly(
         year: y,
         sales: await c.repo.dailySalesBetween('$y-01-01', '$y-12-31'),
-        invoices: await c.repo.invoicesBetween('$y-01-01', '$y-12-31'),
+        invoices: await c.repo.invoicesForReports('$y-01-01', '$y-12-31'),
         online: await c.repo.onlineSalesBetween('$y-01-01', '$y-12-31'),
       );
 

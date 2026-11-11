@@ -29,6 +29,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _loading = true;
   bool _keepImages = false;
+  bool _roundExpenses = false;
   bool _reminders = true;
   int _reminderDays = Reminders.defaultDays;
   BusinessProfile _profile = const BusinessProfile();
@@ -47,6 +48,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final form = await repo.companyForm();
     final license = await repo.licenseState();
     final keep = await repo.boolSetting(SettingsKeys.keepImages);
+    final roundExpenses = await repo.boolSetting(SettingsKeys.roundExpenses);
     final reminders = await Reminders.enabled(repo);
     final days = await Reminders.days(repo);
     if (!mounted) return;
@@ -55,6 +57,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _form = form;
       _license = license;
       _keepImages = keep;
+      _roundExpenses = roundExpenses;
       _reminders = reminders;
       _reminderDays = days;
       _loading = false;
@@ -110,6 +113,20 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: const Text('Fält på Z-rapport'),
                   subtitle: const Text('Vad varje rad på Z-rapporten registreras som'),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ZFieldsPage())),
+                ),
+                header('Utgifter'),
+                SwitchListTile(
+                  secondary: const Icon(AppIcons.payments),
+                  title: const Text('Avrunda utgifter till hela kronor'),
+                  subtitle: const Text(
+                      'Listor och rapporter visar och summerar summa och moms i hela kronor. Det sparade beloppet ändras inte.'),
+                  value: _roundExpenses,
+                  onChanged: (v) async {
+                    final controller = AppScope.read(context);
+                    await controller.repo.setBoolSetting(SettingsKeys.roundExpenses, v);
+                    controller.dataChanged();
+                    if (mounted) setState(() => _roundExpenses = v);
+                  },
                 ),
                 header('Dokument'),
                 SwitchListTile(

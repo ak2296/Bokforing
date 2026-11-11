@@ -255,6 +255,28 @@ extension InvoiceCopy on Invoice {
         costType: costType,
       );
 
+  /// A copy with summa and moms in whole kronor, for reports and lists when
+  /// "Avrunda utgifter" is on. Never saved, and never used for payment,
+  /// SIE, matching with the bank or checks of what is missing.
+  Invoice roundedToKr() => Invoice(
+        id: id,
+        invoiceDate: invoiceDate,
+        supplier: supplier,
+        invoiceNumber: invoiceNumber,
+        total: total.roundedToKr(),
+        vatTotal: vatTotal.roundedToKr(),
+        vatCalculated: vatCalculated,
+        dueDate: dueDate,
+        ocrReference: ocrReference,
+        vatLines: vatLines,
+        meta: meta,
+        paid: paid,
+        paidDate: paidDate,
+        bankgiro: bankgiro,
+        plusgiro: plusgiro,
+        costType: costType,
+      );
+
   /// What the reports need but the invoice lacks, in Swedish, e.g.
   /// `['kostnadstyp', 'moms']`. Empty when the invoice is complete.
   List<String> get missingFields => [

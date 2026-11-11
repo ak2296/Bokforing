@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app_icons.dart';
 
 import '../../app/app_controller.dart';
+import '../../app/settings_keys.dart';
 import '../../domain/dates.dart';
 import '../../domain/models.dart';
 import '../../domain/reports.dart';
@@ -32,7 +33,12 @@ class MonthData {
   final List<Invoice> invoices;
   final List<OnlineSale> online;
   final MonthlyReport report;
-  const MonthData(this.profile, this.categories, this.sales, this.invoices, this.online, this.report);
+
+  /// "Avrunda utgifter" is on: [report] adds up whole kronor. [invoices] stay
+  /// exact, so what is missing on an invoice is judged on the real amounts.
+  final bool rounded;
+  const MonthData(this.profile, this.categories, this.sales, this.invoices, this.online, this.report,
+      {this.rounded = false});
 
   static Future<MonthData> load(AppController c, YearMonth ym) async {
     final repo = c.repo;
@@ -41,9 +47,15 @@ class MonthData {
     final sales = await repo.dailySalesBetween(ym.firstDay, ym.lastDay);
     final invoices = await repo.invoicesBetween(ym.firstDay, ym.lastDay);
     final online = await repo.onlineSalesBetween(ym.firstDay, ym.lastDay);
+    final rounded = await repo.boolSetting(SettingsKeys.roundExpenses);
     final report = const ReportGenerator().monthly(
-        year: ym.year, month: ym.month, categories: cats, sales: sales, invoices: invoices, online: online);
-    return MonthData(profile, cats, sales, invoices, online, report);
+        year: ym.year,
+        month: ym.month,
+        categories: cats,
+        sales: sales,
+        invoices: rounded ? [for (final i in invoices) i.roundedToKr()] : invoices,
+        online: online);
+    return MonthData(profile, cats, sales, invoices, online, report, rounded: rounded);
   }
 }
 
