@@ -11,6 +11,15 @@ Built in the app only, with no running costs.
 - Needs figures the app does not have yet: bank balance, assets, loans and opening balances.
 - Clearly marked as based only on what is registered in the app, not as an official balansräkning.
 
+### 4. Electronic personalliggare (staff register)
+- Restaurants must keep a personalliggare, on paper or electronic ([Skatteverket](https://www.skatteverket.se/foretag/etjansterochblanketter/svarpavanligafragor/personalliggare/foretagpersonalliggarefaq/vadinnebarenelektroniskpersonalliggareochvilkakravskadenuppfylla.5.7da1d2e118be03f8e4f5c74.html)).
+- In the app: a staff list (name and personnummer or samordningsnummer), check in and check out with the time, per restaurant premises.
+- A tamper-evident log: every change shows who made it and when, and nothing can be changed afterwards without a trace. The app already has an audit log to build on.
+- Export and print for a Skatteverket inspection. Works offline.
+- Rules to meet: Skatteverket must be able to review the entries back in time, the register must be available on the premises at an inspection, and it is kept for two years after the calendar year in which the tax year ended.
+- The software rules are in 9 kap 5 § skatteförfarandeförordningen and SKVFS 2015:6. No approval process and no list of approved systems was found for restaurants.
+- Open points to check with Skatteverket first: that a phone app is accepted, how to show the register if the phone is not on site, and the privacy of personnummer.
+
 ## Paid functions
 
 Need an outside service with fees, a contract or both.
