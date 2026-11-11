@@ -12,6 +12,7 @@ import '../../domain/classifier.dart';
 import '../../domain/invoice_parser.dart';
 import '../../domain/ocr_models.dart';
 import '../../domain/online_parser.dart';
+import '../../domain/payslip_parser.dart';
 import '../../domain/text_merge.dart';
 import '../../domain/z_report_parser.dart';
 import '../../imaging/preprocess.dart';
@@ -20,6 +21,7 @@ import '../../ai/gemini_client.dart';
 import '../review/ai_assist.dart';
 import '../app_icons.dart';
 import '../review/online_review_page.dart';
+import '../review/payslip_review_page.dart';
 import '../review/invoice_review_page.dart';
 import '../review/z_review_page.dart';
 import 'camera_page.dart';
@@ -274,6 +276,8 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
     if (type == DocumentType.onlineSale) {
       final partners = await controller.repo.knownPartners();
       page = OnlineReviewPage(draft: OnlineParser(knownPartners: partners).parse(ocr), scan: ctx);
+    } else if (type == DocumentType.payslip) {
+      page = PayslipReviewPage(draft: const PayslipParser().parse(ocr), scan: ctx);
     } else if (type == DocumentType.invoice) {
       final aspect = widget.photoPaths.length == 1 && _aspects.length == 1 ? _aspects.single : null;
       final suppliers = await controller.repo.knownSuppliers();
@@ -318,7 +322,11 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
   }
 
   Future<void> _manual(DocumentType type) async {
-    final Widget page = type == DocumentType.invoice ? const InvoiceReviewPage() : const ZReviewPage();
+    final Widget page = switch (type) {
+      DocumentType.invoice => const InvoiceReviewPage(),
+      DocumentType.payslip => const PayslipReviewPage(),
+      _ => const ZReviewPage(),
+    };
     await Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => page));
   }
 
@@ -435,6 +443,8 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
               FilledButton(onPressed: () => _openReview(DocumentType.invoice), child: const Text('Faktura')),
               const SizedBox(height: 8),
               FilledButton(onPressed: () => _openReview(DocumentType.zReport), child: const Text('Z-rapport')),
+              const SizedBox(height: 8),
+              FilledButton(onPressed: () => _openReview(DocumentType.payslip), child: const Text('Lönebesked')),
             ],
           ),
           secondary: OutlinedButton(
@@ -468,6 +478,7 @@ class _ManualButtons extends StatelessWidget {
         children: [
           OutlinedButton(onPressed: () => onPick(DocumentType.invoice), child: const Text('Fyll i faktura manuellt')),
           OutlinedButton(onPressed: () => onPick(DocumentType.zReport), child: const Text('Fyll i Z-rapport manuellt')),
+          OutlinedButton(onPressed: () => onPick(DocumentType.payslip), child: const Text('Fyll i lönebesked manuellt')),
         ],
       );
 }

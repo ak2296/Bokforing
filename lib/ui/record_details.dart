@@ -9,6 +9,7 @@ import '../domain/models.dart';
 import '../domain/validation.dart';
 import 'review/invoice_review_page.dart';
 import 'review/online_review_page.dart';
+import 'review/payslip_review_page.dart';
 import 'review/z_review_page.dart';
 import 'theme.dart';
 import 'unpaid_page.dart';
@@ -19,6 +20,12 @@ Future<void> openRecord(BuildContext context, String kind, int id) async {
     final navigator = Navigator.of(context);
     final sale = await AppScope.read(context).repo.onlineSale(id);
     if (sale != null) navigator.push(MaterialPageRoute(builder: (_) => OnlineReviewPage(existing: sale)));
+    return;
+  }
+  if (kind == 'payslip') {
+    final navigator = Navigator.of(context);
+    final payslip = await AppScope.read(context).repo.payslip(id);
+    if (payslip != null) navigator.push(MaterialPageRoute(builder: (_) => PayslipReviewPage(existing: payslip)));
     return;
   }
   await Navigator.of(context).push(MaterialPageRoute(

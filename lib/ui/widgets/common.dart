@@ -37,8 +37,12 @@ class MonthData {
   /// "Avrunda utgifter" is on: [report] adds up whole kronor. [invoices] stay
   /// exact, so what is missing on an invoice is judged on the real amounts.
   final bool rounded;
+
+  /// The month's lönebesked (by payout date). They are in [report] as
+  /// expenses, but not in [invoices].
+  final List<Payslip> payslips;
   const MonthData(this.profile, this.categories, this.sales, this.invoices, this.online, this.report,
-      {this.rounded = false});
+      {this.rounded = false, this.payslips = const []});
 
   static Future<MonthData> load(AppController c, YearMonth ym) async {
     final repo = c.repo;
@@ -48,14 +52,19 @@ class MonthData {
     final invoices = await repo.invoicesBetween(ym.firstDay, ym.lastDay);
     final online = await repo.onlineSalesBetween(ym.firstDay, ym.lastDay);
     final rounded = await repo.boolSetting(SettingsKeys.roundExpenses);
+    final payslips = await repo.payslipsBetween(ym.firstDay, ym.lastDay);
+    final expenses = [
+      ...invoices,
+      for (final p in payslips) ...p.asExpenses(),
+    ];
     final report = const ReportGenerator().monthly(
         year: ym.year,
         month: ym.month,
         categories: cats,
         sales: sales,
-        invoices: rounded ? [for (final i in invoices) i.roundedToKr()] : invoices,
+        invoices: rounded ? [for (final i in expenses) i.roundedToKr()] : expenses,
         online: online);
-    return MonthData(profile, cats, sales, invoices, online, report, rounded: rounded);
+    return MonthData(profile, cats, sales, invoices, online, report, rounded: rounded, payslips: payslips);
   }
 }
 

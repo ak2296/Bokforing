@@ -16,11 +16,17 @@ class SieExport {
   static const supplierDebt = 2440;
   static const inputVat = 2641;
   static const unspecifiedSales = 3000;
+  static const personalTax = 2710;
+  static const socialFeesDebt = 2731;
 
   static const _accountNames = {
     1510: 'Kundfordringar',
     1910: 'Kassa',
     1930: 'Företagskonto',
+    2710: 'Personalskatt',
+    2731: 'Avräkning lagstadgade sociala avgifter',
+    7010: 'Löner',
+    7510: 'Lagstadgade sociala avgifter',
     2440: 'Leverantörsskulder',
     2611: 'Utgående moms på försäljning inom Sverige, 25 %',
     2621: 'Utgående moms på försäljning inom Sverige, 12 %',
@@ -58,6 +64,7 @@ class SieExport {
     required List<DailySales> sales,
     required List<Invoice> invoices,
     List<OnlineSale> online = const [],
+    List<Payslip> payslips = const [],
     DateTime? generated,
   }) {
     bool inPeriod(String? d) => d != null && d.compareTo(fromIso) >= 0 && d.compareTo(toIso) <= 0;
@@ -115,6 +122,20 @@ class SieExport {
           ..add(supplierDebt, i.total)
           ..add(bank, -i.total));
       }
+    }
+
+    // One balanced verification per lönebesked: the cost (lön and arbetsgivar-
+    // avgift) against the tax withheld, the fee owed and what is paid out. The
+    // personnummer is not in the file. The accounts are for the accountant to
+    // confirm.
+    for (final p in payslips.where((p) => inPeriod(p.payoutDate))) {
+      final who = p.employeeName.trim();
+      vers.add(_Ver('D', p.payoutDate, who.isEmpty ? 'Lönebesked' : 'Lönebesked $who')
+        ..add(CostType.salaries.account, p.gross)
+        ..add(CostType.socialFees.account, p.employerFee)
+        ..add(personalTax, -p.tax)
+        ..add(socialFeesDebt, -p.employerFee)
+        ..add(bank, -(p.gross - p.tax)));
     }
 
     vers.sort((a, b) => a.date.compareTo(b.date));

@@ -271,6 +271,7 @@ class RegistrationTile extends StatelessWidget {
       leading: IconTile(switch (e.kind) {
         'invoice' => AppIcons.expenses,
         'online' => AppIcons.delivery,
+        'payslip' => AppIcons.payments,
         _ => AppIcons.register,
       }),
       title: Text(SwedishDates.shortDay(e.date)),

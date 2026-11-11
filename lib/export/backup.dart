@@ -60,6 +60,7 @@ class Backup {
     'invoice_vat',
     'supplier_payment_kinds',
     'online_sales',
+    'payslips',
     'supplier_hints',
     'audit_log',
   ];

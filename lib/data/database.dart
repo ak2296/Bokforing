@@ -6,7 +6,7 @@ import 'package:sqflite/sqflite.dart';
 /// except amounts printed on the document itself (e.g. reported Z total).
 class AppDatabase {
   static const fileName = 'bokforing.db';
-  static const version = 8;
+  static const version = 9;
 
   static Future<Database> open({DatabaseFactory? factory, String? path}) async {
     final f = factory ?? databaseFactory;
@@ -39,6 +39,11 @@ class AppDatabase {
           if (oldVersion < 8) {
             final batch = db.batch();
             _v8Tables(batch);
+            await batch.commit(noResult: true);
+          }
+          if (oldVersion < 9) {
+            final batch = db.batch();
+            _v9Tables(batch);
             await batch.commit(noResult: true);
           }
           if (oldVersion < 7) {
@@ -170,6 +175,7 @@ class AppDatabase {
     _v5Changes(batch);
     _v6Changes(batch);
     _v8Tables(batch);
+    _v9Tables(batch);
     for (final bp in const [0, 600, 1200, 2500]) {
       batch.insert('vat_rates', {'basis_points': bp, 'active': 1});
     }
@@ -234,6 +240,30 @@ class AppDatabase {
         updated_at TEXT NOT NULL,
         PRIMARY KEY (supplier_key, field)
       )''');
+  }
+
+  /// v9: lönebesked. Name and personnummer are kept for clarification, the
+  /// pay period for later use; the payout date decides the month of the cost.
+  static void _v9Tables(Batch batch) {
+    batch.execute('''
+      CREATE TABLE IF NOT EXISTS payslips (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employee_name TEXT NOT NULL DEFAULT '',
+        personnummer TEXT NOT NULL DEFAULT '',
+        period_from TEXT,
+        period_to TEXT,
+        payout_date TEXT NOT NULL,
+        gross_ore INTEGER NOT NULL,
+        employer_fee_ore INTEGER NOT NULL,
+        tax_ore INTEGER NOT NULL,
+        source TEXT NOT NULL,
+        manually_edited INTEGER NOT NULL DEFAULT 0,
+        confirmed INTEGER NOT NULL DEFAULT 0,
+        scan_id INTEGER REFERENCES document_scans(id),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )''');
+    batch.execute('CREATE INDEX IF NOT EXISTS idx_payslips_date ON payslips(payout_date)');
   }
 
   /// v6: cost type of an invoice, for the resultatrapport and SIE export.

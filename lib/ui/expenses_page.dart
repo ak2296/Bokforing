@@ -109,9 +109,21 @@ class _ExpensesPageState extends State<ExpensesPage> {
             final shown = m.rounded ? i.roundedToKr() : i;
             byType[label] = (byType[label] ?? Money.zero) + (shown.total - shown.vatTotal);
           }
+          // Lönebesked count as Löner and Sociala avgifter.
+          for (final p in m.payslips) {
+            for (final e in p.asExpenses()) {
+              final shown = m.rounded ? e.roundedToKr() : e;
+              final label = CostType.labelFor(e.costType);
+              byType[label] = (byType[label] ?? Money.zero) + shown.total;
+            }
+          }
           final parts = byType.entries.map((e) => (e.key, e.value)).toList()
             ..sort((a, b) => b.$2.ore.compareTo(a.$2.ore));
-          final invoices = [...m.invoices]..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate));
+          // Invoices, receipts and lönebesked in one list, newest first.
+          final rows = <(String, Widget)>[
+            for (final inv in m.invoices) (inv.invoiceDate, _invoiceRow(context, inv, rounded: m.rounded)),
+            for (final p in m.payslips) (p.payoutDate, _payslipRow(context, p, rounded: m.rounded)),
+          ]..sort((a, b) => b.$1.compareTo(a.$1));
           final unpaidThisMonth = m.invoices.where((i) => !i.paid).length;
           final incomplete = m.invoices.where((i) => i.isIncomplete).length;
           final searching = _filter.active;
@@ -157,7 +169,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
               SectionTitle('Fakturor och kvitton',
                   trailing: searching
                       ? '${hits.length} träffar · ${Money.sum(hits.map((i) => m.rounded ? i.total.roundedToKr() : i.total)).format(compact: true)}'
-                      : (invoices.isEmpty ? null : '${invoices.length} st')),
+                      : (rows.isEmpty ? null : '${rows.length} st')),
               _searchField(context),
               const SizedBox(height: 8),
               if (_filterChips().isNotEmpty) ...[
@@ -171,7 +183,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         child: Center(child: Text('Inga fakturor eller kvitton matchar sökningen.')),
                       )
                     : LedgerCard(children: [for (final inv in hits) _invoiceRow(context, inv, rounded: m.rounded)])
-              else if (invoices.isEmpty)
+              else if (rows.isEmpty)
                 Card(
                   margin: EdgeInsets.zero,
                   child: Padding(
@@ -185,12 +197,29 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   ),
                 )
               else
-                LedgerCard(children: [for (final inv in invoices) _invoiceRow(context, inv, rounded: m.rounded)]),
+                LedgerCard(children: [for (final r in rows) r.$2]),
             ],
           );
         },
       );
 }
+
+/// A lönebesked in the list: the employee's name (never the personnummer) and
+/// what it costs the company, bruttolön plus arbetsgivaravgift.
+Widget _payslipRow(BuildContext context, Payslip p, {bool rounded = false}) => LedgerRow(
+      isoDate: p.payoutDate,
+      title: p.employeeName.isEmpty ? 'Lönebesked' : p.employeeName,
+      subtitle: [
+        'Lönebesked',
+        'Löner och sociala avgifter',
+        if (p.periodFrom != null && p.periodFrom!.length >= 7) 'period ${p.periodFrom!.substring(0, 7)}',
+      ].join(' · '),
+      amount: rounded ? p.cost.roundedToKr() : p.cost,
+      badgeBackground: _expenseTint,
+      badgeColor: _expense,
+      chips: const [StatusChip('Lönebesked', color: AppTheme.seed, background: AppTheme.tint)],
+      onTap: () => openRecord(context, 'payslip', p.id!),
+    );
 
 /// One invoice row. With [rounded], summa and moms are shown in whole kronor;
 /// what is missing on the invoice is always judged on the exact invoice.

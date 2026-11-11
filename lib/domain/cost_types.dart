@@ -26,9 +26,13 @@ class CostType {
   static const partnerFees = CostType('provision', 'Provision till onlinepartner', 6060);
   static const other = CostType('ovrigt', 'Övriga kostnader', 6990);
 
+  /// Set by the app for a lönebesked: bruttolön and arbetsgivaravgift.
+  static const salaries = CostType('loner', 'Löner', 7010);
+  static const socialFees = CostType('sociala', 'Sociala avgifter', 7510);
+
   static const all = [
     goods, rent, energy, supplies, inventory, repairs, cleaning, transport, vehicle, marketing, phone, insurance,
-    software, accounting, bankFees, partnerFees, other,
+    software, accounting, bankFees, partnerFees, salaries, socialFees, other,
   ];
 
   /// Null for an invoice saved without a cost type.

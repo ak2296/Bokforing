@@ -458,8 +458,14 @@ class Repository {
   /// same date and amount, or the same amount within 10 days (a misread date).
   /// Invoices as the reports add them up: summa and moms in whole kronor when
   /// "Avrunda utgifter" is on. The saved amounts are never changed.
+  ///
+  /// Payslips count as expenses without moms: bruttolön as Löner and
+  /// arbetsgivaravgift as Sociala avgifter, on the payout date.
   Future<List<Invoice>> invoicesForReports(String fromIso, String toIso) async {
-    final list = await invoicesBetween(fromIso, toIso);
+    final list = [
+      ...await invoicesBetween(fromIso, toIso),
+      for (final p in await payslipsBetween(fromIso, toIso)) ...p.asExpenses(),
+    ];
     return await boolSetting(SettingsKeys.roundExpenses) ? [for (final i in list) i.roundedToKr()] : list;
   }
 
@@ -573,6 +579,76 @@ class Repository {
   Future<void> deleteOnlineSale(int id) => db.transaction((txn) async {
         await txn.delete('online_sales', where: 'id = ?', whereArgs: [id]);
         await _audit(txn, 'online_sale', id, 'delete', '');
+      });
+
+  // ---------- Payslips (lönebesked) ----------
+
+  Future<int> savePayslip(Payslip s) => db.transaction((txn) async {
+        final values = {
+          'employee_name': s.employeeName.trim(),
+          'personnummer': s.personnummer.trim(),
+          'period_from': s.periodFrom,
+          'period_to': s.periodTo,
+          'payout_date': s.payoutDate,
+          'gross_ore': s.gross.ore,
+          'employer_fee_ore': s.employerFee.ore,
+          'tax_ore': s.tax.ore,
+          'source': s.meta.source.name,
+          'manually_edited': s.meta.manuallyEdited ? 1 : 0,
+          'confirmed': 1,
+          'scan_id': s.meta.scanId,
+          'updated_at': _now(),
+        };
+        // The personnummer is in the table, not repeated in the change history.
+        final detail = '${s.payoutDate} ${s.employeeName.trim()} ${s.gross.ore} ${s.employerFee.ore} ${s.tax.ore}';
+        if (s.id == null) {
+          final id = await txn.insert('payslips', {...values, 'created_at': _now()});
+          await _audit(txn, 'payslip', id, 'create', detail);
+          return id;
+        }
+        await txn.update('payslips', {...values, 'manually_edited': 1}, where: 'id = ?', whereArgs: [s.id]);
+        await _audit(txn, 'payslip', s.id, 'update', detail);
+        return s.id!;
+      });
+
+  Payslip _payslip(Map<String, Object?> r) => Payslip(
+        id: r['id'] as int,
+        employeeName: r['employee_name'] as String,
+        personnummer: r['personnummer'] as String,
+        periodFrom: r['period_from'] as String?,
+        periodTo: r['period_to'] as String?,
+        payoutDate: r['payout_date'] as String,
+        gross: Money(r['gross_ore'] as int),
+        employerFee: Money(r['employer_fee_ore'] as int),
+        tax: Money(r['tax_ore'] as int),
+        meta: _meta(r),
+      );
+
+  Future<Payslip?> payslip(int id) async {
+    final rows = await db.query('payslips', where: 'id = ?', whereArgs: [id]);
+    return rows.isEmpty ? null : _payslip(rows.first);
+  }
+
+  /// Payslips paid out between the two dates, oldest first.
+  Future<List<Payslip>> payslipsBetween(String fromIso, String toIso) async {
+    final rows = await db.query('payslips',
+        where: 'payout_date >= ? AND payout_date <= ?', whereArgs: [fromIso, toIso], orderBy: 'payout_date, id');
+    return rows.map(_payslip).toList();
+  }
+
+  /// The same person paid the same amount on the same day.
+  Future<List<Payslip>> findDuplicatePayslips(Payslip s) async {
+    final rows = await db.query('payslips',
+        where: 'id != ? AND payout_date = ? AND gross_ore = ?', whereArgs: [s.id ?? -1, s.payoutDate, s.gross.ore]);
+    return rows.map(_payslip).where((p) {
+      final samePnr = s.personnummer.trim().isNotEmpty && p.personnummer.trim() == s.personnummer.trim();
+      return samePnr || normalizeLabel(p.employeeName) == normalizeLabel(s.employeeName);
+    }).toList();
+  }
+
+  Future<void> deletePayslip(int id) => db.transaction((txn) async {
+        await txn.delete('payslips', where: 'id = ?', whereArgs: [id]);
+        await _audit(txn, 'payslip', id, 'delete', '');
       });
 
   Future<List<String>> knownPartners() async {
@@ -744,6 +820,10 @@ class Repository {
       SELECT 'online' AS kind, o.id, o.payment_date, o.amount_ore,
              0, o.partner, o.confirmed, o.created_at, 1, NULL
       FROM online_sales o
+      UNION ALL
+      SELECT 'payslip' AS kind, p.id, p.payout_date, p.gross_ore + p.employer_fee_ore,
+             0, p.employee_name, p.confirmed, p.created_at, 1, NULL
+      FROM payslips p
       ORDER BY created_at DESC LIMIT ?''', [limit]);
     return [
       for (final r in rows)
@@ -768,6 +848,7 @@ class Repository {
     final a = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM invoices$where', args)) ?? 0;
     final b = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM daily_sales$where', args)) ?? 0;
     final c = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM online_sales$where', args)) ?? 0;
-    return a + b + c;
+    final d = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM payslips$where', args)) ?? 0;
+    return a + b + c + d;
   }
 }

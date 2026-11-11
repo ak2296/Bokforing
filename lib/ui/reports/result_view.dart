@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../app/app_controller.dart';
+import '../../domain/cost_types.dart';
 import '../../domain/dates.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
@@ -107,7 +108,8 @@ class _Data {
   final List<DailySales> sales;
   final List<Invoice> invoices;
   final List<OnlineSale> online;
-  const _Data(this.period, this.report, this.profile, this.sales, this.invoices, this.online);
+  final List<Payslip> payslips;
+  const _Data(this.period, this.report, this.profile, this.sales, this.invoices, this.online, this.payslips);
 
   static Future<_Data> load(AppController c, bool year, int y, YearMonth ym) async {
     final start = await c.repo.fiscalStartMonth();
@@ -119,7 +121,8 @@ class _Data {
     final upToEnd = await c.repo.invoicesBetween('2000-01-01', p.to);
     final report = ResultReport.build(
         title: p.title, fromIso: p.from, toIso: p.to, sales: sales, invoices: invoices, online: online);
-    return _Data(p, report, await c.repo.profile(), sales, upToEnd, online);
+    final payslips = await c.repo.payslipsBetween(p.from, p.to);
+    return _Data(p, report, await c.repo.profile(), sales, upToEnd, online, payslips);
   }
 
   ReportTable table() {
@@ -158,6 +161,7 @@ class _ResultBody extends StatelessWidget {
         sales: data.sales,
         invoices: data.invoices,
         online: data.online,
+        payslips: data.payslips,
       );
       final bytes = SieExport.encode(text);
       final fileName = 'quee_${p.fileTag}.se';
@@ -255,7 +259,7 @@ class _ResultBody extends StatelessWidget {
               Text('Kostnader', style: t.titleMedium),
               if (r.costs.isEmpty) const Text('Inga fakturor eller kvitton under perioden.'),
               for (final c in r.costs)
-                row(c.label, -c.net, sub: '${c.count} ${c.count == 1 ? 'faktura' : 'fakturor'}, exkl. moms'),
+                row(c.label, -c.net, sub: _countText(c)),
               row('Summa kostnader', -r.totalCosts, strong: true),
               const Divider(),
               row('Resultat', r.result, strong: true),
@@ -272,3 +276,9 @@ class _ResultBody extends StatelessWidget {
     );
   }
 }
+
+/// "3 fakturor, exkl. moms", or "1 lönebesked, utan moms" for Löner and
+/// Sociala avgifter, which come from lönebesked.
+String _countText(ResultCost c) => c.costType == CostType.salaries.key || c.costType == CostType.socialFees.key
+    ? '${c.count} lönebesked, utan moms'
+    : '${c.count} ${c.count == 1 ? 'faktura' : 'fakturor'}, exkl. moms';

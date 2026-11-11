@@ -229,6 +229,7 @@ class RegistrationSummary {
   String get typeLabel => switch (kind) {
         'invoice' => paid && dueDate == null ? 'Kvitto' : 'Faktura',
         'online' => 'Onlineförsäljning',
+        'payslip' => 'Lönebesked',
         _ => 'Z-rapport',
       };
 }
@@ -289,6 +290,75 @@ extension InvoiceCopy on Invoice {
       ];
 
   bool get isIncomplete => missingFields.isNotEmpty;
+}
+
+/// A lönebesked (payslip) for one employee and one month. It is a cost of the
+/// company: bruttolön plus arbetsgivaravgift. The preliminary tax is withheld
+/// from the bruttolön, so it is kept (it is reported to Skatteverket) but is
+/// not a cost on top.
+class Payslip {
+  final int? id;
+  final String employeeName;
+  final String personnummer;
+
+  /// The pay period, kept for later use. Dates as `2026-10-01`, or null.
+  final String? periodFrom;
+  final String? periodTo;
+
+  /// The day the pay was paid out. This is the date the cost belongs to, also
+  /// when it falls before the period.
+  final String payoutDate;
+  final Money gross;
+  final Money employerFee;
+
+  /// Preliminär skatt, withheld from the bruttolön.
+  final Money tax;
+  final RecordMeta meta;
+
+  const Payslip({
+    this.id,
+    required this.payoutDate,
+    required this.gross,
+    required this.employerFee,
+    required this.tax,
+    required this.meta,
+    this.employeeName = '',
+    this.personnummer = '',
+    this.periodFrom,
+    this.periodTo,
+  });
+
+  /// What the payslip costs the company.
+  Money get cost => gross + employerFee;
+
+  /// What the employee gets: bruttolön minus preliminär skatt.
+  Money get net => gross - tax;
+
+  /// The cost as two paid expenses without moms (Löner and Sociala avgifter),
+  /// so reports and the resultatrapport add them up like any expense. They
+  /// are for reports only, never saved and never shown as invoices.
+  List<Invoice> asExpenses() => [
+        Invoice(
+          invoiceDate: payoutDate,
+          supplier: employeeName,
+          total: gross,
+          vatTotal: Money.zero,
+          costType: 'loner',
+          paid: true,
+          paidDate: payoutDate,
+          meta: meta,
+        ),
+        Invoice(
+          invoiceDate: payoutDate,
+          supplier: employeeName,
+          total: employerFee,
+          vatTotal: Money.zero,
+          costType: 'sociala',
+          paid: true,
+          paidDate: payoutDate,
+          meta: meta,
+        ),
+      ];
 }
 
 /// A payout from a delivery partner (e.g. Foodora), after their commission.

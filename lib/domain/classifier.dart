@@ -1,12 +1,13 @@
 import 'text_patterns.dart';
 
-enum DocumentType { invoice, zReport, onlineSale, unknown }
+enum DocumentType { invoice, zReport, onlineSale, payslip, unknown }
 
 extension DocumentTypeText on DocumentType {
   String get label => switch (this) {
         DocumentType.invoice => 'Faktura',
         DocumentType.zReport => 'Z-rapport',
         DocumentType.onlineSale => 'Onlineförsäljning',
+        DocumentType.payslip => 'Lönebesked',
         DocumentType.unknown => 'Annat',
       };
 }
@@ -99,6 +100,40 @@ class DocumentClassifier {
     'total sales': 3,
   };
 
+  /// A lönebesked, also called lönespecifikation. Compound words only (a bare
+  /// "lön" is in too many places), each also without å/ä/ö because the
+  /// camera text often drops them. "Utbetalningsdatum" is left out: partner
+  /// payout papers print it too.
+  static const _payslip = <String, double>{
+    'lönebesked': 7,
+    'lonebesked': 7,
+    'lönespecifikation': 7,
+    'lonespecifikation': 7,
+    'lönespec': 5,
+    'lonespec': 5,
+    'lönekvitto': 5,
+    'lonekvitto': 5,
+    'bruttolön': 4,
+    'bruttolon': 4,
+    'nettolön': 3,
+    'nettolon': 3,
+    'arbetsgivaravgift': 4,
+    'preliminär skatt': 3,
+    'preliminar skatt': 3,
+    'preliminärskatt': 3,
+    'skatteavdrag': 2,
+    'löneperiod': 4,
+    'loneperiod': 4,
+    'löneart': 3,
+    'loneart': 3,
+    'anställningsnummer': 3,
+    'anstallningsnummer': 3,
+    'payslip': 6,
+    'salary slip': 5,
+    'gross pay': 3,
+    'net pay': 3,
+  };
+
   Classification classify(String text) {
     final t = TextPatterns.normalize(text);
     if (t.length < 15) {
@@ -118,12 +153,20 @@ class DocumentClassifier {
 
     final inv = score(_invoice);
     final z = score(_z);
-    final total = inv + z;
+    final pay = score(_payslip);
+    final total = inv + z + pay;
     if (total < 3) {
       return Classification(DocumentType.unknown, 0, inv, z, signals);
     }
-    final type = inv >= z ? DocumentType.invoice : DocumentType.zReport;
-    final winner = inv >= z ? inv : z;
+    // A payslip must clearly beat both others; without payslip words the
+    // choice is the same as before.
+    final isPayslip = pay > inv && pay > z;
+    final type = isPayslip
+        ? DocumentType.payslip
+        : inv >= z
+            ? DocumentType.invoice
+            : DocumentType.zReport;
+    final winner = isPayslip ? pay : (inv >= z ? inv : z);
     // Share of evidence, damped when there is little evidence overall.
     final share = winner / total;
     final strength = (winner / 10).clamp(0.0, 1.0);

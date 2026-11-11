@@ -6,6 +6,7 @@ import 'app_icons.dart';
 import 'record_details.dart';
 import 'review/invoice_review_page.dart';
 import 'review/online_review_page.dart';
+import 'review/payslip_review_page.dart';
 import 'review/z_review_page.dart';
 import 'scan/scan_flow.dart';
 import 'theme.dart';
@@ -34,6 +35,7 @@ class ScanTab extends StatelessWidget {
             (AppIcons.expenses, 'Ny faktura eller kvitto', const InvoiceReviewPage()),
             (AppIcons.register, 'Ny Z-rapport', const ZReviewPage()),
             (AppIcons.delivery, 'Ny onlineförsäljning', const OnlineReviewPage()),
+            (AppIcons.payments, 'Nytt lönebesked', const PayslipReviewPage()),
           ])
             ListTile(
               leading: Icon(icon),
