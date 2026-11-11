@@ -22,22 +22,30 @@ Built in the app only, with no running costs and no company needed.
 - Amounts are whole kronor. How to round the sums is not confirmed (older forms say "endast kronor"); ask an accountant once.
 - Leave the optional text field empty (the allowed characters are unclear).
 
-### 7. Bank file import and matching
-- The user exports transactions from the internet bank as CSV or Excel; the app matches payments to invoices (marks them paid) and Swish/card deposits to Z-reports, and lists what is unmatched. Nothing leaves the phone.
-- Layout seen in a Swedbank "Transaktioner" export from a private account: a title line starting with `*`, then a header row; 12 comma-separated columns (Radnummer, Clearingnummer, Kontonummer, Produkt, Valuta, Bokföringsdag, Transaktionsdag, Valutadag, Referens, Beskrivning, Belopp, Bokfört saldo); Windows-1252 text, not UTF-8; dates as yyyy-mm-dd; dot as decimal point and no thousands separator; outgoing amounts negative; newest row first; each row's saldo equals the saldo of the row below plus its own amount, so the import can detect missing rows.
-- A business account's export may have other columns. Read columns by their header names, keep a few known presets, and get a business-account sample before relying on it.
-- Test files must be made up. A real bank file is never copied into the code, tests or git.
-
 ### 8. Checklist before closing a month
 - A read-only list with a link to each problem: invoices with "Fyll i", Z-reports with a difference or missing days, possible duplicates, doubtful moms.
 
-### 9. App lock with PIN
-- A PIN (and fingerprint if the phone has it) to open the app, asked again after the app has been in the background for a set time. Too many wrong tries slow down further tries.
-- The backup password is a different thing: it encrypts the backup file, which can leave the phone. A short PIN could be cracked offline, so the backup keeps a real password (8 characters or more). The PIN can still be asked before making or restoring a backup.
-- Needs a way back if the PIN is forgotten, for example the backup password.
-
 ### 10. Verifikationslista and "Förhandsvisa SIE"
 - Shows the verifikationer the SIE file will contain (number, date, account, debit, credit) before it is sent to the redovisare. Low priority if the owner only sends the file.
+
+## Open points on finished functions
+
+Built and in the app; these parts are still missing or untested on a phone.
+
+### App lock with PIN (built)
+- Fingerprint is not built: it needs a change to Android's main activity that cannot be tested without a phone.
+- The PIN is not asked before making or restoring a backup.
+- There is no way back from a forgotten PIN except reinstalling and restoring a backup. Turn on automatic backup before turning on the PIN.
+- The app switcher still shows the last screen (no `FLAG_SECURE`).
+- Untested on a phone: the 60 seconds' grace after the file picker or the share sheet.
+
+### Bank file import (built)
+- Read only CSV, not Excel. The layout is known from a Swedbank private-account export only; a business account's file may differ, so get a sample first.
+- Untested on a phone: that the picker lets the user select the bank's `.csv` file. If it greys it out, switch the picker to any file type; the parser already refuses files that are not bank CSV.
+- It marks invoices paid. It does not match Swish or card deposits to Z-reports (the app does not keep payments per method).
+
+### Avrunda utgifter (built)
+- Reports round each invoice's summa and moms to whole kronor and add them up. The SIE file keeps exact amounts, so the Resultat report can differ from the SIE file by a few kronor. By design.
 
 ## Outside bookkeeping (maybe never)
 
