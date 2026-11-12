@@ -158,7 +158,7 @@ class _CompanyTitle extends StatelessWidget {
 
 /// Bottom navigation: a floating pill, the same in both themes (white in the
 /// light theme, dark in the dark theme). The chosen tab is lit by a spotlight
-/// above the pill's edge: only the cone of light that falls on the tab is seen.
+/// from a short glowing stretch of the pill's top edge; its light is as wide as the lamp.
 class _BottomBar extends StatelessWidget {
   final int index;
   final ValueChanged<int> onTap;
@@ -273,9 +273,11 @@ class _Tab extends StatelessWidget {
   }
 }
 
-/// A cone of light from a point at the top edge, widening downwards and fading
-/// out. The lamp itself is outside the pill, so only the cast light is drawn.
+/// The lamp is a short glowing stretch of the pill's top edge. The light it
+/// casts is exactly as wide as the lamp where it starts, widens only a little
+/// (enough to light the label) and fades out quickly.
 class _ConePainter extends CustomPainter {
+  static const lampWidth = 34.0;
   final Color color;
   final bool dark;
   _ConePainter(this.color, this.dark);
@@ -283,21 +285,33 @@ class _ConePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
-    final reach = size.width * 0.7;
+    const top = lampWidth / 2;
+    final bottom = top + 13;
+    final reach = size.height * 0.72;
     final path = Path()
-      ..moveTo(cx - 7, 0)
-      ..lineTo(cx + 7, 0)
-      ..lineTo(cx + reach, size.height)
-      ..lineTo(cx - reach, size.height)
+      ..moveTo(cx - top, 0)
+      ..lineTo(cx + top, 0)
+      ..lineTo(cx + bottom, reach)
+      ..lineTo(cx - bottom, reach)
       ..close();
-    final paint = Paint()
+    final cone = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [color.withValues(alpha: dark ? 0.75 : 0.5), color.withValues(alpha: 0)],
-      ).createShader(Offset.zero & size)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
-    canvas.drawPath(path, paint);
+        colors: [
+          color.withValues(alpha: dark ? 0.6 : 0.42),
+          color.withValues(alpha: dark ? 0.18 : 0.12),
+          color.withValues(alpha: 0),
+        ],
+        stops: const [0, 0.45, 1],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, reach))
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+    canvas.drawPath(path, cone);
+    final lamp = RRect.fromRectAndRadius(
+        Rect.fromLTWH(cx - top, 0, lampWidth, 2.5), const Radius.circular(2));
+    canvas.drawRRect(
+        lamp, Paint()..color = color.withValues(alpha: 0.9)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
+    canvas.drawRRect(lamp, Paint()..color = Color.lerp(color, Colors.white, 0.35)!);
   }
 
   @override
