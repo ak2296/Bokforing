@@ -64,7 +64,7 @@ class _StoragePageState extends State<StoragePage> {
       builder: (c) => AlertDialog(
         title: const Text('Ta bort sparade bilder?'),
         content: const Text('Alla sparade bilder tas bort från telefonen. Registreringarna, beloppen och den lästa '
-            'texten finns kvar. Gör det bara om du sparar papperen.'),
+            'texten finns kvar. Gör det bara om du sparar dokumenten.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Behåll')),
           FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Ta bort bilderna')),
@@ -141,7 +141,7 @@ class _StoragePageState extends State<StoragePage> {
                 Text(
                   'Tar bort tillfälliga filer, gör sparade bilder mindre (texten går fortfarande att läsa) och packar '
                   'databasen. Inga belopp, datum eller registreringar tas bort.\n\n'
-                  'Sparar du papperen behövs inga bilder i appen: stäng av "Behåll originalbilder" under '
+                  'Sparar du dokumenten behövs inga bilder i appen: stäng av "Behåll originalbilder" under '
                   'Inställningar → Dokument, så tas varje bild bort när du har godkänt uppgifterna.',
                   style: t.bodySmall,
                 ),

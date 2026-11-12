@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app_icons.dart';
 
@@ -19,8 +20,7 @@ class ConfidenceBadge extends StatelessWidget {
     // Säker green check, Kontrollera yellow triangle, Osäker pumpkin question mark.
     final (icon, color) = switch (c) {
       Confidence.high => (AppIcons.checkCircle, AppTheme.ok),
-      Confidence.low => (AppIcons.help, AppTheme.unsure),
-      _ => (AppIcons.warning, AppTheme.warning),
+      _ => (AppIcons.warning, AppTheme.unsure),
     };
     return Tooltip(message: c.label, child: Icon(icon, color: color, semanticLabel: c.label));
   }
@@ -33,9 +33,9 @@ InputDecoration _decoration(BuildContext context, String label, Confidence? c, {
     hintText: hint,
     suffixText: suffix,
     filled: low,
-    fillColor: !low ? null : (c == Confidence.low ? AppTheme.unsureTint : AppTheme.warningTint),
-    helperText: low ? (c == Confidence.low ? 'Osäker – kontrollera' : 'Kontrollera') : null,
-    helperStyle: !low ? null : TextStyle(color: c == Confidence.low ? AppTheme.unsure : AppTheme.warning),
+    fillColor: !low ? null : AppTheme.unsureTint,
+    helperText: low ? 'Kontrollera' : null,
+    helperStyle: !low ? null : TextStyle(color: AppTheme.unsure),
     prefixIcon: c == null ? null : Padding(padding: const EdgeInsets.all(12), child: ConfidenceBadge(c)),
   );
 }
@@ -97,7 +97,8 @@ class DateField extends StatelessWidget {
   Widget build(BuildContext context) => TextFormField(
         controller: controller,
         enabled: enabled,
-        keyboardType: TextInputType.datetime,
+        keyboardType: TextInputType.number,
+        inputFormatters: [_IsoDateFormatter()],
         decoration: _decoration(context, label, confidence, hint: 'ÅÅÅÅ-MM-DD').copyWith(
           suffixIcon: IconButton(
             tooltip: 'Välj datum',
@@ -126,6 +127,22 @@ class DateField extends StatelessWidget {
           return SwedishDates.isValidIso(v!) ? null : 'Skriv datum som ÅÅÅÅ-MM-DD';
         },
       );
+}
+
+/// Types a date as digits; the dashes are put in: 20261028 becomes 2026-10-28.
+class _IsoDateFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final d = digits.length > 8 ? digits.substring(0, 8) : digits;
+    final b = StringBuffer();
+    for (var i = 0; i < d.length; i++) {
+      if (i == 4 || i == 6) b.write('-');
+      b.write(d[i]);
+    }
+    final text = b.toString();
+    return TextEditingValue(text: text, selection: TextSelection.collapsed(offset: text.length));
+  }
 }
 
 class PlainField extends StatelessWidget {

@@ -23,7 +23,7 @@ Future<bool> requireLicense(BuildContext context) async {
     builder: (c) => AlertDialog(
       title: const Text('Appen behöver aktiveras'),
       content: Text('${licenseStatusText(state)}. Du kan fortfarande se allt, skapa rapporter och göra säkerhetskopior, '
-          'men inte registrera nya papper.'),
+          'men inte registrera nya dokument.'),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Inte nu')),
         FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Aktivera')),

@@ -8,9 +8,10 @@ import '../domain/models.dart';
 import '../domain/money.dart';
 import '../domain/reports.dart';
 import 'app_icons.dart';
-import 'history_page.dart';
+import 'incomplete_page.dart';
 import 'record_details.dart';
 import 'settings/activation_page.dart';
+import 'settings/backup_page.dart';
 import 'theme.dart';
 import 'unpaid_page.dart';
 import 'widgets/charts.dart';
@@ -67,6 +68,7 @@ class DashboardPage extends StatelessWidget {
                       .push(MaterialPageRoute(builder: (_) => const ActivationPage())),
                 ),
               ),
+            if (recent.isNotEmpty) const _BackupNotice(),
             if (unpaid.isNotEmpty) _UnpaidCard(unpaid),
             const SizedBox(height: 8),
             Row(children: [
@@ -108,19 +110,19 @@ class DashboardPage extends StatelessWidget {
               ]),
             ),
             Text('Beräknad moms. Ersätter inte momsdeklarationen.', style: t.bodySmall),
+            if (month.invoices.any((i) => i.isIncomplete)) ...[
+              const SizedBox(height: 8),
+              IncompleteNotice(
+                  count: month.invoices.where((i) => i.isIncomplete).length,
+                  from: ym.firstDay,
+                  to: ym.lastDay,
+                  period: ym.title),
+            ],
             const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(child: Text('Senaste registreringar', style: t.titleMedium)),
-                TextButton(
-                  onPressed: () =>
-                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryPage())),
-                  child: const Text('Visa historik'),
-                ),
-              ],
-            ),
+            Text('Senaste registreringar', style: t.titleMedium),
+            const SizedBox(height: 4),
             if (recent.isEmpty)
-              const EmptyState(icon: AppIcons.inbox, text: 'Inga registreringar ännu.')
+              const EmptyState(icon: AppIcons.inbox, text: 'Börja med att skanna ditt första dokument: tryck på Skanna längst ner.')
             else
               for (final e in recent) RegistrationTile(entry: e),
           ],
@@ -153,6 +155,46 @@ class _Panel extends StatelessWidget {
 }
 
 /// This month's figure and how it changed since last month.
+/// Shown when the automatic backup is off: the data lives only in the phone.
+class _BackupNotice extends StatefulWidget {
+  const _BackupNotice();
+
+  @override
+  State<_BackupNotice> createState() => _BackupNoticeState();
+}
+
+class _BackupNoticeState extends State<_BackupNotice> {
+  bool _off = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final on = await AppScope.read(context).autoBackup?.active() ?? false;
+    if (mounted) setState(() => _off = !on);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_off) return const SizedBox.shrink();
+    return Card(
+      color: AppTheme.warningTint,
+      child: ListTile(
+        leading: Icon(AppIcons.backup, color: AppTheme.warning),
+        title: const Text('Ingen automatisk säkerhetskopia'),
+        subtitle: const Text('Försvinner telefonen försvinner uppgifterna. Tryck för att slå på.'),
+        onTap: () async {
+          await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupPage()));
+          _load();
+        },
+      ),
+    );
+  }
+}
+
 class _KeyFigure extends StatelessWidget {
   final String label;
   final Money value;

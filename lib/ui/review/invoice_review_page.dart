@@ -489,7 +489,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
             const SizedBox(height: 12),
             PlainField(controller: _number, label: 'Fakturanummer', confidence: optional(d?.invoiceNumber), enabled: _editing, onChanged: _changed),
             const SizedBox(height: 12),
-            DateField(controller: _due, label: 'Förfallodatum', confidence: optional(d?.dueDate), enabled: _editing, required: false, onChanged: _changed),
+            DateField(controller: _due, label: 'Förfallodatum (utgiftens datum)', confidence: optional(d?.dueDate), enabled: _editing, required: false, onChanged: _changed),
             const SizedBox(height: 12),
             PlainField(
                 controller: _ocr,

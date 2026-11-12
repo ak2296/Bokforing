@@ -175,7 +175,7 @@ class InvoiceDetailsPage extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               children: [
                 _section(context, 'Uppgifter', [
-                  _Row('Datum', inv.invoiceDate),
+                  _Row('Datum', inv.bookingDate),
                   if (inv.supplier.isNotEmpty) _Row('Leverantör', inv.supplier),
                   _Row('Kostnadstyp', CostType.labelFor(inv.costType)),
                   if (inv.invoiceNumber.isNotEmpty) _Row('Fakturanummer', inv.invoiceNumber),

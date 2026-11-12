@@ -27,7 +27,7 @@ extension QualityIssueText on QualityIssue {
 
   String get advice => switch (this) {
         QualityIssue.tooDark => 'Tänd en lampa eller gå närmare ett fönster.',
-        QualityIssue.tooBright => 'Undvik direkt ljus som blänker i papperet.',
+        QualityIssue.tooBright => 'Undvik direkt ljus som blänker i dokumentet.',
         QualityIssue.blurry => 'Håll telefonen stilla och vänta tills bilden är skarp.',
         QualityIssue.skewed => 'Håll telefonen rakt ovanför dokumentet.',
         QualityIssue.notFound => 'Lägg dokumentet på en mörkare yta och få med hela dokumentet i ramen.',

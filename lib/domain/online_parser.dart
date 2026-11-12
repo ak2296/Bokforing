@@ -205,7 +205,7 @@ class OnlineParser implements DocumentParser<OnlineDraft> {
       totalCandidates: const [],
       payment: const PaymentDetection(PaymentKind.faktura, false, Confidence.low, []),
       notes: [
-        'Partnerns avgifter från samma papper som din försäljning.',
+        'Partnerns avgifter från samma dokument som din försäljning.',
         if (payable != null)
           'Att betala enligt pappret efter avräkning mot din försäljning: ${payable.format()}. Välj om det redan är betalt.',
       ],

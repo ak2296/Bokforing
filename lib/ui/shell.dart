@@ -116,7 +116,16 @@ class _ShellState extends State<Shell> {
           ],
         ),
       ),
-      bottomNavigationBar: _BottomBar(index: _index, onTap: _go),
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppTheme.background.withValues(alpha: 0), AppTheme.background.withValues(alpha: 0.92)],
+          ),
+        ),
+        child: _BottomBar(index: _index, onTap: _go),
+      ),
     );
   }
 }

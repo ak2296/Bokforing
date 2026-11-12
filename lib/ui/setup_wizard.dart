@@ -200,7 +200,7 @@ class _SetupWizardState extends State<SetupWizard> {
               decoration: const InputDecoration(labelText: 'Gatuadress (valfritt)', hintText: 'Storgatan 1'),
             ),
             const SizedBox(height: 8),
-            Text('Med organisationsnummer och adress känner appen igen ditt företag på papperen.', style: t.bodySmall),
+            Text('Med organisationsnummer och adress känner appen igen ditt företag på dokumenten.', style: t.bodySmall),
           ],
         ),
       2 => Column(

@@ -29,7 +29,7 @@ class HintsPage extends StatelessWidget {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                Text('Appen läser fältet efter de här orden på leverantörens papper först. Ett värde som hittas så '
+                Text('Appen läser fältet efter de här orden på leverantörens dokument först. Ett värde som hittas så '
                     'markeras "Kontrollera".', style: t.bodySmall),
                 const SizedBox(height: 8),
                 for (final h in hints) ...[

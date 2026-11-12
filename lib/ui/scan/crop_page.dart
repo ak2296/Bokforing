@@ -85,7 +85,7 @@ class _CropPageState extends State<CropPage> {
         child: Column(children: [
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 4, 16, 10),
-            child: Text('Dra de gula hörnen till pappersets hörn. Det som ligger utanför ramen tas inte med.',
+            child: Text('Dra de gula hörnen till dokumentets hörn. Det som ligger utanför ramen tas inte med.',
                 textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 13)),
           ),
           Expanded(

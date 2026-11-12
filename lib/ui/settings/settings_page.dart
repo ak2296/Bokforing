@@ -511,13 +511,13 @@ class _CompanyPageState extends State<CompanyPage> {
             if (_fiscalMonth != _savedFiscalMonth)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text('Årsrapporter kommer att grupperas annorlunda. Sparade papper ändras inte.',
+                child: Text('Årsrapporter kommer att grupperas annorlunda. Sparade dokument ändras inte.',
                     style: TextStyle(color: AppTheme.warning)),
               ),
             const SizedBox(height: 16),
             const Text('Mina företagsnamn'),
             const SizedBox(height: 4),
-            Text('Andra namn som ditt företag har på papperen. De blir aldrig leverantör.',
+            Text('Andra namn som ditt företag har på dokumenten. De blir aldrig leverantör.',
                 style: Theme.of(context).textTheme.bodySmall),
             Wrap(
               spacing: 8,

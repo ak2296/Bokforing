@@ -103,7 +103,8 @@ class PinScreen extends StatefulWidget {
   State<PinScreen> createState() => _PinScreenState();
 }
 
-class _PinScreenState extends State<PinScreen> {
+class _PinScreenState extends State<PinScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _shake = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
   String _pin = '';
   String? _error;
   bool _busy = false;
@@ -127,6 +128,7 @@ class _PinScreenState extends State<PinScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _shake.dispose();
     super.dispose();
   }
 
@@ -153,7 +155,8 @@ class _PinScreenState extends State<PinScreen> {
       case PinStatus.ok:
         widget.onUnlocked();
       case PinStatus.wrong:
-        HapticFeedback.mediumImpact();
+        HapticFeedback.heavyImpact();
+        _shake.forward(from: 0);
         setState(() {
           _pin = '';
           _busy = false;
@@ -201,13 +204,22 @@ class _PinScreenState extends State<PinScreen> {
               const SizedBox(height: 4),
               Text('Skriv din PIN-kod', style: t.bodySmall),
               const SizedBox(height: 20),
-              PinDots(total: widget.lock.pinLength, filled: _pin.length),
-              SizedBox(
-                height: 44,
-                child: Center(
-                  child: Text(message ?? '',
-                      textAlign: TextAlign.center, style: t.bodySmall?.copyWith(color: AppTheme.pumpkinText)),
+              AnimatedBuilder(
+                animation: _shake,
+                builder: (context, child) => Transform.translate(
+                  offset: Offset(math.sin(_shake.value * math.pi * 6) * 12 * (1 - _shake.value), 0),
+                  child: child,
                 ),
+                child: Column(children: [
+                  PinDots(total: widget.lock.pinLength, filled: _pin.length),
+                  SizedBox(
+                    height: 44,
+                    child: Center(
+                      child: Text(message ?? '',
+                          textAlign: TextAlign.center, style: t.bodySmall?.copyWith(color: AppTheme.pumpkinText)),
+                    ),
+                  ),
+                ]),
               ),
               PinKeypad(onDigit: _add, onBackspace: _back, enabled: _ready),
               if (_bio)

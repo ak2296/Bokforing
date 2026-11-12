@@ -32,7 +32,7 @@ class IncompletePage extends StatelessWidget {
                 Text(
                   '${list.length} dokument saknar uppgifter'
                   '${period == null ? '' : ' ($period)'}. Tryck på ett för att fylla i det som saknas. '
-                  'Har papperet ingen moms: välj 0 % under Moms per momssats.',
+                  'Har dokumentet ingen moms: välj 0 % under Moms per momssats.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 12),

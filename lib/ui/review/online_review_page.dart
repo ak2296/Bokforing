@@ -127,7 +127,7 @@ class _OnlineReviewPageState extends State<OnlineReviewPage> {
       final fees = widget.draft?.feesInvoice;
       if (fees != null && widget.existing == null) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Försäljningen är sparad. Kontrollera nu partnerns faktura från samma papper.')));
+            content: Text('Försäljningen är sparad. Kontrollera nu partnerns faktura från samma dokument.')));
         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => InvoiceReviewPage(draft: fees)));
         return;
       }
