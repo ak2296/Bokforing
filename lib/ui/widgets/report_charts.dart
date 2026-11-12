@@ -94,6 +94,7 @@ class SalesHeatMap extends StatelessWidget {
       final text = has && frac > 0.55 ? Colors.white : AppTheme.ink;
       return Expanded(
         child: Semantics(
+          excludeSemantics: true,
           label: '$d ${SwedishDates.shortMonths[month - 1]}: ${has ? v.format() : 'ingen försäljning'}',
           child: Container(
             height: 38,
