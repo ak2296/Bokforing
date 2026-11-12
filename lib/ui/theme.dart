@@ -16,9 +16,13 @@ class AppTheme {
 
   /// Cards, sheets and fields: white in the light theme.
   static Color get surface => dark ? const Color(0xFF1A2420) : Colors.white;
-  static const warning = Color(0xFF8A5300);
-  static const warningTint = Color(0xFFFFF6E5);
-  static const warningBorder = Color(0xFFF4E2BC);
+  static Color get warning => dark ? const Color(0xFFE7B15C) : const Color(0xFF8A5300);
+  static Color get warningTint => dark ? const Color(0xFF2B2616) : const Color(0xFFFFF6E5);
+  static Color get warningBorder => dark ? const Color(0xFF4D4224) : const Color(0xFFF4E2BC);
+  /// Overdue and errors.
+  static Color get danger => dark ? const Color(0xFFF2928A) : const Color(0xFFB3261E);
+  static Color get dangerTint => dark ? const Color(0xFF3A1E1C) : const Color(0xFFFDECEA);
+  static Color get dangerBorder => dark ? const Color(0xFF5A302C) : const Color(0xFFF5C6C2);
   static Color get ok => seed;
   /// Pumpkin orange, the second brand colour: expenses and "Osäker" readings.
   static const pumpkin = Color(0xFFE2600D);
@@ -29,15 +33,15 @@ class AppTheme {
   static const pumpkinText = Color(0xFFB04A0A);
 
   /// "Osäker" readings: a stronger orange field than the yellow "Kontrollera".
-  static const unsure = Color(0xFF873605);
-  static const unsureTint = Color(0xFFF9C08E);
+  static Color get unsure => dark ? const Color(0xFFF2A064) : const Color(0xFF873605);
+  static Color get unsureTint => dark ? const Color(0xFF3B2514) : const Color(0xFFF9C08E);
 
   /// Invoices missing data the reports need ("Fyll i"); red stays for overdue.
-  static const fix = Color(0xFF3C3489);
-  static const fixTint = Color(0xFFEEEDFE);
-  static const fixBorder = Color(0xFFCECBF6);
-  static const online = Color(0xFF7E3D12);
-  static const onlineTint = Color(0xFFFCEBDD);
+  static Color get fix => dark ? const Color(0xFFB9B4F2) : const Color(0xFF3C3489);
+  static Color get fixTint => dark ? const Color(0xFF262440) : const Color(0xFFEEEDFE);
+  static Color get fixBorder => dark ? const Color(0xFF3F3C6B) : const Color(0xFFCECBF6);
+  static Color get online => dark ? const Color(0xFFE8A878) : const Color(0xFF7E3D12);
+  static Color get onlineTint => dark ? const Color(0xFF35241A) : const Color(0xFFFCEBDD);
 
   static ThemeData light() => _build(false);
   static ThemeData darkTheme() => _build(true);

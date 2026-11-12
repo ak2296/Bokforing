@@ -552,7 +552,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
             Text('Betalning', style: t.titleSmall),
             if (paid == null) ...[
               const SizedBox(height: 6),
-              const Text('Är dokumentet redan betalt?', style: TextStyle(color: AppTheme.warning)),
+              Text('Är dokumentet redan betalt?', style: TextStyle(color: AppTheme.warning)),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -594,8 +594,8 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
                     onChanged: _changed)
               else ...[
                 if (!SwedishDates.isValidIso(_due.text.trim()))
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
                     child: Text('Fyll i förfallodatum ovan för att få en påminnelse.',
                         style: TextStyle(color: AppTheme.warning)),
                   ),
@@ -734,7 +734,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
               ),
             if (_vatRows.isNotEmpty && vatValue != linesSum) ...[
               Text('Summan av momsraderna är ${linesSum.format()}.',
-                  style: const TextStyle(color: AppTheme.warning)),
+                  style: TextStyle(color: AppTheme.warning)),
               if (_editing)
                 Align(
                   alignment: Alignment.centerLeft,

@@ -169,15 +169,15 @@ class DateBadge extends StatelessWidget {
 /// A small coloured label: "Obetald", "Skillnad", "Online".
 class StatusChip extends StatelessWidget {
   final String text;
-  final Color color;
-  final Color background;
-  const StatusChip(this.text, {super.key, this.color = AppTheme.warning, this.background = AppTheme.warningTint});
+  final Color? color;
+  final Color? background;
+  const StatusChip(this.text, {super.key, this.color, this.background});
 
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-        decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(8)),
-        child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: color)),
+        decoration: BoxDecoration(color: background ?? AppTheme.warningTint, borderRadius: BorderRadius.circular(8)),
+        child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: color ?? AppTheme.warning)),
       );
 }
 

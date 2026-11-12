@@ -129,8 +129,8 @@ class MonthlyTable extends StatelessWidget {
             DataCell(Row(mainAxisSize: MainAxisSize.min, children: [
               Text(row.date),
               if (row.hasSalesDifference)
-                const Padding(
-                  padding: EdgeInsets.only(left: 4),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
                   child: Icon(AppIcons.warning, size: 16, color: AppTheme.warning),
                 ),
             ])),
@@ -156,7 +156,7 @@ class MonthlyTable extends StatelessWidget {
 
     final diff = r.vatDifference;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
       children: [
         Text(data.profile.name.toUpperCase(), style: t.titleMedium),
         Text(r.title.toUpperCase(), style: t.titleSmall),
@@ -388,7 +388,7 @@ class _YearView extends StatelessWidget {
                 DataCell money(Money v, {bool strong = false}) => DataCell(
                     Text(v.format(unit: false), style: strong ? bold : moneyStyle));
                 return ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
                   children: [
                     ExportButtons(
                       onPdf: () => exportTablePdf(context, yearTable(y), profile),
@@ -485,7 +485,7 @@ class _CompareViewState extends State<_CompareView> {
         final cmp = Comparison.of(a, b, _metric);
         final table = comparisonTable(cmp);
         return ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
           children: [
             Row(children: [
               IconButton(

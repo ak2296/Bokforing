@@ -71,7 +71,7 @@ class IncompleteNotice extends StatelessWidget {
       color: AppTheme.fixTint,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppTheme.fixBorder),
+        side: BorderSide(color: AppTheme.fixBorder),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -80,16 +80,16 @@ class IncompleteNotice extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(children: [
-            const Icon(AppIcons.edit, size: 18, color: AppTheme.fix),
+            Icon(AppIcons.edit, size: 18, color: AppTheme.fix),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 '$count ${count == 1 ? 'faktura saknar' : 'fakturor saknar'} uppgifter '
                 '(kostnadstyp, leverantör, belopp eller moms). Tryck för att rätta.',
-                style: const TextStyle(color: AppTheme.fix, fontSize: 13),
+                style: TextStyle(color: AppTheme.fix, fontSize: 13),
               ),
             ),
-            const Icon(AppIcons.chevronRight, size: 18, color: AppTheme.fix),
+            Icon(AppIcons.chevronRight, size: 18, color: AppTheme.fix),
           ]),
         ),
       ),

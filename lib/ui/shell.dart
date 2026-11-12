@@ -86,6 +86,7 @@ class _ShellState extends State<Shell> {
       ReportsPage(),
     ];
     return Scaffold(
+      extendBody: true,
       appBar: AppBar(
         toolbarHeight: 64,
         title: _index == 0 ? const _CompanyTitle() : Text(_titles[_index]),
@@ -100,6 +101,7 @@ class _ShellState extends State<Shell> {
         ],
       ),
       body: SafeArea(
+        bottom: false,
         child: IndexedStack(
           index: _index == _scanTab ? 1 : 0,
           children: [

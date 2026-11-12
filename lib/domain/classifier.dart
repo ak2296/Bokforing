@@ -4,7 +4,7 @@ enum DocumentType { invoice, zReport, onlineSale, payslip, unknown }
 
 extension DocumentTypeText on DocumentType {
   String get label => switch (this) {
-        DocumentType.invoice => 'Faktura',
+        DocumentType.invoice => 'Faktura / kvitto',
         DocumentType.zReport => 'Z-rapport',
         DocumentType.onlineSale => 'Onlineförsäljning',
         DocumentType.payslip => 'Lönebesked',

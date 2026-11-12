@@ -440,7 +440,7 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
           primary: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              FilledButton(onPressed: () => _openReview(DocumentType.invoice), child: const Text('Faktura')),
+              FilledButton(onPressed: () => _openReview(DocumentType.invoice), child: const Text('Faktura / kvitto')),
               const SizedBox(height: 8),
               FilledButton(onPressed: () => _openReview(DocumentType.zReport), child: const Text('Z-rapport')),
               const SizedBox(height: 8),
@@ -476,7 +476,7 @@ class _ManualButtons extends StatelessWidget {
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          OutlinedButton(onPressed: () => onPick(DocumentType.invoice), child: const Text('Fyll i faktura manuellt')),
+          OutlinedButton(onPressed: () => onPick(DocumentType.invoice), child: const Text('Fyll i faktura / kvitto manuellt')),
           OutlinedButton(onPressed: () => onPick(DocumentType.zReport), child: const Text('Fyll i Z-rapport manuellt')),
           OutlinedButton(onPressed: () => onPick(DocumentType.payslip), child: const Text('Fyll i lönebesked manuellt')),
         ],

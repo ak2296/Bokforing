@@ -234,30 +234,24 @@ class _PayslipReviewPageState extends State<PayslipReviewPage> {
               key: _dateKey,
               child: DateField(
                   controller: _payout,
-                  label: 'Utbetalningsdatum (kostnaden räknas till den månaden)',
+                  label: 'Utbetalningsdatum',
                   confidence: conf(d?.payoutDate),
                   onChanged: _changed),
             ),
             const SizedBox(height: 12),
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(
-                child: DateField(
-                    controller: _from,
-                    label: 'Löneperiod från',
-                    confidence: conf(d?.periodFrom),
-                    required: false,
-                    onChanged: _changed),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: DateField(
-                    controller: _to,
-                    label: 'till',
-                    confidence: conf(d?.periodTo),
-                    required: false,
-                    onChanged: _changed),
-              ),
-            ]),
+            DateField(
+                controller: _from,
+                label: 'Löneperiod från',
+                confidence: conf(d?.periodFrom),
+                required: false,
+                onChanged: _changed),
+            const SizedBox(height: 12),
+            DateField(
+                controller: _to,
+                label: 'Löneperiod till',
+                confidence: conf(d?.periodTo),
+                required: false,
+                onChanged: _changed),
             if (suggestion != null && _to.text.trim() != suggestion)
               Align(
                 alignment: Alignment.centerLeft,

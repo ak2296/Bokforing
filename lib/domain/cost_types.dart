@@ -15,7 +15,7 @@ class CostType {
   static const inventory = CostType('inventarier', 'Inventarier och verktyg', 5410);
   static const repairs = CostType('reparation', 'Reparation och underhåll', 5500);
   static const cleaning = CostType('stadning', 'Städning och renhållning', 5060);
-  static const security = CostType('larm', 'Larm, bevakning och kameror', 5090);
+  static const security = CostType('larm', 'Säkerhet (larm, kameror, bevakning)', 5090);
   static const transport = CostType('transport', 'Frakt och transport', 5710);
   static const vehicle = CostType('fordon', 'Fordon och drivmedel', 5610);
   static const marketing = CostType('reklam', 'Reklam och marknadsföring', 5910);

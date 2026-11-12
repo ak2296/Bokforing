@@ -130,7 +130,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
           final hits = all.where(_filter.matches).toList()..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate));
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 112),
             children: [
               MonthPill(
                 title: _ym.title,
@@ -250,7 +250,7 @@ Widget _invoiceRow(BuildContext context, Invoice inv, {bool rounded = false}) =>
 Widget _dueChip(Invoice inv) {
   final days = daysUntil(inv.dueDate);
   if (days == null) return const StatusChip('Obetald');
-  if (days < 0) return const StatusChip('Förfallen', color: Color(0xFFB3261E), background: Color(0xFFFDECEA));
+  if (days < 0) return StatusChip('Förfallen', color: AppTheme.danger, background: AppTheme.dangerTint);
   if (days == 0) return const StatusChip('Förfaller i dag');
   return StatusChip('Obetald · $days d kvar');
 }
@@ -348,13 +348,13 @@ class _UnpaidTile extends StatelessWidget {
     final none = unpaid.isEmpty;
     final total = Money.sum(unpaid.map((i) => i.total));
     final late = unpaid.any((i) => (daysUntil(i.dueDate) ?? 1) < 0);
-    final color = none ? AppTheme.seed : (late ? const Color(0xFFB3261E) : AppTheme.warning);
+    final color = none ? AppTheme.seed : (late ? AppTheme.danger : AppTheme.warning);
     return Card(
       margin: EdgeInsets.zero,
-      color: none ? AppTheme.surface : (late ? const Color(0xFFFDECEA) : AppTheme.warningTint),
+      color: none ? AppTheme.surface : (late ? AppTheme.dangerTint : AppTheme.warningTint),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: none ? AppTheme.hairline : (late ? const Color(0xFFF5C6C2) : AppTheme.warningBorder)),
+        side: BorderSide(color: none ? AppTheme.hairline : (late ? AppTheme.dangerBorder : AppTheme.warningBorder)),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

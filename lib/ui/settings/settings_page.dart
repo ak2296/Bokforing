@@ -509,8 +509,8 @@ class _CompanyPageState extends State<CompanyPage> {
               onChanged: (v) => setState(() => _fiscalMonth = v ?? 1),
             ),
             if (_fiscalMonth != _savedFiscalMonth)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
                 child: Text('Årsrapporter kommer att grupperas annorlunda. Sparade papper ändras inte.',
                     style: TextStyle(color: AppTheme.warning)),
               ),

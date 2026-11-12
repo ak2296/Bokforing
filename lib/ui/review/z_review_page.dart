@@ -458,7 +458,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
             ),
             if (needsConfirm) ...[
               Text('Vi hittade en möjlig matchning: ${suggested.name}', style: const TextStyle(fontWeight: FontWeight.w600)),
-              if (r.warning != null) Text(r.warning!, style: const TextStyle(color: AppTheme.warning)),
+              if (r.warning != null) Text(r.warning!, style: TextStyle(color: AppTheme.warning)),
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton(
@@ -471,7 +471,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
                 ),
               ),
             ] else if (r.warning != null)
-              Text(r.warning!, style: const TextStyle(color: AppTheme.warning)),
+              Text(r.warning!, style: TextStyle(color: AppTheme.warning)),
             if (unassigned && !needsConfirm) ...[
               Text('Finns inte i din lista. Välj en kategori ovan, eller:', style: Theme.of(context).textTheme.bodySmall),
               Align(

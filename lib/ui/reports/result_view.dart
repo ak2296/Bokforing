@@ -230,7 +230,7 @@ class _ResultBody extends StatelessWidget {
           ]),
         );
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
       children: [
         if (incomplete > 0) ...[
           IncompleteNotice(count: incomplete, from: p.from, to: p.to, period: p.title),

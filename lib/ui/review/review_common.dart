@@ -80,7 +80,7 @@ class NoteCard extends StatelessWidget {
         color: AppTheme.warning.withValues(alpha: 0.1),
         margin: const EdgeInsets.only(bottom: 12),
         child: ListTile(
-          leading: const Icon(AppIcons.info, color: AppTheme.warning),
+          leading: Icon(AppIcons.info, color: AppTheme.warning),
           title: Text(text),
         ),
       );

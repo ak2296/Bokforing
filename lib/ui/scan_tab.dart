@@ -58,7 +58,7 @@ class ScanTab extends StatelessWidget {
     return Column(children: [
       Expanded(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 112),
           children: [
             Card(
               margin: EdgeInsets.zero,

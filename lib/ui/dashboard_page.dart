@@ -55,7 +55,7 @@ class DashboardPage extends StatelessWidget {
         final previous = months[months.length - 2].$2;
         final diff = r.vatDifference;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 112),
           children: [
             if (license.status != LicenseStatus.active)
               Card(

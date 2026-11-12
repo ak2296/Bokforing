@@ -109,7 +109,7 @@ class _ActivationPageState extends State<ActivationPage> {
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text(_error!, style: const TextStyle(color: AppTheme.warning)),
+              child: Text(_error!, style: TextStyle(color: AppTheme.warning)),
             ),
           const SizedBox(height: 16),
           FilledButton(onPressed: _busy ? null : _activate, child: const Text('Aktivera')),

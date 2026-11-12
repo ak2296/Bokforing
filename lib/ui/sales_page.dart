@@ -63,7 +63,7 @@ class _SalesPageState extends State<SalesPage> {
           ]..sort((a, b) => b.$1.compareTo(a.$1));
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 112),
             children: [
               MonthPill(
                 title: _ym.title,
@@ -158,9 +158,9 @@ class _Notice extends StatelessWidget {
           border: Border.all(color: AppTheme.warningBorder),
         ),
         child: Row(children: [
-          const Icon(AppIcons.warning, size: 18, color: AppTheme.warning),
+          Icon(AppIcons.warning, size: 18, color: AppTheme.warning),
           const SizedBox(width: 10),
-          Expanded(child: Text(text, style: const TextStyle(color: AppTheme.warning, fontSize: 13))),
+          Expanded(child: Text(text, style: TextStyle(color: AppTheme.warning, fontSize: 13))),
         ]),
       );
 }
