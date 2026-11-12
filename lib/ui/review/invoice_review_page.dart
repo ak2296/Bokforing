@@ -457,17 +457,24 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
             ),
             if (d != null && d.totalCandidates.any((c) => c.value != d.total.value?.abs())) _alternatives(d),
             const SizedBox(height: 12),
-            MoneyField(
-              controller: _vat,
-              label: _vatCalculated ? 'Moms (beräknad)' : 'Moms',
-              confidence: conf(d?.vatTotal),
-              enabled: _editing,
-              required: false,
-              onChanged: (v) {
-                _vatCalculated = false;
-                _changed();
-              },
-            ),
+            if (_noVat)
+              const TextField(
+                enabled: false,
+                textAlign: TextAlign.right,
+                decoration: InputDecoration(labelText: 'Moms', hintText: 'Ingen moms', suffixText: 'kr'),
+              )
+            else
+              MoneyField(
+                controller: _vat,
+                label: _vatCalculated ? 'Moms (beräknad)' : 'Moms',
+                confidence: conf(d?.vatTotal),
+                enabled: _editing,
+                required: false,
+                onChanged: (v) {
+                  _vatCalculated = false;
+                  _changed();
+                },
+              ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Ingen moms'),
@@ -640,6 +647,23 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   }
 
   Widget _vatSection(Money linesSum, Money? vatValue) {
+    if (_noVat) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Opacity(
+            opacity: 0.5,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Moms per momssats', style: Theme.of(context).textTheme.titleSmall),
+                const Text('Inaktiv: dokumentet har ingen moms.'),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
