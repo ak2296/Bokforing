@@ -152,13 +152,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
               const SizedBox(height: 10),
               _UnpaidTile(unpaid),
               const SizedBox(height: 8),
-              FilledButton.tonalIcon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.tint,
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.seed,
-                  minimumSize: const Size.fromHeight(52),
+                  side: BorderSide(color: AppTheme.seed, width: 1.5),
                 ),
-                icon: const Icon(AppIcons.file, size: 20),
+                icon: const Icon(AppIcons.file, size: 18),
                 label: const Text('Matcha betalningar från bankfil'),
                 onPressed: () =>
                     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BankImportPage())),
