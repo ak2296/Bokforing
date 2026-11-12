@@ -293,6 +293,19 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         _Entry('integritet personuppgifter', nav(AppIcons.lock, 'Integritet', '', () => const PrivacyPage())),
         _Entry(
+          'rundtur genomgång introduktion hjälp',
+          ListTile(
+            leading: const Icon(AppIcons.info),
+            title: const Text('Visa rundtur'),
+            subtitle: const Text('En kort genomgång av appens delar'),
+            onTap: () {
+              final controller = AppScope.read(context);
+              Navigator.of(context).pop();
+              controller.tourRequests.value++;
+            },
+          ),
+        ),
+        _Entry(
           'användarguide hjälp manual pdf',
           ListTile(
             leading: const Icon(AppIcons.text),

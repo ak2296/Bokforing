@@ -34,7 +34,7 @@ class DashboardPage extends StatelessWidget {
       deps: ym.title,
       loader: (c) async => (
         await MonthData.load(c, ym),
-        await c.repo.recentRegistrations(limit: 8),
+        await c.repo.recentRegistrations(limit: 5),
         await c.repo.documentCount(fromIso: ym.firstDay, toIso: ym.lastDay),
         await c.repo.unpaidInvoices(),
         await c.repo.licenseState(),
@@ -125,6 +125,7 @@ class DashboardPage extends StatelessWidget {
               const EmptyState(icon: AppIcons.inbox, text: 'Börja med att skanna ditt första dokument: tryck på Skanna längst ner.')
             else
               for (final e in recent) RegistrationTile(entry: e),
+            if (license.license?.until != null) _ActivationLine(license.license!.until!),
           ],
         );
       },
@@ -165,6 +166,7 @@ class _BackupNotice extends StatefulWidget {
 
 class _BackupNoticeState extends State<_BackupNotice> {
   bool _off = false;
+  DateTime? _last;
 
   @override
   void didChangeDependencies() {
@@ -173,8 +175,15 @@ class _BackupNoticeState extends State<_BackupNotice> {
   }
 
   Future<void> _load() async {
-    final on = await AppScope.read(context).autoBackup?.active() ?? false;
-    if (mounted) setState(() => _off = !on);
+    final backup = AppScope.read(context).autoBackup;
+    final on = await backup?.active() ?? false;
+    final last = await backup?.last();
+    if (mounted) {
+      setState(() {
+        _off = !on;
+        _last = last;
+      });
+    }
   }
 
   @override
@@ -185,11 +194,39 @@ class _BackupNoticeState extends State<_BackupNotice> {
       child: ListTile(
         leading: Icon(AppIcons.backup, color: AppTheme.warning),
         title: const Text('Ingen automatisk säkerhetskopia'),
-        subtitle: const Text('Försvinner telefonen försvinner uppgifterna. Tryck för att slå på.'),
+        subtitle: Text(_last == null
+            ? 'Ingen säkerhetskopia har tagits. Försvinner telefonen försvinner uppgifterna. Tryck för att slå på.'
+            : 'Senaste kopia: ${SwedishDates.iso(_last!)} ${_last!.hour.toString().padLeft(2, '0')}:${_last!.minute.toString().padLeft(2, '0')}. Tryck för att slå på igen.'),
         onTap: () async {
           await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupPage()));
           _load();
         },
+      ),
+    );
+  }
+}
+
+/// When the activation ends. Red the last 10 days.
+class _ActivationLine extends StatelessWidget {
+  final String until;
+  const _ActivationLine(this.until);
+
+  @override
+  Widget build(BuildContext context) {
+    final days = daysUntil(until);
+    final soon = days != null && days <= 10;
+    final text = days == null
+        ? 'Aktiverad till $until'
+        : days < 0
+            ? 'Aktiveringen tog slut $until'
+            : soon
+                ? 'Aktiverad till $until (om $days d)'
+                : 'Aktiverad till $until';
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Center(
+        child: Text(text,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: soon ? AppTheme.danger : null)),
       ),
     );
   }

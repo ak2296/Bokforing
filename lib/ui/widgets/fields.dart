@@ -40,7 +40,7 @@ InputDecoration _decoration(BuildContext context, String label, Confidence? c, {
   );
 }
 
-class MoneyField extends StatelessWidget {
+class MoneyField extends StatefulWidget {
   final TextEditingController controller;
   final String label;
   final Confidence? confidence;
@@ -59,17 +59,67 @@ class MoneyField extends StatelessWidget {
   });
 
   @override
+  State<MoneyField> createState() => _MoneyFieldState();
+}
+
+/// Shows 1 250,50 when the field is not being edited, and 1250,50 while it is.
+class _MoneyFieldState extends State<MoneyField> {
+  final _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(_onFocus);
+    widget.controller.addListener(_tidy);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _tidy());
+  }
+
+  @override
+  void didUpdateWidget(MoneyField old) {
+    super.didUpdateWidget(old);
+    if (old.controller != widget.controller) {
+      old.controller.removeListener(_tidy);
+      widget.controller.addListener(_tidy);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_tidy);
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _onFocus() {
+    if (!_focus.hasFocus) return _tidy();
+    final text = widget.controller.text;
+    final plain = text.replaceAll(RegExp(r'\s'), '');
+    if (plain != text) {
+      widget.controller.value = TextEditingValue(text: plain, selection: TextSelection.collapsed(offset: plain.length));
+    }
+  }
+
+  void _tidy() {
+    if (!mounted || _focus.hasFocus) return;
+    final m = Money.parse(widget.controller.text);
+    if (m == null) return;
+    final shown = m.format(unit: false);
+    if (shown != widget.controller.text) widget.controller.text = shown;
+  }
+
+  @override
   Widget build(BuildContext context) => TextFormField(
-        controller: controller,
-        enabled: enabled,
+        controller: widget.controller,
+        focusNode: _focus,
+        enabled: widget.enabled,
         style: moneyStyle,
         textAlign: TextAlign.right,
         keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-        decoration: _decoration(context, label, confidence, hint: 't.ex. 1250,50', suffix: 'kr'),
-        onChanged: onChanged,
+        decoration: _decoration(context, widget.label, widget.confidence, hint: 't.ex. 1250,50', suffix: 'kr'),
+        onChanged: widget.onChanged,
         autovalidateMode: AutovalidateMode.onUserInteraction,
         validator: (v) {
-          if ((v ?? '').trim().isEmpty) return required ? 'Fyll i beloppet' : null;
+          if ((v ?? '').trim().isEmpty) return widget.required ? 'Fyll i beloppet' : null;
           return Money.parse(v!) == null ? 'Ange ett belopp, t.ex. 1250,50' : null;
         },
       );

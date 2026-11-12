@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
+import '../app/app_controller.dart';
+import '../app/settings_keys.dart';
 import '../domain/models.dart';
 import 'app_icons.dart';
 import 'dashboard_page.dart';
@@ -13,6 +15,7 @@ import 'scan/scan_flow.dart';
 import 'scan_tab.dart';
 import 'settings/settings_page.dart';
 import 'theme.dart';
+import 'tour.dart';
 import 'widgets/common.dart';
 
 class Shell extends StatefulWidget {
@@ -32,6 +35,9 @@ class _ShellState extends State<Shell> {
   static const _swipeTabs = [0, 1, 3, 4];
   static const _scanTab = 2;
   final _pages = PageController();
+  final _tabKeys = List.generate(5, (_) => GlobalKey());
+  final _gearKey = GlobalKey();
+  AppController? _app;
 
   static const _titles = ['Översikt', 'Försäljning', 'Skanna dokument', 'Utgifter', 'Rapporter'];
 
@@ -62,10 +68,47 @@ class _ShellState extends State<Shell> {
       _open(files);
       ReceiveSharingIntent.instance.reset();
     });
+    // The first start after the setup shows the walkthrough once.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final repo = AppScope.read(context).repo;
+      if (await repo.boolSetting(SettingsKeys.tourPending) && mounted) {
+        await repo.setBoolSetting(SettingsKeys.tourPending, false);
+        _startTour();
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final c = AppScope.read(context);
+    if (!identical(c, _app)) {
+      _app?.tourRequests.removeListener(_onTourRequest);
+      _app = c..tourRequests.addListener(_onTourRequest);
+    }
+  }
+
+  void _onTourRequest() => Future.delayed(const Duration(milliseconds: 450), _startTour);
+
+  void _startTour() {
+    if (!mounted) return;
+    AppTour.start(context, [
+      TourStep(_tabKeys[0], 'Översikt', 'Månadens siffror, kommande betalningar och sådant som behöver din uppmärksamhet samlas här.'),
+      TourStep(_tabKeys[2], 'Börja här: Skanna',
+          'Tryck Skanna och fotografera en faktura, ett kvitto, en Z-rapport eller ett lönebesked. Appen läser av det och du kontrollerar uppgifterna. Inget sparas förrän du godkänner.'),
+      TourStep(_tabKeys[1], 'Försäljning', 'Dina Z-rapporter och din onlineförsäljning, dag för dag.'),
+      TourStep(_tabKeys[3], 'Utgifter', 'Fakturor och kvitton, och vad som återstår att betala.'),
+      TourStep(_tabKeys[4], 'Rapporter',
+          'Månad, år, resultat och jämförelse. Här skickar du PDF, Excel eller SIE-fil till din redovisare.'),
+      TourStep(_gearKey, 'Inställningar',
+          'Slå på automatisk säkerhetskopia och PIN-kod här. Rundturen kan visas igen under Mer.'),
+    ]);
   }
 
   @override
   void dispose() {
+    _app?.tourRequests.removeListener(_onTourRequest);
     _shares?.cancel();
     _pages.dispose();
     super.dispose();
@@ -92,6 +135,7 @@ class _ShellState extends State<Shell> {
         title: _index == 0 ? const _CompanyTitle() : Text(_titles[_index]),
         actions: [
           IconButton(
+            key: _gearKey,
             tooltip: 'Inställningar',
             icon: const Icon(AppIcons.settings),
             onPressed: () => Navigator.of(context)
@@ -124,7 +168,7 @@ class _ShellState extends State<Shell> {
             colors: [AppTheme.background.withValues(alpha: 0), AppTheme.background.withValues(alpha: 0.92)],
           ),
         ),
-        child: _BottomBar(index: _index, onTap: _go),
+        child: _BottomBar(index: _index, onTap: _go, keys: _tabKeys),
       ),
     );
   }
@@ -173,7 +217,8 @@ class _CompanyTitle extends StatelessWidget {
 class _BottomBar extends StatelessWidget {
   final int index;
   final ValueChanged<int> onTap;
-  const _BottomBar({required this.index, required this.onTap});
+  final List<GlobalKey> keys;
+  const _BottomBar({required this.index, required this.onTap, required this.keys});
 
   static const _items = [
     ('Översikt', AppIcons.dashboard),
@@ -203,13 +248,16 @@ class _BottomBar extends StatelessWidget {
             children: [
               for (var i = 0; i < _items.length; i++)
                 Expanded(
-                  child: _Tab(
-                    label: _items[i].$1,
-                    icon: _items[i].$2,
-                    selected: i == index,
-                    scan: i == 2,
-                    dark: dark,
-                    onTap: () => onTap(i),
+                  child: KeyedSubtree(
+                    key: keys[i],
+                    child: _Tab(
+                      label: _items[i].$1,
+                      icon: _items[i].$2,
+                      selected: i == index,
+                      scan: i == 2,
+                      dark: dark,
+                      onTap: () => onTap(i),
+                    ),
                   ),
                 ),
             ],

@@ -1,6 +1,9 @@
 class SettingsKeys {
   const SettingsKeys._();
   static const setupDone = 'setup_done';
+
+  /// Set when the setup is finished: the first start shows the tour once.
+  static const tourPending = 'tour_pending';
   static const keepImages = 'keep_images';
 
   /// "Avrunda utgifter till hela kronor": reports and lists only.

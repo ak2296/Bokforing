@@ -188,6 +188,9 @@ class LedgerRow extends StatelessWidget {
   final String subtitle;
   final Money amount;
   final List<Widget> chips;
+
+  /// Under the amount, right aligned: what the user still has to do.
+  final Widget? amountNote;
   final VoidCallback onTap;
   final Color? badgeBackground;
   final Color? badgeColor;
@@ -199,6 +202,7 @@ class LedgerRow extends StatelessWidget {
     required this.amount,
     required this.onTap,
     this.chips = const [],
+    this.amountNote,
     this.badgeBackground,
     this.badgeColor,
   });
@@ -225,8 +229,14 @@ class LedgerRow extends StatelessWidget {
             ]),
           ),
           const SizedBox(width: 8),
-          Text(amount.format(compact: true),
-              style: t.titleSmall?.merge(moneyStyle).copyWith(color: amount.isNegative ? AppTheme.seed : null)),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
+            Text(amount.format(compact: true),
+                style: t.titleSmall?.merge(moneyStyle).copyWith(color: amount.isNegative ? AppTheme.seed : null)),
+            if (amountNote != null) ...[
+              const SizedBox(height: 5),
+              ConstrainedBox(constraints: const BoxConstraints(maxWidth: 120), child: amountNote!),
+            ],
+          ]),
         ]),
       ),
     );

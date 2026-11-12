@@ -82,6 +82,7 @@ class _SetupWizardState extends State<SetupWizard> {
       final idx = r.target == null ? -1 : _drafts.indexOf(r.target!);
       await repo.setZLabelRule(r.label.text, idx < 0 || idx >= saved.length ? null : saved[idx].id);
     }
+    await repo.setBoolSetting(SettingsKeys.tourPending, true);
     await repo.setBoolSetting(SettingsKeys.setupDone, true);
     widget.onDone();
   }

@@ -23,6 +23,9 @@ class AppController extends ChangeNotifier {
   /// Ljust, Mörkt or follow the phone.
   final ValueNotifier<ThemeMode> themeMode;
 
+  /// Raised to show the walkthrough again (Inställningar → Visa rundtur).
+  final ValueNotifier<int> tourRequests = ValueNotifier<int>(0);
+
   static ThemeMode parseThemeMode(String? v) => switch (v) {
         'light' => ThemeMode.light,
         'dark' => ThemeMode.dark,

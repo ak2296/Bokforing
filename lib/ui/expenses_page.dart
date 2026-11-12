@@ -241,9 +241,10 @@ Widget _invoiceRow(BuildContext context, Invoice inv, {bool rounded = false}) =>
       chips: [
         if (inv.total.isNegative) StatusChip('Kreditnota', color: AppTheme.seed, background: AppTheme.tint),
         if (!inv.paid) _dueChip(inv),
-        if (inv.isIncomplete)
-          StatusChip('Fyll i: ${inv.missingFields.join(', ')}', color: AppTheme.fix, background: AppTheme.fixTint),
       ],
+      amountNote: inv.isIncomplete
+          ? StatusChip('Fyll i: ${inv.missingFields.join(', ')}', color: AppTheme.fix, background: AppTheme.fixTint)
+          : null,
       onTap: () => openRecord(context, 'invoice', inv.id!),
     );
 
