@@ -24,8 +24,8 @@ class InvoiceFilter {
   bool matches(Invoice i) {
     if (supplier != null && i.supplier.trim().toLowerCase() != supplier!.trim().toLowerCase()) return false;
     if (costType != null && i.costType != costType) return false;
-    if (from != null && i.invoiceDate.compareTo(from!) < 0) return false;
-    if (to != null && i.invoiceDate.compareTo(to!) > 0) return false;
+    if (from != null && i.bookingDate.compareTo(from!) < 0) return false;
+    if (to != null && i.bookingDate.compareTo(to!) > 0) return false;
     final words = query.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
     if (words.isEmpty) return true;
     final text = [

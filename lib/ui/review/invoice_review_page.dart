@@ -112,6 +112,9 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
         _edited = true;
       });
 
+  /// With one moms rate the row has no amount of its own: it is the Moms field.
+  String _rowText(_VatRow r) => _vatRows.length == 1 ? _vat.text : r.amount.text;
+
   InvoiceDraft? get _d => widget.draft;
   bool get _manual => widget.draft == null && widget.existing == null;
 
@@ -236,7 +239,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     final vat = signed(parsedVat);
     final lines = <InvoiceVatLine>[];
     for (final r in _vatRows) {
-      final v = Money.parse(r.amount.text);
+      final v = Money.parse(_rowText(r));
       if (v == null) return null;
       lines.add(InvoiceVatLine(rate: r.rate, vat: signed(v), net: r.net, gross: r.gross, calculated: r.calculated));
     }
@@ -374,7 +377,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
         widget.scan == null || e == null ? null : (e.hasValue ? e.confidence : Confidence.low);
     // Optional fields that are simply not on the paper are not uncertain.
     Confidence? optional(Extracted<Object?>? e) => e != null && e.hasValue ? conf(e) : null;
-    final linesSum = Money.sum(_vatRows.map((r) => Money.parse(r.amount.text) ?? Money.zero));
+    final linesSum = Money.sum(_vatRows.map((r) => Money.parse(_rowText(r)) ?? Money.zero));
     final vatValue = Money.parse(_vat.text);
 
     return ReviewScaffold(
@@ -403,11 +406,11 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
               child: DateField(controller: _date, label: 'Datum', confidence: conf(d?.date), enabled: _editing, onChanged: _changed),
             ),
             if (d?.date.note != null) Text(d!.date.note!, style: Theme.of(context).textTheme.bodySmall),
-            if (d != null && d.dateOptions.length > 1)
+            if (d != null && d.dateOptions.length > 1 && d.dateOptions.any((o) => o.date != _date.text.trim()))
               Wrap(
                 spacing: 6,
                 children: [
-                  for (final o in d.dateOptions)
+                  for (final o in d.dateOptions.where((o) => o.date != _date.text.trim()))
                     ActionChip(
                       label: Text('${o.label}: ${o.date}'),
                       onPressed: !_editing
@@ -671,8 +674,40 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('Moms per momssats', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
             if (_vatRows.isEmpty) const Text('Ingen uppdelning. Lägg till om fakturan visar moms per momssats.'),
             for (final r in _vatRows)
+              if (_vatRows.length == 1)
+                Row(
+                  children: [
+                    DropdownButton<int>(
+                      value: r.rate.basisPoints,
+                      items: [
+                        for (final rate in {..._rates, r.rate}.toList()..sort())
+                          DropdownMenuItem(value: rate.basisPoints, child: Text(rate.label)),
+                      ],
+                      onChanged: !_editing
+                          ? null
+                          : (v) => setState(() {
+                                r.rate = VatRate(v!);
+                                _edited = true;
+                              }),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(child: Text('på hela momsen')),
+                    IconButton(
+                      tooltip: 'Ta bort raden',
+                      icon: const Icon(AppIcons.close),
+                      onPressed: !_editing
+                          ? null
+                          : () => setState(() {
+                                _vatRows.remove(r);
+                                _edited = true;
+                              }),
+                    ),
+                  ],
+                )
+              else
               Row(
                 children: [
                   DropdownButton<int>(
@@ -727,6 +762,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
                   icon: const Icon(AppIcons.add),
                   label: const Text('Lägg till momssats'),
                   onPressed: () => setState(() {
+                    if (_vatRows.length == 1) _vatRows.first.amount.text = _vat.text;
                     _vatRows.add(_VatRow(VatRate.twentyFive, ''));
                     _edited = true;
                   }),

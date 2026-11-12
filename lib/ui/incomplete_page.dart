@@ -21,7 +21,7 @@ class IncompletePage extends StatelessWidget {
         body: Reloading<List<Invoice>>(
           deps: '$from$to',
           loader: (c) async => (await c.repo.invoicesBetween(from, to)).where((i) => i.isIncomplete).toList()
-            ..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate)),
+            ..sort((a, b) => b.bookingDate.compareTo(a.bookingDate)),
           builder: (context, list) {
             if (list.isEmpty) {
               return const EmptyState(icon: AppIcons.checkCircle, text: 'Alla fakturor och kvitton är kompletta.');
@@ -39,7 +39,7 @@ class IncompletePage extends StatelessWidget {
                 LedgerCard(children: [
                   for (final inv in list)
                     LedgerRow(
-                      isoDate: inv.invoiceDate,
+                      isoDate: inv.bookingDate,
                       title: inv.supplier.isEmpty ? 'Okänd leverantör' : inv.supplier,
                       subtitle: 'Fyll i: ${inv.missingFields.join(', ')}',
                       amount: inv.total,

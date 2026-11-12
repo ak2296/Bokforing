@@ -180,6 +180,11 @@ class Invoice {
   /// [CostType.key], or '' when not chosen.
   final String costType;
 
+  /// The day the expense counts on in reports, moms and SIE: the due date
+  /// (förfallodatum) when there is one, otherwise the document date. A
+  /// receipt has no due date, so it counts on its own date.
+  String get bookingDate => (dueDate != null && dueDate!.isNotEmpty) ? dueDate! : invoiceDate;
+
   const Invoice({
     this.costType = '',
     this.paid = false,

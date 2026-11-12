@@ -215,7 +215,7 @@ class _ResultBody extends StatelessWidget {
     final p = data.period;
     // data.invoices reaches back before the period (for the SIE file); count this period only.
     final incomplete = data.invoices
-        .where((i) => i.invoiceDate.compareTo(p.from) >= 0 && i.invoiceDate.compareTo(p.to) <= 0 && i.isIncomplete)
+        .where((i) => i.bookingDate.compareTo(p.from) >= 0 && i.bookingDate.compareTo(p.to) <= 0 && i.isIncomplete)
         .length;
     Widget row(String label, Money v, {bool strong = false, String? sub}) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),

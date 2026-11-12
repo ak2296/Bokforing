@@ -121,13 +121,13 @@ class _ExpensesPageState extends State<ExpensesPage> {
             ..sort((a, b) => b.$2.ore.compareTo(a.$2.ore));
           // Invoices, receipts and lönebesked in one list, newest first.
           final rows = <(String, Widget)>[
-            for (final inv in m.invoices) (inv.invoiceDate, _invoiceRow(context, inv, rounded: m.rounded)),
+            for (final inv in m.invoices) (inv.bookingDate, _invoiceRow(context, inv, rounded: m.rounded)),
             for (final p in m.payslips) (p.payoutDate, _payslipRow(context, p, rounded: m.rounded)),
           ]..sort((a, b) => b.$1.compareTo(a.$1));
           final unpaidThisMonth = m.invoices.where((i) => !i.paid).length;
           final incomplete = m.invoices.where((i) => i.isIncomplete).length;
           final searching = _filter.active;
-          final hits = all.where(_filter.matches).toList()..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate));
+          final hits = all.where(_filter.matches).toList()..sort((a, b) => b.bookingDate.compareTo(a.bookingDate));
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 112),
@@ -228,7 +228,7 @@ Widget _payslipRow(BuildContext context, Payslip p, {bool rounded = false}) => L
 /// One invoice row. With [rounded], summa and moms are shown in whole kronor;
 /// what is missing on the invoice is always judged on the exact invoice.
 Widget _invoiceRow(BuildContext context, Invoice inv, {bool rounded = false}) => LedgerRow(
-      isoDate: inv.invoiceDate,
+      isoDate: inv.bookingDate,
       title: inv.supplier.isNotEmpty ? inv.supplier : (inv.total.isNegative ? 'Kreditnota' : 'Faktura'),
       subtitle: [
         if (CostType.byKey(inv.costType) != null) CostType.labelFor(inv.costType),

@@ -380,17 +380,19 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <div class="kicker">6 · Utgifter</div>
   <h1>Fakturor, kvitton och kreditnotor</h1>
   <h2>Betald eller inte?</h2>
-  <p>Under <b>Betalning</b> föreslår appen om pappret redan är betalt (kvitto, kortbetalning, stämpel BETALD) eller ska betalas. Du bekräftar alltid själv.</p>
+  <p>Under <b>Betalning</b> föreslår appen om pappret är betalt (kvitto, BETALD) eller ska betalas. Du bekräftar själv.</p>
   <ul>
     <li><b>Betald (kvitto):</b> ange betaldatum. Inget mer att göra.</li>
-    <li><b>Obetald (faktura):</b> hamnar under "Att betala", med bankgiro, plusgiro och OCR-nummer sparade. Kodraden längst ner (med # och &gt;) har kontrollsiffror som bekräftar OCR-nummer, belopp och giro.</li>
+    <li><b>Obetald (faktura):</b> hamnar under "Att betala", med bankgiro, plusgiro och OCR sparade.</li>
   </ul>
+  <h2>Vilken dag räknas utgiften?</h2>
+  <p>På <b>förfallodatum</b>. Saknas det (kvitto) räknas den på datumet. Det styr månad i rapporter, moms och SIE-fil.</p>
   <h2>Kreditnota</h2>
   <p>Slå på <span class="kbd">Kreditnota</span> när leverantören krediterar. Beloppen blir minus och dras av från utgifterna och den ingående momsen.</p>
   <h2>Moms</h2>
-  <p>Har fakturan flera momssatser (t.ex. 12 % och 25 %) visas en rad per sats. Saknar pappret moms, t.ex. ett inbetalningskort, slå på <span class="kbd">Ingen moms</span> under fältet Moms; momsfältet och momssatserna blir då gråa och inaktiva. Appen gör det själv när pappret säger att det saknar moms; annars räknas momsen som saknad.</p>
+  <p>Har fakturan flera momssatser (t.ex. 12 % och 25 %) tryck <span class="kbd">Lägg till momssats</span> så visas en rad per sats. Saknar pappret moms, slå på <span class="kbd">Ingen moms</span>; momsfälten blir då gråa. Appen gör det själv när pappret säger det.</p>
   <h2>Kostnadstyp</h2>
-  <p>Välj vad fakturan gäller, t.ex. Varuinköp, Lokalhyra, El eller Säkerhet (larm, kameror, bevakning; konto 5090, redovisaren bekräftar kontot). Samma leverantör får samma typ föreslagen nästa gång. Typen visas överst på fakturans sida och används i resultatrapporten och SIE-filen.</p>
+  <p>Välj vad fakturan gäller, t.ex. Varuinköp, Lokalhyra, El eller Säkerhet (larm, kameror, bevakning; konto 5090, redovisaren bekräftar kontot). Används i resultatrapporten och SIE-filen.</p>
   <div class="detail">
     <div class="flow">
       <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap"><span class="grow">Kreditnota</span><span class="sw"></span></div>

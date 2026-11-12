@@ -108,9 +108,9 @@ class SieExport {
       final text = [i.supplier, if (i.invoiceNumber.isNotEmpty) 'nr ${i.invoiceNumber}'].join(' ').trim();
       // Paid on the day (kvitto): straight from the bank. Otherwise a debt
       // until it is paid.
-      final paidAtOnce = i.paid && (i.paidDate == null || i.paidDate == i.invoiceDate);
-      if (inPeriod(i.invoiceDate)) {
-        final v = _Ver('C', i.invoiceDate, text.isEmpty ? 'Leverantörsfaktura' : text);
+      final paidAtOnce = i.paid && (i.paidDate == null || i.paidDate == i.bookingDate);
+      if (inPeriod(i.bookingDate)) {
+        final v = _Ver('C', i.bookingDate, text.isEmpty ? 'Leverantörsfaktura' : text);
         v.add(cost.account, i.total - i.vatTotal, name: cost.label);
         if (!i.vatTotal.isZero) v.add(inputVat, i.vatTotal);
         v.add(paidAtOnce ? bank : supplierDebt, -i.total);

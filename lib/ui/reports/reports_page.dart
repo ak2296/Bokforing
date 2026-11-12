@@ -262,7 +262,7 @@ class MonthlyTable extends StatelessWidget {
 
   void _showDay(BuildContext context, MonthlyRow row) {
     final sales = data.sales.where((s) => s.businessDate == row.date).toList();
-    final invoices = data.invoices.where((i) => i.invoiceDate == row.date).toList();
+    final invoices = data.invoices.where((i) => i.bookingDate == row.date).toList();
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,

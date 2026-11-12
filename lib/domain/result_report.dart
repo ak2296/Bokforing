@@ -52,7 +52,7 @@ class ResultReport {
     bool inPeriod(String d) => d.compareTo(fromIso) >= 0 && d.compareTo(toIso) <= 0;
     final days = sales.where((s) => inPeriod(s.businessDate));
     final paid = online.where((o) => inPeriod(o.paymentDate));
-    final bills = invoices.where((i) => inPeriod(i.invoiceDate));
+    final bills = invoices.where((i) => inPeriod(i.bookingDate));
     final byType = <String, (Money, int)>{};
     for (final i in bills) {
       final key = CostType.byKey(i.costType) == null ? '' : i.costType;

@@ -442,9 +442,9 @@ class Repository {
 
   Future<List<Invoice>> invoicesBetween(String fromIso, String toIso) async {
     final rows = await db.query('invoices',
-        where: 'invoice_date >= ? AND invoice_date <= ?',
+        where: "COALESCE(NULLIF(due_date, ''), invoice_date) >= ? AND COALESCE(NULLIF(due_date, ''), invoice_date) <= ?",
         whereArgs: [fromIso, toIso],
-        orderBy: 'invoice_date, id');
+        orderBy: "COALESCE(NULLIF(due_date, ''), invoice_date), id");
     return [for (final r in rows) await _invoiceFromRow(db, r)];
   }
 

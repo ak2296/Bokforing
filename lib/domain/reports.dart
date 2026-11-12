@@ -141,7 +141,7 @@ class ReportGenerator {
   }) {
     final prefix = '${SwedishDates.monthKey(year, month)}-';
     final monthSales = sales.where((s) => s.businessDate.startsWith(prefix)).toList();
-    final monthInvoices = invoices.where((i) => i.invoiceDate.startsWith(prefix)).toList();
+    final monthInvoices = invoices.where((i) => i.bookingDate.startsWith(prefix)).toList();
     final monthOnline = online.where((o) => o.paymentDate.startsWith(prefix)).toList();
 
     final active = categories.where((c) => c.active).toList()
@@ -158,7 +158,7 @@ class ReportGenerator {
 
     final dates = <String>{
       ...monthSales.map((s) => s.businessDate),
-      ...monthInvoices.map((i) => i.invoiceDate),
+      ...monthInvoices.map((i) => i.bookingDate),
     }.toList()
       ..sort();
 
@@ -166,7 +166,7 @@ class ReportGenerator {
     final columnTotals = <String, Money>{for (final c in columns) c.key: Money.zero};
     for (final date in dates) {
       final daySales = monthSales.where((s) => s.businessDate == date).toList();
-      final dayInvoices = monthInvoices.where((i) => i.invoiceDate == date).toList();
+      final dayInvoices = monthInvoices.where((i) => i.bookingDate == date).toList();
       final amounts = <String, Money>{};
       for (final day in daySales) {
         for (final item in day.items) {
@@ -214,7 +214,7 @@ class ReportGenerator {
     for (var m = 1; m <= 12; m++) {
       final prefix = '${SwedishDates.monthKey(year, m)}-';
       final s = sales.where((d) => d.businessDate.startsWith(prefix));
-      final i = invoices.where((d) => d.invoiceDate.startsWith(prefix));
+      final i = invoices.where((d) => d.bookingDate.startsWith(prefix));
       final onlineSales = online.where((o) => o.paymentDate.startsWith(prefix));
       final monthOnline = Money.sum(onlineSales.map((o) => o.amount));
       rows.add(YearRow(
