@@ -7,6 +7,7 @@ import 'record_details.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
 import 'widgets/ledger_parts.dart';
+import 'widgets/report_charts.dart';
 
 class SalesPage extends StatefulWidget {
   const SalesPage({super.key});
@@ -93,6 +94,16 @@ class _SalesPageState extends State<SalesPage> {
                 const SectionTitle('Per kategori'),
                 ShareBar(parts: categories, colors: salesPalette),
               ],
+              if (entries.isNotEmpty) ...[
+                const SectionTitle('Kalender'),
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: SalesHeatMap(year: _ym.year, month: _ym.month, byDay: _byDay(m)),
+                  ),
+                ),
+              ],
               SectionTitle('Dagar', trailing: entries.isEmpty ? null : '${entries.length} st'),
               if (entries.isEmpty)
                 const _Empty(icon: AppIcons.register, text: 'Inga Z-rapporter eller onlineförsäljning den här månaden.')
@@ -102,6 +113,23 @@ class _SalesPageState extends State<SalesPage> {
           );
         },
       );
+}
+
+/// What was sold on each day of the month: Z-reports and online payouts.
+Map<int, Money> _byDay(MonthData m) {
+  final out = <int, Money>{};
+  void add(String iso, Money v) {
+    final d = SwedishDates.parseIso(iso);
+    if (d != null) out[d.day] = (out[d.day] ?? Money.zero) + v;
+  }
+
+  for (final s in m.sales) {
+    add(s.businessDate, s.detailedTotal);
+  }
+  for (final o in m.online) {
+    add(o.paymentDate, o.amount);
+  }
+  return out;
 }
 
 /// The month's days in one fold-out card per week, newest first. This week

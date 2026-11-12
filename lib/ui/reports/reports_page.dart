@@ -14,6 +14,7 @@ import '../record_details.dart';
 import '../review/online_review_page.dart';
 import '../theme.dart';
 import '../widgets/charts.dart';
+import '../widgets/report_charts.dart';
 import '../widgets/common.dart';
 import 'result_view.dart';
 
@@ -304,6 +305,52 @@ class MonthlyTable extends StatelessWidget {
   }
 }
 
+/// The year's result and moms month by month.
+class _YearCharts extends StatelessWidget {
+  final YearReport y;
+  const _YearCharts(this.y);
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final labels = [for (final r in y.rows) SwedishDates.shortMonths[r.month - 1]];
+    // Excl. moms, like the Resultat tab: sales and costs without the moms in them.
+    final result = [for (final r in y.rows) ((r.sales - r.outputVat) - (r.expenses - r.inputVat)).ore / 100];
+    Widget panel(String title, Widget child) => Card(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text(title, style: t.bodySmall),
+              const SizedBox(height: 10),
+              child,
+            ]),
+          ),
+        );
+    return Column(children: [
+      panel(
+        'Resultat per månad, exkl. moms',
+        SignedBarChart(labels: labels, values: result, semanticLabel: 'Resultat för varje månad under året'),
+      ),
+      panel(
+        'Moms per månad',
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          PairedBarChart(
+            labels: labels,
+            first: [for (final r in y.rows) r.outputVat.ore / 100],
+            second: [for (final r in y.rows) r.inputVat.ore / 100],
+            semanticLabel: 'Utgående och ingående moms för varje månad under året',
+          ),
+          const SizedBox(height: 6),
+          Wrap(spacing: 14, children: [
+            LegendDot(AppTheme.seed, 'Utgående moms'),
+            LegendDot(chartSecond, 'Ingående moms'),
+          ]),
+        ]),
+      ),
+    ]);
+  }
+}
+
 class _YearView extends StatelessWidget {
   final int year;
   final ValueChanged<int> onYear;
@@ -349,6 +396,8 @@ class _YearView extends StatelessWidget {
                       onPrint: () => printTable(context, yearTable(y), profile),
                     ),
                     const SizedBox(height: 12),
+                    _YearCharts(y),
+                    const SizedBox(height: 4),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
