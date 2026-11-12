@@ -52,7 +52,7 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                 labelColor: AppTheme.ink,
                 unselectedLabelColor: AppTheme.muted,
                 labelStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 13),
-                tabs: const [Tab(text: 'Månad'), Tab(text: 'År'), Tab(text: 'Jämför'), Tab(text: 'Resultat')],
+                tabs: const [Tab(text: 'Månad'), Tab(text: 'År'), Tab(text: 'Resultat'), Tab(text: 'Jämför')],
               ),
             ),
           ),
@@ -71,8 +71,8 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                     _tabs.animateTo(0);
                   },
                 ),
-                const _CompareView(),
                 const ResultView(),
+                const _CompareView(),
               ],
             ),
           ),

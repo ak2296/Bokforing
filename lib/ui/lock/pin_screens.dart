@@ -14,7 +14,7 @@ import '../theme.dart';
 class AppLockGate extends StatefulWidget {
   /// A file picker or the share sheet also sends the app to the background;
   /// returning from them within this time does not ask for the PIN again.
-  static const grace = Duration(seconds: 60);
+  static const grace = Duration(seconds: 120);
 
   final PinLock lock;
   final Widget child;

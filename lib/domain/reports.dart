@@ -53,6 +53,28 @@ class MonthlyReport {
   final Money onlineVat;
   final int onlineCount;
 
+  /// Every day of the month, also those without an entry (all cells zero).
+  /// Exports use this; the in-app view shows [rows] only.
+  List<MonthlyRow> get exportRows {
+    final byDate = {for (final r in rows) r.date: r};
+    final days = DateTime(year, month + 1, 0).day;
+    return [
+      for (var d = 1; d <= days; d++)
+        byDate['${SwedishDates.monthKey(year, month)}-${d.toString().padLeft(2, '0')}'] ??
+            MonthlyRow(
+              date: '${SwedishDates.monthKey(year, month)}-${d.toString().padLeft(2, '0')}',
+              amounts: const {},
+              sales: Money.zero,
+              outputVat: Money.zero,
+              expenses: Money.zero,
+              inputVat: Money.zero,
+              invoiceCount: 0,
+              zReportCount: 0,
+              hasSalesDifference: false,
+            ),
+    ];
+  }
+
   const MonthlyReport({
     this.totalOnline = Money.zero,
     this.onlineVat = Money.zero,

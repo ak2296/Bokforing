@@ -247,6 +247,19 @@ class _ResultBody extends StatelessWidget {
           label: const Text('SIE-fil till redovisaren'),
           onPressed: () => _exportSie(context),
         ),
+        if (r.sales.ore > 0 || r.costs.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Text('Från intäkter till resultat', style: t.titleMedium),
+                const SizedBox(height: 8),
+                ResultWaterfall(r),
+              ]),
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         Card(
           child: Padding(
@@ -268,17 +281,6 @@ class _ResultBody extends StatelessWidget {
           ),
         ),
         if (r.sales.ore > 0 || r.costs.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Text('Från intäkter till resultat', style: t.titleMedium),
-                const SizedBox(height: 8),
-                ResultWaterfall(r),
-              ]),
-            ),
-          ),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),

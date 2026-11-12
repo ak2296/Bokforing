@@ -138,6 +138,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 onNext: () => setState(() => _ym = _ym.next),
               ),
               const SizedBox(height: 12),
+              _UnpaidTile(unpaid),
+              const SizedBox(height: 10),
               SummaryHero(
                 label: 'Utgifter',
                 total: r.totalExpenses,
@@ -149,9 +151,11 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   ('Obetalda', '$unpaidThisMonth'),
                 ],
               ),
+              if (parts.isNotEmpty) ...[
+                const SectionTitle('Per kostnadstyp', trailing: 'exkl. moms'),
+                ShareBar(parts: parts, colors: costPalette),
+              ],
               const SizedBox(height: 10),
-              _UnpaidTile(unpaid),
-              const SizedBox(height: 8),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.seed,
@@ -165,10 +169,6 @@ class _ExpensesPageState extends State<ExpensesPage> {
               if (incomplete > 0) ...[
                 const SizedBox(height: 10),
                 IncompleteNotice(count: incomplete, from: _ym.firstDay, to: _ym.lastDay, period: _ym.title),
-              ],
-              if (parts.isNotEmpty) ...[
-                const SectionTitle('Per kostnadstyp', trailing: 'exkl. moms'),
-                ShareBar(parts: parts, colors: costPalette),
               ],
               SectionTitle('Fakturor och kvitton',
                   trailing: searching

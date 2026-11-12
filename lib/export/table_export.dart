@@ -87,7 +87,7 @@ ReportTable monthlyTable(MonthlyReport r) {
     fileName: 'manadsrapport_${r.year}-${r.month.toString().padLeft(2, '0')}',
     headers: ['Datum', for (final c in r.columns) c.name, 'Summa', 'Utgifter', 'Utgående moms', 'Ingående moms'],
     rows: [
-      for (final row in r.rows)
+      for (final row in r.exportRows)
         [
           row.date,
           for (final c in r.columns) m(row.amounts[c.key] ?? Money.zero),

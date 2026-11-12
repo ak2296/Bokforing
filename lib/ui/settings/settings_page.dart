@@ -250,7 +250,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 SwitchListTile(
                   secondary: const Icon(AppIcons.lock),
                   title: const Text('Lås appen med PIN-kod'),
-                  subtitle: const Text('PIN-koden frågas när appen öppnas och efter en minut i bakgrunden.'),
+                  subtitle: const Text('PIN-koden frågas när appen öppnas och efter två minuter i bakgrunden.'),
                   value: pinLock.enabled,
                   onChanged: (v) => v ? _turnOnLock(pinLock) : _turnOffLock(pinLock),
                 ),

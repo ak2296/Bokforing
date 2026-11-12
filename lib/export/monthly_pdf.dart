@@ -22,7 +22,7 @@ Future<Uint8List> buildMonthlyPdf(MonthlyReport r, BusinessProfile profile, {Dat
 
   final headers = ['Datum', for (final c in r.columns) c.name, 'Summa', 'Utgifter', 'Utg. moms', 'Ing. moms'];
   final rows = <List<String>>[
-    for (final row in r.rows)
+    for (final row in r.exportRows)
       [
         row.hasSalesDifference ? '${row.date} *' : row.date,
         for (final c in r.columns) m(row.amounts[c.key] ?? Money.zero),
@@ -76,10 +76,7 @@ Future<Uint8List> buildMonthlyPdf(MonthlyReport r, BusinessProfile profile, {Dat
         ],
       ),
       build: (context) => [
-        if (r.rows.isEmpty)
-          pw.Text(r.onlineCount == 0 ? 'Inga registreringar den här månaden.' : 'Inga Z-rapporter eller fakturor den här månaden.')
-        else
-          pw.TableHelper.fromTextArray(
+        pw.TableHelper.fromTextArray(
             headers: headers,
             data: [...rows, totals],
             headerStyle: boldStyle,
