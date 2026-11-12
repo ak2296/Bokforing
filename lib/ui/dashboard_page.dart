@@ -91,7 +91,6 @@ class DashboardPage extends StatelessWidget {
                 ]),
               ]),
             ),
-            _Panel(title: 'Hittills denna månad', child: _MonthToDate(extras)),
             _Panel(title: 'Veckodagar, snitt senaste 12 veckorna', child: _Weekdays(extras.weekdayAverages)),
             if (extras.upcoming.isNotEmpty) _Panel(title: 'Kommande betalningar', child: _Upcoming(extras.upcoming)),
             _Panel(
@@ -262,37 +261,20 @@ class _UnpaidCard extends StatelessWidget {
 
 /// What the overview panels need beyond the month's report.
 class DashboardExtras {
-  /// Sales and expenses from the 1st up to today, and for the same days of the
-  /// month before.
-  final Money salesNow, salesBefore, expensesNow, expensesBefore;
-  final int dayOfMonth;
-
   /// Average sales per weekday (Monday first) over the last 12 weeks, in kr.
   final List<double> weekdayAverages;
 
   /// Unpaid invoices with a due date, soonest first.
   final List<Invoice> upcoming;
-  const DashboardExtras(this.salesNow, this.salesBefore, this.expensesNow, this.expensesBefore, this.dayOfMonth,
-      this.weekdayAverages, this.upcoming);
+  const DashboardExtras(this.weekdayAverages, this.upcoming);
 
   static Future<DashboardExtras> load(AppController c, {DateTime? now}) async {
     final today = now ?? DateTime.now();
-    final ym = YearMonth(today.year, today.month);
-    final prev = ym.previous;
-    String day(YearMonth m, int d) => '${SwedishDates.monthKey(m.year, m.month)}-${d.toString().padLeft(2, '0')}';
-    final to = today.day;
-    final salesNow = await c.repo.dailySalesBetween(ym.firstDay, day(ym, to));
-    final salesBefore = await c.repo.dailySalesBetween(prev.firstDay, day(prev, to));
-    final expNow = await c.repo.invoicesForReports(ym.firstDay, day(ym, to));
-    final expBefore = await c.repo.invoicesForReports(prev.firstDay, day(prev, to));
     final from = today.subtract(const Duration(days: 12 * 7 - 1));
     final recent = await c.repo.dailySalesBetween(SwedishDates.iso(from), SwedishDates.iso(today));
     final unpaid = [for (final i in await c.repo.unpaidInvoices()) if (i.dueDate != null) i]
       ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
-    Money sum(List<DailySales> l) => Money.sum(l.map((d) => d.detailedTotal));
-    Money cost(List<Invoice> l) => Money.sum(l.map((i) => i.total));
-    return DashboardExtras(
-        sum(salesNow), sum(salesBefore), cost(expNow), cost(expBefore), to, weekdayAverage(recent), unpaid);
+    return DashboardExtras(weekdayAverage(recent), unpaid);
   }
 
   /// Average of the days that have a Z-report, for each weekday.
@@ -305,44 +287,6 @@ class DashboardExtras {
       counts[date.weekday - 1]++;
     }
     return [for (var i = 0; i < 7; i++) counts[i] == 0 ? 0 : sums[i] / counts[i]];
-  }
-}
-
-/// Sales and expenses so far this month against the same days last month.
-class _MonthToDate extends StatelessWidget {
-  final DashboardExtras e;
-  const _MonthToDate(this.e);
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    Widget row(String label, Money now, Money before, bool higherIsGood) {
-      final change = CompareRow(0, now, before).changePercent;
-      final good = change == null || change == 0 || (change > 0) == higherIsGood;
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(children: [
-          Expanded(child: Text(label, style: t.bodyMedium)),
-          Text(now.format(compact: true), style: t.titleSmall?.merge(moneyStyle)),
-          SizedBox(
-            width: 84,
-            child: Text(change == null ? '' : formatChange(change),
-                textAlign: TextAlign.end,
-                style: t.bodySmall?.copyWith(color: good ? AppTheme.seed : AppTheme.warning)),
-          ),
-        ]),
-      );
-    }
-
-    return Column(children: [
-      row('Försäljning', e.salesNow, e.salesBefore, true),
-      row('Utgifter', e.expensesNow, e.expensesBefore, false),
-      const SizedBox(height: 4),
-      Align(
-        alignment: Alignment.centerLeft,
-        child: Text('Dag 1–${e.dayOfMonth} mot samma dagar förra månaden', style: t.bodySmall),
-      ),
-    ]);
   }
 }
 

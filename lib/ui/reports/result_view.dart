@@ -19,6 +19,7 @@ import '../export_actions.dart';
 import '../incomplete_page.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/result_charts.dart';
 
 /// The period of a resultatrapport: one month or one financial year.
 class _Period {
@@ -266,6 +267,29 @@ class _ResultBody extends StatelessWidget {
             ]),
           ),
         ),
+        if (r.sales.ore > 0 || r.costs.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Text('Från intäkter till resultat', style: t.titleMedium),
+                const SizedBox(height: 8),
+                ResultWaterfall(r),
+              ]),
+            ),
+          ),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Text('Kostnader i procent av försäljningen', style: t.titleMedium),
+                const SizedBox(height: 8),
+                CostShare(r),
+              ]),
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         Text(
           'Bygger bara på det som är registrerat i appen. Den officiella resultaträkningen görs i bokföringen, '

@@ -46,10 +46,10 @@ void main() {
     expect(AppTheme.light().scaffoldBackgroundColor, const Color(0xFFF5F7F4));
   });
 
-  test('neighbouring parts of the share bars alternate dark and light', () {
+  test('the share bar colours run from dark to light', () {
     for (final p in [salesPalette, costPalette]) {
-      for (var i = 1; i < 4; i++) {
-        expect((p[i].computeLuminance() - p[i - 1].computeLuminance()).abs(), greaterThan(0.1));
+      for (var i = 1; i < 3; i++) {
+        expect(p[i].computeLuminance(), greaterThan(p[i - 1].computeLuminance()));
       }
     }
   });

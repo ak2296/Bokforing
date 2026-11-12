@@ -76,7 +76,9 @@ class _BokforingAppState extends State<BokforingApp> {
             final content = _Readable(
               child: ColoredBox(
                 color: AppTheme.surface,
-                child: SafeArea(top: false, left: false, right: false, child: child ?? const SizedBox.shrink()),
+                child: _ThemeRefresh(
+                  child: SafeArea(top: false, left: false, right: false, child: child ?? const SizedBox.shrink()),
+                ),
               ),
             );
             final lock = widget.controller.pinLock;
@@ -88,6 +90,42 @@ class _BokforingAppState extends State<BokforingApp> {
         ),
         ),
       );
+}
+
+/// The colours in AppTheme are read when a widget builds, so when the theme
+/// changes every widget below is built again, also those that do not ask for
+/// the theme themselves (and the ones kept alive in tabs).
+class _ThemeRefresh extends StatefulWidget {
+  final Widget child;
+  const _ThemeRefresh({required this.child});
+
+  @override
+  State<_ThemeRefresh> createState() => _ThemeRefreshState();
+}
+
+class _ThemeRefreshState extends State<_ThemeRefresh> {
+  Brightness? _seen;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final b = Theme.of(context).brightness;
+    if (_seen != null && _seen != b) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        void mark(Element e) {
+          e.markNeedsBuild();
+          e.visitChildren(mark);
+        }
+
+        (context as Element).visitChildren(mark);
+      });
+    }
+    _seen = b;
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 /// On a tablet the screens keep a comfortable reading width in the middle,

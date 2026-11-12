@@ -23,12 +23,34 @@ class Shell extends StatefulWidget {
 }
 
 class _ShellState extends State<Shell> {
+  /// The tab chosen in the bar: 0 Översikt, 1 Försäljning, 2 Skanna,
+  /// 3 Utgifter, 4 Rapporter.
   int _index = 0;
   StreamSubscription<List<SharedMediaFile>>? _shares;
 
+  /// Swiping moves between these four; Skanna is only opened from the bar.
+  static const _swipeTabs = [0, 1, 3, 4];
+  static const _scanTab = 2;
+  final _pages = PageController();
+
   static const _titles = ['Översikt', 'Försäljning', 'Skanna dokument', 'Utgifter', 'Rapporter'];
 
-  void _go(int i) => setState(() => _index = i);
+  void _go(int i) {
+    if (i == _scanTab) {
+      setState(() => _index = i);
+      return;
+    }
+    final page = _swipeTabs.indexOf(i);
+    final fromScan = _index == _scanTab;
+    setState(() => _index = i);
+    if (!_pages.hasClients) return;
+    final current = (_pages.page ?? 0).round();
+    if (fromScan || (current - page).abs() > 1) {
+      _pages.jumpToPage(page);
+    } else {
+      _pages.animateToPage(page, duration: const Duration(milliseconds: 260), curve: Curves.easeOutCubic);
+    }
+  }
 
   @override
   void initState() {
@@ -45,6 +67,7 @@ class _ShellState extends State<Shell> {
   @override
   void dispose() {
     _shares?.cancel();
+    _pages.dispose();
     super.dispose();
   }
 
@@ -56,10 +79,9 @@ class _ShellState extends State<Shell> {
 
   @override
   Widget build(BuildContext context) {
-    const pages = [
+    const swipePages = [
       DashboardPage(),
       SalesPage(),
-      ScanTab(),
       ExpensesPage(),
       ReportsPage(),
     ];
@@ -77,9 +99,43 @@ class _ShellState extends State<Shell> {
           const SizedBox(width: 4),
         ],
       ),
-      body: SafeArea(child: IndexedStack(index: _index, children: pages)),
+      body: SafeArea(
+        child: IndexedStack(
+          index: _index == _scanTab ? 1 : 0,
+          children: [
+            PageView(
+              controller: _pages,
+              onPageChanged: (p) {
+                if (_index != _scanTab) setState(() => _index = _swipeTabs[p]);
+              },
+              children: [for (final p in swipePages) _KeepAlive(child: p)],
+            ),
+            const ScanTab(),
+          ],
+        ),
+      ),
       bottomNavigationBar: _BottomBar(index: _index, onTap: _go),
     );
+  }
+}
+
+/// Keeps a page and its state (chosen month, scroll) while it is swiped away.
+class _KeepAlive extends StatefulWidget {
+  final Widget child;
+  const _KeepAlive({required this.child});
+
+  @override
+  State<_KeepAlive> createState() => _KeepAliveState();
+}
+
+class _KeepAliveState extends State<_KeepAlive> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
 
@@ -100,9 +156,9 @@ class _CompanyTitle extends StatelessWidget {
       );
 }
 
-/// Bottom navigation with a spotlight over the chosen tab: a glowing lamp on
-/// the top edge and a pumpkin light cone below it. A floating pill in both
-/// themes: white in the light theme, dark in the dark theme.
+/// Bottom navigation: a floating pill, the same in both themes (white in the
+/// light theme, dark in the dark theme). The chosen tab is lit by a spotlight
+/// above the pill's edge: only the cone of light that falls on the tab is seen.
 class _BottomBar extends StatelessWidget {
   final int index;
   final ValueChanged<int> onTap;
@@ -119,29 +175,12 @@ class _BottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = AppTheme.dark;
-    final bar = SizedBox(
-      height: 64,
-      child: Row(
-        children: [
-          for (var i = 0; i < _items.length; i++)
-            Expanded(
-              child: _Tab(
-                label: _items[i].$1,
-                icon: _items[i].$2,
-                selected: i == index,
-                scan: i == 2,
-                dark: dark,
-                onTap: () => onTap(i),
-              ),
-            ),
-        ],
-      ),
-    );
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
         child: Container(
+          height: 64,
           decoration: BoxDecoration(
             color: dark ? const Color(0xFF0B100E) : AppTheme.surface,
             borderRadius: BorderRadius.circular(30),
@@ -149,7 +188,21 @@ class _BottomBar extends StatelessWidget {
             boxShadow: dark ? null : const [BoxShadow(color: Color(0x1A000000), blurRadius: 16, offset: Offset(0, 4))],
           ),
           clipBehavior: Clip.antiAlias,
-          child: bar,
+          child: Row(
+            children: [
+              for (var i = 0; i < _items.length; i++)
+                Expanded(
+                  child: _Tab(
+                    label: _items[i].$1,
+                    icon: _items[i].$2,
+                    selected: i == index,
+                    scan: i == 2,
+                    dark: dark,
+                    onTap: () => onTap(i),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -160,6 +213,8 @@ class _Tab extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool selected;
+
+  /// Skanna: green when idle, pumpkin text under a green light when chosen.
   final bool scan;
   final bool dark;
   final VoidCallback onTap;
@@ -173,68 +228,42 @@ class _Tab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onColor = scan ? Colors.white : (selected ? AppTheme.pumpkin : AppTheme.muted);
+    final idle = scan ? AppTheme.seed : AppTheme.muted;
+    final color = selected ? AppTheme.pumpkin : idle;
+    final light = scan ? const Color(0xFF2FD08F) : AppTheme.pumpkin;
     return InkResponse(
       onTap: onTap,
       child: Semantics(
         selected: selected,
         button: true,
         child: Stack(
-          alignment: Alignment.topCenter,
+          clipBehavior: Clip.none,
           children: [
-            // The light cone, widening from the lamp down over the tab.
             Positioned.fill(
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 220),
                 opacity: selected ? 1 : 0,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        AppTheme.pumpkin.withValues(alpha: dark ? 0.32 : 0.20),
-                        AppTheme.pumpkin.withValues(alpha: 0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // The lamp.
-            AnimatedOpacity(
-              duration: const Duration(milliseconds: 220),
-              opacity: selected ? 1 : 0,
-              child: Container(
-                width: 30,
-                height: 3.5,
-                decoration: BoxDecoration(
-                  color: AppTheme.pumpkinLight,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(4)),
-                  boxShadow: [BoxShadow(color: AppTheme.pumpkin.withValues(alpha: 0.85), blurRadius: dark ? 14 : 8, spreadRadius: 1)],
-                ),
+                child: CustomPaint(painter: _ConePainter(light, dark)),
               ),
             ),
             Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: scan ? BoxDecoration(color: AppTheme.seed, borderRadius: BorderRadius.circular(14)) : null,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon, size: 22, color: onColor),
-                    const SizedBox(height: 2),
-                    Text(
-                      label,
-                      maxLines: 1,
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: selected || scan ? FontWeight.w500 : FontWeight.w400,
-                        color: onColor,
-                      ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 22, color: color),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.visible,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: selected || scan ? FontWeight.w500 : FontWeight.w400,
+                      color: color,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -242,4 +271,35 @@ class _Tab extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A cone of light from a point at the top edge, widening downwards and fading
+/// out. The lamp itself is outside the pill, so only the cast light is drawn.
+class _ConePainter extends CustomPainter {
+  final Color color;
+  final bool dark;
+  _ConePainter(this.color, this.dark);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final reach = size.width * 0.7;
+    final path = Path()
+      ..moveTo(cx - 7, 0)
+      ..lineTo(cx + 7, 0)
+      ..lineTo(cx + reach, size.height)
+      ..lineTo(cx - reach, size.height)
+      ..close();
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [color.withValues(alpha: dark ? 0.75 : 0.5), color.withValues(alpha: 0)],
+      ).createShader(Offset.zero & size)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_ConePainter old) => old.color != color || old.dark != dark;
 }

@@ -56,8 +56,10 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
             ),
           ),
           Expanded(
+            // The pages swipe, so these tabs change by tap only.
             child: TabBarView(
               controller: _tabs,
+              physics: const NeverScrollableScrollPhysics(),
               children: [
                 _MonthView(ym: _ym, onChanged: (v) => setState(() => _ym = v)),
                 _YearView(
