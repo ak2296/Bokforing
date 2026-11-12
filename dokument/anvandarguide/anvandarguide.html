@@ -173,7 +173,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
         <div class="nav"><div class="on"><div class="ic"></div>Översikt</div><div><div class="ic"></div>Försälj.</div><div><div class="scan"><span></span></div></div><div><div class="ic"></div>Utgifter</div><div><div class="ic"></div>Rapporter</div></div>
       </div></div>
     </div>
-    <div class="tag">Version 1.2 · november 2026</div>
+    <div class="tag">Version 1.3 · november 2026</div>
   </div>
 </section>
 
@@ -184,7 +184,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <ul class="toc">
     <li><span>1</span><span>Installera och aktivera appen</span><span>3</span></li>
     <li><span>2</span><span>Kom igång: företag, kategorier och moms</span><span>4</span></li>
-    <li><span>3</span><span>Appens fem flikar</span><span>5</span></li>
+    <li><span>3</span><span>Appens fem flikar och svepning</span><span>5</span></li>
     <li><span>4</span><span>Skanna ett papper</span><span>6</span></li>
     <li><span>5</span><span>Kontrollera uppgifterna</span><span>7</span></li>
     <li><span>6</span><span>Fakturor, kvitton och kreditnotor</span><span>8</span></li>
@@ -266,13 +266,13 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     <div>
       <p class="lead">Längst ner finns fem flikar. Kugghjulet uppe till höger öppnar Inställningar.</p>
       <table class="t">
-        <tr><td><b>Översikt</b></td><td>Månadens försäljning och utgifter jämfört med förra månaden, ett diagram för sex månader, försäljning per kategori (de fem största; <b>Visa alla</b> visar resten), beräknad moms och de senaste registreringarna.</td></tr>
+        <tr><td><b>Översikt</b></td><td>Månadens siffror jämfört med förra månaden, sexmånadersdiagram, snitt per veckodag, kommande betalningar och beräknad moms.</td></tr>
         <tr><td><b>Försäljning</b></td><td>Z-rapporter och onlineförsäljning, dag för dag.</td></tr>
         <tr><td><b>Skanna</b></td><td>Den gröna knappen i mitten. Här börjar allt nytt.</td></tr>
         <tr><td><b>Utgifter</b></td><td>Fakturor och kvitton med sökfält, och vad som återstår att betala.</td></tr>
-        <tr><td><b>Rapporter</b></td><td>Månad, år, jämförelse och resultat – som PDF, Excel eller utskrift.</td></tr>
+        <tr><td><b>Rapporter</b></td><td>Månad, år, resultat och jämförelse – som PDF, Excel eller utskrift.</td></tr>
       </table>
-      <div class="tip"><b>Ett kort "Att betala"</b> visas överst på Översikt när det finns obetalda fakturor. Det blir orange när en faktura förfaller inom tre dagar.</div>
+      <div class="tip"><b>Svep åt sidan</b> för att byta flik (utom Skanna). "Att betala" överst på Översikt blir orange när en faktura förfaller inom tre dagar.</div>
     </div>
     <div class="shot">
       <div class="phone"><div class="screen">
@@ -388,13 +388,13 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <h2>Kreditnota</h2>
   <p>Slå på <span class="kbd">Kreditnota</span> när leverantören krediterar. Beloppen blir minus och dras av från utgifterna och den ingående momsen.</p>
   <h2>Moms</h2>
-  <p>Har fakturan flera momssatser (t.ex. 12 % och 25 %) visas en rad per sats. Saknar pappret moms, t.ex. ett inbetalningskort, slå på <span class="kbd">Ingen moms</span> under fältet Moms. Appen gör det själv när pappret säger att det saknar moms; annars räknas momsen som saknad.</p>
+  <p>Har fakturan flera momssatser (t.ex. 12 % och 25 %) visas en rad per sats. Saknar pappret moms, t.ex. ett inbetalningskort, slå på <span class="kbd">Ingen moms</span> under fältet Moms; momsfältet och momssatserna blir då gråa och inaktiva. Appen gör det själv när pappret säger att det saknar moms; annars räknas momsen som saknad.</p>
   <h2>Kostnadstyp</h2>
-  <p>Välj vad fakturan gäller, t.ex. Varuinköp, Lokalhyra eller El. Samma leverantör får samma typ föreslagen nästa gång. Typen visas överst på fakturans sida och används i resultatrapporten och SIE-filen.</p>
+  <p>Välj vad fakturan gäller, t.ex. Varuinköp, Lokalhyra, El eller Larm, bevakning och kameror (konto 5090; redovisaren bekräftar kontot). Samma leverantör får samma typ föreslagen nästa gång. Typen visas överst på fakturans sida och används i resultatrapporten och SIE-filen.</p>
   <div class="detail">
     <div class="flow">
       <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap"><span class="grow">Kreditnota</span><span class="sw"></span></div>
-      <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap"><span class="grow">Moms <span style="color:var(--muted)">0,00 kr</span></span></div>
+      <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap;opacity:.5"><span class="grow">Moms <span style="color:var(--muted)">Ingen moms</span></span></div>
       <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap;border-color:var(--green)"><span class="grow">Ingen moms</span><span class="sw on"></span></div>
       <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap"><span class="grow">Varuinköp ▾</span></div>
     </div>
@@ -445,16 +445,17 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <h1>Onlineförsäljning och filer</h1>
   <h2>Onlineförsäljning (Foodora och andra)</h2>
   <p>Tryck Skanna → <span class="kbd">Onlineförsäljning</span> och fotografera partnerns betalningsbesked eller självfaktura. Appen läser utbetalningsdatum, belopp och moms.</p>
-  <p>När pappret också innehåller partnerns faktura för avgifter och provision delar appen upp det: först registreras försäljningen, sedan öppnas avgiftsfakturan som en vanlig utgift.</p>
-  <h2>Faktura i e-post eller som PDF</h2>
+    <h2>Faktura i e-post eller som PDF</h2>
   <ul>
     <li><b>Från appen:</b> Skanna → <span class="kbd">Från fil</span> och välj en PDF eller bild.</li>
     <li><b>Från e-posten:</b> öppna bilagan, tryck på dela-knappen och välj <b>Quee</b>. Appen läser filen direkt.</li>
   </ul>
+  <h2>Lönebesked</h2>
+  <p>Skanna → <span class="kbd">Nytt lönebesked</span>. Kontrollera brutto, skatt, avgift och utbetalning. Ingen moms; visas som kostnad i resultatet och i SIE-filen (serie D, konton bekräftas av redovisaren).</p>
   <h2>Fyll i manuellt</h2>
-  <p>Saknas pappret, eller går det inte att läsa? Tryck Skanna → <span class="kbd">Fyll i själv</span> och välj faktura, Z-rapport eller onlineförsäljning.</p>
+  <p>Tryck Skanna → <span class="kbd">Fyll i själv</span> när pappret saknas eller inte går att läsa.</p>
   <h2>Förbättrad analys online (valfri)</h2>
-  <p>För mycket svårlästa papper finns en knapp som skickar bilden till Googles AI-tjänst för en andra läsning. Den är <b>av</b> från början, kräver en egen nyckel (Inställningar → Förbättrad analys) och frågar alltid innan något skickas.</p>
+  <p>Valfri andra läsning av svårlästa papper hos Googles AI-tjänst. <b>Av</b> från början, kräver en egen nyckel (Inställningar → Mer) och frågar alltid innan något skickas.</p>
   <div class="detail" style="display:grid;grid-template-columns:1fr 38mm;gap:3mm;align-items:start">
     <div>
       <p class="cap">Skanna-fliken, under "Annat sätt"</p>
@@ -522,21 +523,21 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <div class="two">
     <div>
       <table class="t">
-        <tr><td style="width:17mm"><b>Månad</b></td><td>En rad per dag: försäljning per kategori, utgifter och moms. Tryck på en dag för detaljer.</td></tr>
-        <tr><td><b>År</b></td><td>Varje månad under året. Tryck på en månad för att öppna den.</td></tr>
-        <tr><td><b>Jämför</b></td><td>Två år månad för månad: försäljning, utgifter eller moms, med procent.</td></tr>
-        <tr><td><b>Resultat</b></td><td>Intäkter, kostnader per typ och resultatet, utan moms, för en månad eller ett år. En lila ruta överst visar fakturor att rätta.</td></tr>
+        <tr><td style="width:17mm"><b>Månad</b></td><td>En rad per dag. Tomma dagar döljs i appen men finns alltid med i PDF, Excel och utskrift.</td></tr>
+        <tr><td><b>År</b></td><td>Varje månad, med diagram över resultat och moms. Tryck på en månad för att öppna den.</td></tr>
+        <tr><td><b>Resultat</b></td><td>Diagram från intäkter till resultat, sedan intäkter, kostnader per typ och resultat, utan moms. En lila ruta visar fakturor att rätta.</td></tr>
+        <tr><td><b>Jämför</b></td><td>Två år månad för månad, med procent.</td></tr>
       </table>
       <p>Varje rapport har knapparna <span class="kbd">PDF</span>, <span class="kbd">Excel</span> och <span class="kbd">Skriv ut</span>. Excel-filen öppnas direkt i Excel och Google Kalkylark.</p>
       <h2>SIE-fil till redovisaren</h2>
-      <p>På fliken Resultat finns <span class="kbd">SIE-fil till redovisaren</span>. Välj <b>Skicka med e-post</b>: e-posten öppnas med filen bifogad och ämnet "SIE-fil [ditt företag], [period]". Eller välj <b>Spara på telefonen</b>. Filen läses av Fortnox, Visma, Bokio och de flesta redovisningsbyråer.</p>
+      <p>Fliken Resultat har <span class="kbd">SIE-fil till redovisaren</span>: <b>Skicka med e-post</b> (filen bifogad) eller <b>Spara på telefonen</b>. Läses av Fortnox, Visma, Bokio och de flesta byråer.</p>
     </div>
     <div>
       <div class="phone"><div class="screen">
         <div class="bar"><span>09:41</span><span>●●●</span></div>
         <div class="apphead"><div>Rapporter</div><div class="gear"></div></div>
         <div class="body">
-          <div class="tabs"><div>Månad</div><div>År</div><div>Jämför</div><div class="on">Resultat</div></div>
+          <div class="tabs"><div>Månad</div><div>År</div><div class="on">Resultat</div><div>Jämför</div></div>
           <div style="display:flex;gap:0.8mm;margin-bottom:1mm"><div class="card" style="flex:1;text-align:center;padding:0.8mm">PDF</div><div class="card" style="flex:1;text-align:center;padding:0.8mm">Excel</div><div class="card" style="flex:1;text-align:center;padding:0.8mm">Skriv ut</div></div>
           <div class="card" style="text-align:center;padding:0.8mm">SIE-fil till redovisaren</div>
           <div class="card">
@@ -590,18 +591,15 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <p style="font-size:7.6pt;color:var(--muted);margin-top:-1mm"><span class="num">1</span>Kugghjulet uppe till höger, på alla flikar, öppnar Inställningar.</p>
   <table class="t">
     <tr><th style="width:34mm">Del</th><th>Vad den gör</th></tr>
-    <tr><td><b>Företag</b></td><td>Namn, företagsform, organisationsnummer, adress, räkenskapsårets startmånad och andra namn företaget har på papper.</td></tr>
-    <tr><td><b>Aktivering</b></td><td>Visar om appen är aktiverad och till när. Här skrivs en ny kod in.</td></tr>
-    <tr><td><b>Försäljningskategorier</b></td><td>Namn och momssats per kategori. Dra för att ändra ordning.</td></tr>
-    <tr><td><b>Fält på Z-rapport</b></td><td>Vad varje rad på Z-rapporten registreras som.</td></tr>
-    <tr><td><b>Behåll originalbilder</b></td><td>Av: bilden tas bort när du godkänt. Spara papperen, så behövs inga bilder i appen.</td></tr>
-    <tr><td><b>Avrunda utgifter</b></td><td>Hela kronor i listor och rapporter. Sparade belopp ändras inte.</td></tr>
-    <tr><td><b>PIN-kod</b></td><td>Lås appen med 4–6 siffror. Byt eller stäng av med nuvarande PIN.</td></tr>
-    <tr><td><b>Lagring, Påminnelser</b></td><td>Platsen appen tar, och avisering före förfallodagen.</td></tr>
-    <tr><td><b>Säkerhetskopiering</b></td><td>Automatisk kopia, kopia till molnet, export och import.</td></tr>
-    <tr><td><b>Inlärda fält</b></td><td>Var varje leverantör skriver summa, moms, nummer och datum – inlärt när du rättar. Kan tas bort.</td></tr>
-    <tr><td><b>Förbättrad analys</b></td><td>Valfri AI-läsning online. Av som standard.</td></tr>
-    <tr><td><b>Övrigt</b></td><td>Historik, Integritet och Användarguide (den här guiden som PDF).</td></tr>
+    <tr><td><b>Sök</b></td><td>Fältet överst hittar en inställning på ett ord, t.ex. "pin" eller "moms". Delarna nedan fälls ut och in.</td></tr>
+    <tr><td><b>Utseende</b></td><td>Auto (som telefonen), Ljust eller Mörkt.</td></tr>
+    <tr><td><b>Företag</b></td><td>Namn, företagsform, organisationsnummer, adress, räkenskapsårets startmånad, andra namn på papper och aktivering.</td></tr>
+    <tr><td><b>Försäljning</b></td><td>Kategorier med momssats (dra för ordning) och vad varje rad på Z-rapporten registreras som.</td></tr>
+    <tr><td><b>Utgifter och dokument</b></td><td>Avrunda utgifter (hela kronor i listor och rapporter), behåll originalbilder, inlärda fält och lagring.</td></tr>
+    <tr><td><b>Påminnelser</b></td><td>Avisering före förfallodagen.</td></tr>
+    <tr><td><b>Säkerhet</b></td><td>PIN-kod med 4–6 siffror, och <b>fingeravtryck</b> för att låsa upp snabbare (PIN-koden finns kvar). Appen låser sig när den varit borta i mer än 2 minuter.</td></tr>
+    <tr><td><b>Data</b></td><td>Automatisk säkerhetskopia, kopia till molnet, export, import och historik.</td></tr>
+    <tr><td><b>Mer</b></td><td>Förbättrad analys online (av som standard), Integritet, Användarguide och Om appen.</td></tr>
   </table>
   <div class="tip"><b>Spara papperen.</b> Bokföringslagen kräver att underlagen sparas i sju år. Appen är ett hjälpmedel för att registrera och räkna – papperen är originalen.</div>
   <div class="folio"><span>Inställningar</span><span>14</span></div>
