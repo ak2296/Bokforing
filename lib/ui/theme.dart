@@ -11,6 +11,8 @@ class AppTheme {
   static Color get ink => dark ? const Color(0xFFE6EEEA) : const Color(0xFF10201B);
   static Color get muted => dark ? const Color(0xFF9AA8A1) : const Color(0xFF62706A);
   static Color get background => dark ? const Color(0xFF111917) : const Color(0xFFF5F7F4);
+  /// The outline of an entry field: clearly stronger than a card's hairline.
+  static Color get fieldBorder => dark ? const Color(0xFF55655E) : const Color(0xFFB4BFB9);
   static Color get hairline => dark ? const Color(0xFF2B3833) : const Color(0xFFE8ECE6);
   static Color get tint => dark ? const Color(0xFF1D3A30) : const Color(0xFFE4F2EC);
 
@@ -105,8 +107,9 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface,
-        border: OutlineInputBorder(borderRadius: radius12, borderSide: BorderSide(color: hairline)),
-        enabledBorder: OutlineInputBorder(borderRadius: radius12, borderSide: BorderSide(color: hairline)),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        border: OutlineInputBorder(borderRadius: radius12, borderSide: BorderSide(color: fieldBorder)),
+        enabledBorder: OutlineInputBorder(borderRadius: radius12, borderSide: BorderSide(color: fieldBorder)),
         disabledBorder: OutlineInputBorder(borderRadius: radius12, borderSide: BorderSide(color: hairline)),
         focusedBorder: OutlineInputBorder(borderRadius: radius12, borderSide: BorderSide(color: seed, width: 1.5)),
       ),

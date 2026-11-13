@@ -68,7 +68,7 @@ class DashboardPage extends StatelessWidget {
                       .push(MaterialPageRoute(builder: (_) => const ActivationPage())),
                 ),
               ),
-            if (recent.isNotEmpty) const _BackupNotice(),
+            const _BackupNotice(),
             if (unpaid.isNotEmpty) _UnpaidCard(unpaid),
             const SizedBox(height: 8),
             Row(children: [
@@ -165,7 +165,7 @@ class _BackupNotice extends StatefulWidget {
 }
 
 class _BackupNoticeState extends State<_BackupNotice> {
-  bool _off = false;
+  bool? _on;
   DateTime? _last;
 
   @override
@@ -180,7 +180,7 @@ class _BackupNoticeState extends State<_BackupNotice> {
     final last = await backup?.last();
     if (mounted) {
       setState(() {
-        _off = !on;
+        _on = on;
         _last = last;
       });
     }
@@ -188,15 +188,21 @@ class _BackupNoticeState extends State<_BackupNotice> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_off) return const SizedBox.shrink();
+    final on = _on;
+    if (on == null) return const SizedBox.shrink();
+    final last = _last == null
+        ? null
+        : '${SwedishDates.iso(_last!)} ${_last!.hour.toString().padLeft(2, '0')}:${_last!.minute.toString().padLeft(2, '0')}';
     return Card(
-      color: AppTheme.warningTint,
+      color: on ? null : AppTheme.warningTint,
       child: ListTile(
-        leading: Icon(AppIcons.backup, color: AppTheme.warning),
-        title: const Text('Ingen automatisk säkerhetskopia'),
-        subtitle: Text(_last == null
-            ? 'Ingen säkerhetskopia har tagits. Försvinner telefonen försvinner uppgifterna. Tryck för att slå på.'
-            : 'Senaste kopia: ${SwedishDates.iso(_last!)} ${_last!.hour.toString().padLeft(2, '0')}:${_last!.minute.toString().padLeft(2, '0')}. Tryck för att slå på igen.'),
+        leading: Icon(on ? AppIcons.checkCircle : AppIcons.backup, color: on ? AppTheme.seed : AppTheme.warning),
+        title: Text(on ? 'Automatisk säkerhetskopia är på' : 'Ingen automatisk säkerhetskopia'),
+        subtitle: Text(on
+            ? (last == null ? 'Ingen kopia har tagits än.' : 'Senaste kopia: $last')
+            : (last == null
+                ? 'Ingen säkerhetskopia har tagits. Försvinner telefonen försvinner uppgifterna. Tryck för att slå på.'
+                : 'Senaste kopia: $last. Tryck för att slå på igen.')),
         onTap: () async {
           await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupPage()));
           _load();
