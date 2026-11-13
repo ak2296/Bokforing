@@ -26,6 +26,16 @@ class UpdateInfo {
   bool isNewerThan(int installed) => installed > 0 && build > installed;
 }
 
+/// What a look at the download repository found: [reached] is false when
+/// GitHub could not be read at all (no network, rate limit); [info] is null
+/// when the latest release carries no build number, as releases made before
+/// the update feature do, so there is nothing to compare with.
+class UpdateCheck {
+  final bool reached;
+  final UpdateInfo? info;
+  const UpdateCheck(this.reached, this.info);
+}
+
 /// Looks for a newer release of the app and installs it over the old one.
 /// Installing an APK signed with the same key keeps all data; the update
 /// never touches the database.
@@ -57,17 +67,17 @@ class AppUpdater {
     return null;
   }
 
-  /// The latest release, or null when it cannot be read (no network, rate limit).
-  static Future<UpdateInfo?> latest({http.Client? client}) async {
+  /// Looks at the latest release.
+  static Future<UpdateCheck> check({http.Client? client}) async {
     final c = client ?? http.Client();
     try {
       final r = await c
           .get(Uri.parse(releasesUrl), headers: {'Accept': 'application/vnd.github+json', 'User-Agent': 'Quee'})
           .timeout(const Duration(seconds: 15));
-      if (r.statusCode != 200) return null;
-      return parse(jsonDecode(r.body));
+      if (r.statusCode != 200) return const UpdateCheck(false, null);
+      return UpdateCheck(true, parse(jsonDecode(r.body)));
     } catch (_) {
-      return null;
+      return const UpdateCheck(false, null);
     } finally {
       if (client == null) c.close();
     }

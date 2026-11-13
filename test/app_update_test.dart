@@ -39,14 +39,28 @@ void main() {
     });
   });
 
-  group('AppUpdater.latest', () {
-    test('returns the release on success, null on errors', () async {
+  group('AppUpdater.check', () {
+    test('reads the release when GitHub answers with one that has a build number', () async {
       final ok = MockClient((_) async => http.Response(jsonEncode(_release()), 200));
-      expect((await AppUpdater.latest(client: ok))!.build, 29712345);
+      final r = await AppUpdater.check(client: ok);
+      expect(r.reached, isTrue);
+      expect(r.info!.build, 29712345);
+    });
+
+    test('a release without a build number is reached but has nothing to compare', () async {
+      final old = MockClient((_) async => http.Response(jsonEncode(_release(body: 'Preliminär skatt per år.')), 200));
+      final r = await AppUpdater.check(client: old);
+      expect(r.reached, isTrue);
+      expect(r.info, isNull);
+    });
+
+    test('errors and unreadable answers count as not reached', () async {
       final limited = MockClient((_) async => http.Response('{}', 403));
-      expect(await AppUpdater.latest(client: limited), isNull);
+      expect((await AppUpdater.check(client: limited)).reached, isFalse);
       final broken = MockClient((_) async => http.Response('not json', 200));
-      expect(await AppUpdater.latest(client: broken), isNull);
+      expect((await AppUpdater.check(client: broken)).reached, isFalse);
+      final down = MockClient((_) async => throw const SocketException('no network'));
+      expect((await AppUpdater.check(client: down)).reached, isFalse);
     });
   });
 
@@ -71,7 +85,7 @@ void main() {
     test('a download that is cut short is deleted and fails', () async {
       final client = MockClient.streaming(
           (req, _) async => http.StreamedResponse(Stream.value([1, 2, 3]), 200, contentLength: 10));
-      await expectLater(AppUpdater.download(info, (_, __) {}, client: client, into: dir), throwsA(isA<HttpException>()));
+      await expectLater(AppUpdater.download(info, (_, _) {}, client: client, into: dir), throwsA(isA<HttpException>()));
       expect(dir.listSync(), isEmpty);
     });
   });

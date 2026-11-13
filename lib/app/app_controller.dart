@@ -42,9 +42,10 @@ class AppController extends ChangeNotifier {
       final done = await repo.setting(SettingsKeys.updateLastCheck) == today;
       if (done && !await repo.boolSetting(SettingsKeys.updateFound)) return false;
     }
-    final info = await AppUpdater.latest();
-    if (info == null) return null;
-    final newer = info.isNewerThan(kBuildNumber);
+    final found = await AppUpdater.check();
+    if (!found.reached) return null;
+    final info = found.info;
+    final newer = info != null && info.isNewerThan(kBuildNumber);
     await repo.setSetting(SettingsKeys.updateLastCheck, today);
     await repo.setBoolSetting(SettingsKeys.updateFound, newer);
     updateAvailable.value = newer ? info : null;
