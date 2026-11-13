@@ -456,7 +456,7 @@ class _YearView extends StatelessWidget {
                       title: 'Året $year',
                       from: '$year-01-01',
                       to: '$year-12-31',
-                      months: y.rows.where((r) => !r.sales.isZero || !r.online.isZero || !r.expenses.isZero).length,
+                      months: 12,
                       vat: y.vatDifference,
                     ),
                   ],

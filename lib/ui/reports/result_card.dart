@@ -14,7 +14,7 @@ class ResultSummaryCard extends StatelessWidget {
   final String from;
   final String to;
 
-  /// Months counted for an owner's fixed monthly amount.
+  /// Months of 12 counted for an owner's yearly amount: 1 for a month, 12 for a year.
   final int months;
 
   /// The year's moms difference; null leaves the moms lines out.

@@ -16,25 +16,25 @@ class TaxEstimate {
   /// Enskild firma, percent mode: tenths of a percent (30 % is 300).
   final int percentTenths;
 
-  /// Enskild firma, amount mode: kronor to set aside per month.
-  final Money monthlyAmount;
-  const TaxEstimate({this.form, this.mode = TaxMode.percent, this.percentTenths = 300, this.monthlyAmount = Money.zero});
+  /// Enskild firma, amount mode: the year's preliminary tax (preliminär skatt).
+  final Money yearlyAmount;
+  const TaxEstimate({this.form, this.mode = TaxMode.percent, this.percentTenths = 300, this.yearlyAmount = Money.zero});
 
   bool get _ab => form == CompanyForm.aktiebolag;
 
   /// Nothing is shown before the company form is chosen, or when the owner
   /// has set nothing.
-  bool get active => form != null && (_ab || (mode == TaxMode.percent ? percentTenths > 0 : !monthlyAmount.isZero));
+  bool get active => form != null && (_ab || (mode == TaxMode.percent ? percentTenths > 0 : !yearlyAmount.isZero));
 
   /// The tax to set aside for [resultBeforeTax]; null when nothing is shown.
-  /// A loss gives 0. A fixed amount counts [months] months and never more
-  /// than the profit.
+  /// A loss gives 0. A yearly amount is spread evenly: [months] of 12 months
+  /// (a month is 1, a whole year 12), and never more than the profit.
   Money? tax(Money resultBeforeTax, {int months = 1}) {
     if (!active) return null;
     if (resultBeforeTax.ore <= 0) return Money.zero;
     if (_ab) return _percent(resultBeforeTax, abTenths);
     if (mode == TaxMode.percent) return _percent(resultBeforeTax, percentTenths);
-    final fixed = Money(monthlyAmount.ore * months);
+    final fixed = Money((yearlyAmount.ore * months + 6) ~/ 12);
     return fixed > resultBeforeTax ? resultBeforeTax : fixed;
   }
 
@@ -46,7 +46,7 @@ class TaxEstimate {
       ? 'Beräknad skatt, ${_tenths(abTenths)} %'
       : mode == TaxMode.percent
           ? 'Att lägga undan, ${_tenths(percentTenths)} %'
-          : 'Att lägga undan (fast belopp)';
+          : 'Att lägga undan (preliminär skatt)';
 
   String get note => _ab
       ? 'Skatten är en uppskattning att lägga undan. Den räknas egentligen på hela årets resultat.'

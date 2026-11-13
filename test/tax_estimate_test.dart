@@ -17,9 +17,10 @@ void main() {
       expect(t.label, 'Att lägga undan, 30,5 %');
     });
 
-    test('enskild firma: fixed monthly amount, never more than the profit', () {
-      final t = TaxEstimate(form: CompanyForm.enskildFirma, mode: TaxMode.amount, monthlyAmount: Money.kr(3000));
-      expect(t.tax(Money.kr(10000), months: 2), Money.kr(6000));
+    test('enskild firma: yearly amount, spread over the months, never more than the profit', () {
+      final t = TaxEstimate(form: CompanyForm.enskildFirma, mode: TaxMode.amount, yearlyAmount: Money.kr(36000));
+      expect(t.tax(Money.kr(100000), months: 12), Money.kr(36000));
+      expect(t.tax(Money.kr(10000)), Money.kr(3000));
       expect(t.tax(Money.kr(2000)), Money.kr(2000));
       expect(t.tax(Money.kr(0)), Money.zero);
     });

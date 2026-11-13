@@ -86,13 +86,13 @@ class Repository {
         form: await companyForm(),
         mode: await setting(SettingsKeys.taxMode) == 'amount' ? TaxMode.amount : TaxMode.percent,
         percentTenths: int.tryParse(await setting(SettingsKeys.taxPercent) ?? '') ?? 300,
-        monthlyAmount: Money(int.tryParse(await setting(SettingsKeys.taxAmount) ?? '') ?? 0),
+        yearlyAmount: Money(int.tryParse(await setting(SettingsKeys.taxAmount) ?? '') ?? 0),
       );
 
-  Future<void> setTaxEstimate(TaxMode mode, int percentTenths, Money monthlyAmount) async {
+  Future<void> setTaxEstimate(TaxMode mode, int percentTenths, Money yearlyAmount) async {
     await setSetting(SettingsKeys.taxMode, mode == TaxMode.amount ? 'amount' : 'percent');
     await setSetting(SettingsKeys.taxPercent, '$percentTenths');
-    await setSetting(SettingsKeys.taxAmount, '${monthlyAmount.ore}');
+    await setSetting(SettingsKeys.taxAmount, '${yearlyAmount.ore}');
   }
 
   /// First month of the financial year, 1 = January (January to December).

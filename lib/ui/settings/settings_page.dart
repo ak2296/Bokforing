@@ -462,7 +462,7 @@ class _CompanyPageState extends State<CompanyPage> {
     setState(() {
       _taxMode = tax.mode;
       _taxPercent.text = '${tax.percentTenths ~/ 10}${tax.percentTenths % 10 == 0 ? '' : ',${tax.percentTenths % 10}'}';
-      _taxAmount.text = tax.monthlyAmount.isZero ? '' : tax.monthlyAmount.toInput();
+      _taxAmount.text = tax.yearlyAmount.isZero ? '' : tax.yearlyAmount.toInput();
       _locked = license.license?.locksCompany ?? false;
       _name.text = p.name;
       _org.text = p.orgNumber;
@@ -535,7 +535,7 @@ class _CompanyPageState extends State<CompanyPage> {
               SegmentedButton<TaxMode>(
                 segments: const [
                   ButtonSegment(value: TaxMode.percent, label: Text('Procent')),
-                  ButtonSegment(value: TaxMode.amount, label: Text('Belopp per månad')),
+                  ButtonSegment(value: TaxMode.amount, label: Text('Belopp per år')),
                 ],
                 selected: {_taxMode},
                 onSelectionChanged: (s) => setState(() => _taxMode = s.first),
@@ -551,7 +551,7 @@ class _CompanyPageState extends State<CompanyPage> {
                 TextField(
                   controller: _taxAmount,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Belopp per månad', suffixText: 'kr', hintText: 't.ex. 3000'),
+                  decoration: const InputDecoration(labelText: 'Preliminär skatt per år', suffixText: 'kr', hintText: 't.ex. 36000'),
                 ),
             ],
             const SizedBox(height: 16),
