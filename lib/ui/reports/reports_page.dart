@@ -16,6 +16,7 @@ import '../theme.dart';
 import '../widgets/charts.dart';
 import '../widgets/report_charts.dart';
 import '../widgets/common.dart';
+import 'result_card.dart';
 import 'result_view.dart';
 
 class ReportsPage extends StatefulWidget {
@@ -207,6 +208,12 @@ class MonthlyTable extends StatelessWidget {
               ],
             ),
           ),
+        const SizedBox(height: 16),
+        ResultSummaryCard(
+          title: 'Resultat',
+          from: '${r.year}-${r.month.toString().padLeft(2, '0')}-01',
+          to: SwedishDates.iso(DateTime(r.year, r.month + 1, 0)),
+        ),
         const SizedBox(height: 16),
         Card(
           margin: EdgeInsets.zero,
@@ -444,6 +451,14 @@ class _YearView extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text('Momsskillnad = utgående moms − ingående moms. Tryck på en månad för att öppna den.',
                         style: Theme.of(context).textTheme.bodySmall),
+                    const SizedBox(height: 16),
+                    ResultSummaryCard(
+                      title: 'Året $year',
+                      from: '$year-01-01',
+                      to: '$year-12-31',
+                      months: y.rows.where((r) => !r.sales.isZero || !r.online.isZero || !r.expenses.isZero).length,
+                      vat: y.vatDifference,
+                    ),
                   ],
                 );
               },

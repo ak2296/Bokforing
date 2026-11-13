@@ -71,11 +71,13 @@ class DashboardPage extends StatelessWidget {
               ),
             _TopCards(unpaid),
             const SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: _KeyFigure('Försäljning', r.totalAllSales, previous.sales, higherIsGood: true)),
-              const SizedBox(width: 8),
-              Expanded(child: _KeyFigure('Utgifter', r.totalExpenses, previous.expenses, higherIsGood: false)),
-            ]),
+            IntrinsicHeight(
+              child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Expanded(child: _KeyFigure('Försäljning', r.totalAllSales, previous.sales, higherIsGood: true)),
+                const SizedBox(width: 8),
+                Expanded(child: _KeyFigure('Utgifter', r.totalExpenses, previous.expenses, higherIsGood: false)),
+              ]),
+            ),
             const SizedBox(height: 8),
             _Panel(
               title: 'Försäljning och utgifter, 6 månader',
@@ -94,7 +96,6 @@ class DashboardPage extends StatelessWidget {
               ]),
             ),
             _Panel(title: 'Veckodagar, snitt senaste 12 veckorna', child: _Weekdays(extras.weekdayAverages)),
-            if (extras.upcoming.isNotEmpty) _Panel(title: 'Kommande betalningar', child: _Upcoming(extras.upcoming)),
             _Panel(
               child: Row(children: [
                 Icon(AppIcons.vat, color: AppTheme.seed),
@@ -205,6 +206,11 @@ class _TopCardsState extends State<_TopCards> {
     final t = Theme.of(context).textTheme;
     final info = UnpaidInfo.of(widget.unpaid, _reminderDays);
     final colors = unpaidColors(info.level);
+    final upcoming = [
+      for (final i in widget.unpaid)
+        if (i.dueDate != null && (daysUntil(i.dueDate) ?? -1) >= 0) i
+    ]..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
+    final next = upcoming.firstOrNull;
     final last = _last == null
         ? 'Ingen'
         : '${SwedishDates.iso(_last!)} ${_last!.hour.toString().padLeft(2, '0')}:${_last!.minute.toString().padLeft(2, '0')}';
@@ -248,6 +254,9 @@ class _TopCardsState extends State<_TopCards> {
                 Text(info.total.format(compact: true), style: t.titleMedium?.merge(moneyStyle).copyWith(color: colors.text)),
                 Text('Förfallit: ${info.overdue}',
                     style: t.bodySmall?.copyWith(color: info.overdue > 0 ? AppTheme.danger : null)),
+                if (next != null)
+                  Text('Nästa: ${SwedishDates.shortDay(next.dueDate!)}, ${next.total.format(compact: true)}',
+                      style: t.bodySmall?.copyWith(color: AppTheme.ink, fontWeight: FontWeight.w500)),
               ]),
             ),
           ),
@@ -360,7 +369,6 @@ class RegistrationTile extends StatelessWidget {
   }
 }
 
-/// "Att betala": unpaid invoices, highlighted when one is due soon or late.
 /// What the overview panels need beyond the month's report.
 class DashboardExtras {
   /// Average sales per weekday (Monday first) over the last 12 weeks, in kr.
@@ -433,51 +441,5 @@ class _Weekdays extends StatelessWidget {
         ]),
       ),
     );
-  }
-}
-
-/// The next unpaid invoices by due date.
-class _Upcoming extends StatelessWidget {
-  final List<Invoice> invoices;
-  const _Upcoming(this.invoices);
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return Column(children: [
-      for (final i in invoices.take(4))
-        InkWell(
-          onTap: () => openRecord(context, 'invoice', i.id!),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(children: [
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(i.supplier.isEmpty ? 'Faktura' : i.supplier,
-                      maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleSmall),
-                  Text(_when(i.dueDate),
-                      style: t.bodySmall?.copyWith(color: (daysUntil(i.dueDate) ?? 1) < 0 ? AppTheme.warning : null)),
-                ]),
-              ),
-              Text(i.total.format(compact: true), style: t.titleSmall?.merge(moneyStyle)),
-            ]),
-          ),
-        ),
-      if (invoices.length > 4)
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UnpaidPage())),
-            child: Text('Visa alla (${invoices.length})'),
-          ),
-        ),
-    ]);
-  }
-
-  static String _when(String? due) {
-    final d = daysUntil(due);
-    if (d == null || due == null) return '';
-    final text = SwedishDates.shortDay(due);
-    return d < 0 ? 'Förföll $text' : d == 0 ? 'Förfaller i dag' : 'Förfaller $text (om $d d)';
   }
 }

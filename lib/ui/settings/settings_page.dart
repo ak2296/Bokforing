@@ -7,6 +7,8 @@ import '../../app/pin_lock.dart';
 import '../../app/settings_keys.dart';
 import '../../domain/license.dart';
 import '../../domain/models.dart';
+import '../../domain/money.dart';
+import '../../domain/tax_estimate.dart';
 import '../../domain/vat.dart';
 import '../../notify/reminders.dart';
 import '../history_page.dart';
@@ -422,6 +424,9 @@ class _CompanyPageState extends State<CompanyPage> {
   final _newName = TextEditingController();
   bool _loaded = false;
   CompanyForm? _form;
+  TaxMode _taxMode = TaxMode.percent;
+  final _taxPercent = TextEditingController();
+  final _taxAmount = TextEditingController();
   int _fiscalMonth = 1;
   int _savedFiscalMonth = 1;
   List<String> _ownNames = const [];
@@ -452,8 +457,12 @@ class _CompanyPageState extends State<CompanyPage> {
     final month = await repo.fiscalStartMonth();
     final names = await repo.ownNames();
     final license = await repo.licenseState();
+    final tax = await repo.taxEstimate();
     if (!mounted) return;
     setState(() {
+      _taxMode = tax.mode;
+      _taxPercent.text = '${tax.percentTenths ~/ 10}${tax.percentTenths % 10 == 0 ? '' : ',${tax.percentTenths % 10}'}';
+      _taxAmount.text = tax.monthlyAmount.isZero ? '' : tax.monthlyAmount.toInput();
       _locked = license.license?.locksCompany ?? false;
       _name.text = p.name;
       _org.text = p.orgNumber;
@@ -511,6 +520,40 @@ class _CompanyPageState extends State<CompanyPage> {
                   ChoiceChip(label: Text(f.label), selected: _form == f, onSelected: (_) => setState(() => _form = f)),
               ],
             ),
+            if (_form == CompanyForm.aktiebolag) ...[
+              const SizedBox(height: 8),
+              Text('Under Resultat visas 20,6 % bolagsskatt som en uppskattning att lägga undan.',
+                  style: Theme.of(context).textTheme.bodySmall),
+            ],
+            if (_form == CompanyForm.enskildFirma) ...[
+              const SizedBox(height: 16),
+              const Text('Uppskattad skatt'),
+              const SizedBox(height: 4),
+              Text('Visas som "Att lägga undan" under Resultat på Månad och År. Det är din egen uppskattning, ingen skatteberäkning.',
+                  style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 8),
+              SegmentedButton<TaxMode>(
+                segments: const [
+                  ButtonSegment(value: TaxMode.percent, label: Text('Procent')),
+                  ButtonSegment(value: TaxMode.amount, label: Text('Belopp per månad')),
+                ],
+                selected: {_taxMode},
+                onSelectionChanged: (s) => setState(() => _taxMode = s.first),
+              ),
+              const SizedBox(height: 8),
+              if (_taxMode == TaxMode.percent)
+                TextField(
+                  controller: _taxPercent,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Procent av resultatet', suffixText: '%', hintText: 't.ex. 30'),
+                )
+              else
+                TextField(
+                  controller: _taxAmount,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Belopp per månad', suffixText: 'kr', hintText: 't.ex. 3000'),
+                ),
+            ],
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(
               initialValue: _fiscalMonth,
@@ -556,6 +599,11 @@ class _CompanyPageState extends State<CompanyPage> {
                 await controller.repo.saveProfile(
                     BusinessProfile(name: _name.text, orgNumber: _org.text, address: _address.text));
                 if (_form != null) await controller.repo.setCompanyForm(_form!);
+                final pct = double.tryParse(_taxPercent.text.trim().replaceAll(',', '.'));
+                await controller.repo.setTaxEstimate(
+                    _taxMode,
+                    pct == null ? 300 : (pct * 10).round().clamp(0, 1000).toInt(),
+                    Money.parse(_taxAmount.text) ?? Money.zero);
                 await controller.repo.setFiscalStartMonth(_fiscalMonth);
                 controller.dataChanged();
                 if (context.mounted) Navigator.pop(context);

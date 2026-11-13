@@ -7,6 +7,7 @@ import '../domain/dates.dart';
 import '../domain/license.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
+import '../domain/tax_estimate.dart';
 import '../domain/supplier_hints.dart';
 import '../domain/text_patterns.dart';
 import '../domain/vat.dart';
@@ -79,6 +80,20 @@ class Repository {
   Future<CompanyForm?> companyForm() async => CompanyForm.parse(await setting(SettingsKeys.companyForm));
 
   Future<void> setCompanyForm(CompanyForm form) => setSetting(SettingsKeys.companyForm, form.name);
+
+  /// The tax estimate shown under Resultat; see [TaxEstimate].
+  Future<TaxEstimate> taxEstimate() async => TaxEstimate(
+        form: await companyForm(),
+        mode: await setting(SettingsKeys.taxMode) == 'amount' ? TaxMode.amount : TaxMode.percent,
+        percentTenths: int.tryParse(await setting(SettingsKeys.taxPercent) ?? '') ?? 300,
+        monthlyAmount: Money(int.tryParse(await setting(SettingsKeys.taxAmount) ?? '') ?? 0),
+      );
+
+  Future<void> setTaxEstimate(TaxMode mode, int percentTenths, Money monthlyAmount) async {
+    await setSetting(SettingsKeys.taxMode, mode == TaxMode.amount ? 'amount' : 'percent');
+    await setSetting(SettingsKeys.taxPercent, '$percentTenths');
+    await setSetting(SettingsKeys.taxAmount, '${monthlyAmount.ore}');
+  }
 
   /// First month of the financial year, 1 = January (January to December).
   Future<int> fiscalStartMonth() async => int.tryParse(await setting(SettingsKeys.fiscalStartMonth) ?? '') ?? 1;
