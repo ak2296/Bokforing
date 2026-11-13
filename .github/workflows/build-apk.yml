@@ -48,6 +48,8 @@ jobs:
           grep -q 'android.permission.CAMERA' $m || sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA"/>\n    <application|' $m
           # INTERNET is used only by the optional "Förbättrad analys", after consent.
           grep -q 'android.permission.INTERNET' $m || sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' $m
+          # The in-app update (direct-download build only) hands the new APK to Android's installer.
+          grep -q 'REQUEST_INSTALL_PACKAGES' $m || sed -i 's|<application|<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>\n    <application|' $m
           # Keep the encrypted API key and the database out of Android cloud backup.
           grep -q 'allowBackup' $m || sed -i 's|<application|<application android:allowBackup="false"|' $m
           # Payment reminders (flutter_local_notifications): survive reboots,
@@ -145,15 +147,21 @@ jobs:
           flutter test --reporter expanded 2>&1 | tee /tmp/test.txt
           echo "::notice title=Tester::$(tail -n 1 /tmp/test.txt)"
 
+      - name: Versionsnummer
+        # Minutes since 1970: always rising, unique per build, far below Android's limit.
+        # The app compares it with the number in the latest release to offer an update.
+        run: echo "BUILD_NUMBER=$(( $(date -u +%s) / 60 ))" >> "$GITHUB_ENV"
+
       - name: Bygg debug-APK
         run: |
           set -o pipefail
-          flutter build apk --debug 2>&1 | tee /tmp/build.txt
+          flutter build apk --debug --build-number=$BUILD_NUMBER --dart-define=BUILD_NUMBER=$BUILD_NUMBER 2>&1 | tee /tmp/build.txt
 
       - name: Bygg release-APK (utan krympning)
         run: |
           set -o pipefail
-          flutter build apk --release --no-shrink 2>&1 | tee -a /tmp/build.txt
+          flutter build apk --release --no-shrink --build-number=$BUILD_NUMBER --dart-define=BUILD_NUMBER=$BUILD_NUMBER 2>&1 | tee -a /tmp/build.txt
+          printf '%s' "$BUILD_NUMBER" > build/app/outputs/flutter-apk/build.txt
 
       - name: Kontrollera signeringen
         # Both APKs must carry the fixed key, or a phone will refuse to update.
@@ -194,3 +202,4 @@ jobs:
           path: |
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/flutter-apk/app-debug.apk
+            build/app/outputs/flutter-apk/build.txt

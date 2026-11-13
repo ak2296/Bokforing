@@ -211,6 +211,13 @@ class Repository {
 
   static String normalizeLabel(String label) => TextPatterns.normalize(label);
 
+  /// For each category id: on how many earlier Z-reports it had an amount.
+  Future<Map<int, int>> categoryUsage() async {
+    final rows = await db.rawQuery('SELECT category_id AS c, COUNT(DISTINCT daily_sales_id) AS n '
+        'FROM daily_sales_items WHERE category_id IS NOT NULL GROUP BY category_id');
+    return {for (final r in rows) r['c'] as int: r['n'] as int};
+  }
+
   Future<Map<String, int>> categoryAliases() async {
     final rows = await db.rawQuery('''
       SELECT a.label, a.category_id FROM category_aliases a

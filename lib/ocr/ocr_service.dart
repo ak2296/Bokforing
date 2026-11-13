@@ -41,6 +41,26 @@ class OcrService {
     return best;
   }
 
+  /// A second, slower reading for a page that came out tilted: the photo is
+  /// turned by [degrees] in both directions (the sign ML Kit uses is not
+  /// documented) and read again. Returns both readings; the caller keeps the
+  /// one that reads best. The file itself is not changed.
+  Future<List<OcrResult>> recognizeStraightened(String path, double degrees, {int width = 0, int height = 0}) async {
+    final original = await File(path).readAsBytes();
+    final out = <OcrResult>[];
+    for (final d in [degrees, -degrees]) {
+      final turned = await compute(rotateJpeg, PreprocessRotate(original, d));
+      final tmp = '$path.tilt${d < 0 ? 'm' : 'p'}.jpg';
+      await File(tmp).writeAsBytes(turned);
+      try {
+        out.add(await _read(tmp, width, height));
+      } finally {
+        await File(tmp).delete();
+      }
+    }
+    return out;
+  }
+
   Future<OcrResult> _read(String path, int width, int height) async {
     final recognized = await _recognizer.processImage(InputImage.fromFilePath(path));
     OcrBox box(Rect r) => OcrBox(r.left, r.top, r.right, r.bottom);

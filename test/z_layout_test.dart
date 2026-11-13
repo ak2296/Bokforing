@@ -48,4 +48,52 @@ void main() {
     expect(d.date.value, '2026-10-30');
     expect(d.otherDates, isNot(contains('2030-10-06')));
   });
+
+  test('page-foot text on the last category row never drops the row', () {
+    final d = const ZReportParser(_cats).parse(OcrResult.fromPlainText(
+        'Z-rapport\nFörsäljning per varugrupp\nMat   1 912,00\nVin   89,00\n'
+        'Öl   2 988,00 kr   https://onsiip360.com#/reports/z-report   1/1\nTotal försäljning   4 989,00'));
+    expect(d.lines.map((l) => (l.label, l.amount)).toList(), [
+      ('Mat', Money.kr(1912)),
+      ('Vin', Money.kr(89)),
+      ('Öl', Money.kr(2988)),
+    ]);
+  });
+
+  test('a short name read with a digit for a letter is suggested, not lost', () {
+    final d = const ZReportParser(_cats).parse(OcrResult.fromPlainText(
+        'Z-rapport\nFörsäljning per varugrupp\nMat   1 912,00\nVin   89,00\n0l   2 988,00\nTotal försäljning   4 989,00'));
+    final line = d.lines.firstWhere((l) => l.amount == Money.kr(2988));
+    expect(line.label, '0l');
+    expect(line.categoryId, isNull);
+    expect(line.suggestedCategoryId, 3);
+    expect(line.match, MatchKind.possible);
+  });
+
+  test('a nameless amount is guessed from the categories earlier reports used', () {
+    const text = 'Z-rapport\nFörsäljning per varugrupp\nMat   100,00\n250,00\nTotal försäljning   350,00';
+    final plain = const ZReportParser(_cats).parse(OcrResult.fromPlainText(text));
+    expect(plain.lines.firstWhere((l) => l.label == ZLine.unnamed).suggestedCategoryId, 3);
+    final learned = const ZReportParser(_cats, usage: {2: 5}).parse(OcrResult.fromPlainText(text));
+    expect(learned.lines.firstWhere((l) => l.label == ZLine.unnamed).suggestedCategoryId, 2);
+  });
+
+  test('the page tilt is the median line angle, and null without angles', () {
+    final tilted = _ocr([
+      _line('Mat', 50, 100, 60, angle: 2.0),
+      _line('Vin', 50, 130, 60, angle: 3.0),
+      _line('Öl', 50, 160, 60, angle: 4.0),
+    ]);
+    expect(tilted.tiltDegrees, 3.0);
+    expect(_ocr([_line('Mat', 50, 100, 60)]).tiltDegrees, isNull);
+  });
+
+  test('doubtsOf is zero for a clean reading and counts a nameless row', () {
+    final clean = const ZReportParser(_cats).parse(OcrResult.fromPlainText(
+        'Z-rapport\nFörsäljning per varugrupp\nMat   1 912,00\nVin   89,00\nTotal försäljning   2 001,00'));
+    expect(ZReportParser.doubtsOf(clean), 0);
+    final doubtful = const ZReportParser(_cats).parse(OcrResult.fromPlainText(
+        'Z-rapport\nFörsäljning per varugrupp\nMat   100,00\n250,00\nTotal försäljning   350,00'));
+    expect(ZReportParser.doubtsOf(doubtful), greaterThan(0));
+  });
 }

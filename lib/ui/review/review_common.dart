@@ -241,6 +241,19 @@ class _Preview extends StatelessWidget {
                     },
                   ),
                 ),
+                if (scan.ocrJson != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      icon: const Icon(AppIcons.copy),
+                      label: const Text('Kopiera rader med positioner (för felsökning)'),
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        await Clipboard.setData(ClipboardData(text: scan.ocrJson!));
+                        messenger.showSnackBar(const SnackBar(content: Text('Raderna är kopierade.')));
+                      },
+                    ),
+                  ),
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: SelectableText(scan.ocrText, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),

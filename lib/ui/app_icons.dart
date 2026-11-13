@@ -10,6 +10,8 @@ class AppIcons {
   static const IconData back = TablerIcons.arrow_left;
   static const IconData ai = TablerIcons.sparkles;
   static const IconData backup = TablerIcons.database_export;
+  static const IconData download = TablerIcons.download;
+  static const IconData refresh = TablerIcons.refresh;
   static const IconData calendar = TablerIcons.calendar;
   static const IconData camera = TablerIcons.camera;
   static const IconData category = TablerIcons.category;

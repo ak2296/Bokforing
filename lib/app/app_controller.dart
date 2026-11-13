@@ -2,8 +2,10 @@ import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter/widgets.dart';
 
 import '../data/repository.dart';
+import '../domain/dates.dart';
 import '../export/auto_backup.dart';
 import '../notify/reminders.dart';
+import 'app_update.dart';
 import 'pin_lock.dart';
 import 'settings_keys.dart';
 
@@ -25,6 +27,29 @@ class AppController extends ChangeNotifier {
 
   /// Raised to show the walkthrough again (Inställningar → Visa rundtur).
   final ValueNotifier<int> tourRequests = ValueNotifier<int>(0);
+
+  /// A newer release the app can install, or null.
+  final ValueNotifier<UpdateInfo?> updateAvailable = ValueNotifier<UpdateInfo?>(null);
+
+  /// Looks for a newer release: at most once a day, but every start while one
+  /// is waiting, unless [force]. Returns true when a newer one exists, false
+  /// when the app is up to date, null when it could not be found out.
+  Future<bool?> checkForUpdate({bool force = false}) async {
+    if (!kSelfUpdate || kBuildNumber == 0) return false;
+    final today = SwedishDates.iso(DateTime.now());
+    if (!force) {
+      if (!await repo.boolSetting(SettingsKeys.updateCheck, fallback: true)) return false;
+      final done = await repo.setting(SettingsKeys.updateLastCheck) == today;
+      if (done && !await repo.boolSetting(SettingsKeys.updateFound)) return false;
+    }
+    final info = await AppUpdater.latest();
+    if (info == null) return null;
+    final newer = info.isNewerThan(kBuildNumber);
+    await repo.setSetting(SettingsKeys.updateLastCheck, today);
+    await repo.setBoolSetting(SettingsKeys.updateFound, newer);
+    updateAvailable.value = newer ? info : null;
+    return newer;
+  }
 
   static ThemeMode parseThemeMode(String? v) => switch (v) {
         'light' => ThemeMode.light,

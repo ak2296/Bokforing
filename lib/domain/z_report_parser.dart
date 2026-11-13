@@ -78,9 +78,14 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
   final Map<String, int> aliases;
   final Set<String> ignored;
 
+  /// How many earlier Z-reports each category (by id) was on. Used to guess
+  /// which category a nameless amount belongs to.
+  final Map<int, int> usage;
+
   /// Used only to reject impossible future dates; defaults to now.
   final DateTime? today;
-  const ZReportParser(this.categories, {this.aliases = const {}, this.ignored = const {}, this.today});
+  const ZReportParser(this.categories,
+      {this.aliases = const {}, this.ignored = const {}, this.usage = const {}, this.today});
 
   static const _sectionStart = [
     'försäljning per varugrupp', 'per varugrupp', 'varugrupper', 'varugrupp', 'artikelgrupper',
@@ -168,6 +173,11 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
 
   static int _doubts(ZReportDraft d) => d.unlabelled + d.lines.where((l) => l.label == ZLine.unnamed).length;
 
+  /// How doubtful a reading is: names without amounts, amounts without names,
+  /// and rows that do not add up to the total (or no total). Zero is a clean
+  /// reading. Used to decide whether a slower second reading is worth doing.
+  static int doubtsOf(ZReportDraft d) => _doubts(d) + (_adds(d, d) ? 0 : 1);
+
   static bool _adds(ZReportDraft lines, ZReportDraft total) {
     final diff = _difference(lines, total);
     return diff != null && diff < Money.ignoredDifference;
@@ -191,13 +201,18 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     );
   }
 
-  /// An amount with no readable name: very short names like "Öl" are what OCR
-  /// misses, so the shortest category not yet on the report is suggested. The
-  /// owner confirms it.
+  /// An amount with no readable name: very short names are what OCR misses, so
+  /// the category most often on earlier reports and not yet on this one is
+  /// suggested (the shortest name when there is no history). The owner
+  /// confirms it.
   ZLine _unnamedLine(Money amount, List<ZLine> lines) {
     final used = {for (final l in lines) l.categoryId ?? l.suggestedCategoryId};
     final free = categories.where((c) => c.active && c.id != null && !used.contains(c.id)).toList()
-      ..sort((a, b) => a.name.length.compareTo(b.name.length));
+      ..sort((a, b) {
+        // The category most often on earlier reports first; without history, the shortest name.
+        final byUse = (usage[b.id] ?? 0).compareTo(usage[a.id] ?? 0);
+        return byUse != 0 ? byUse : a.name.length.compareTo(b.name.length);
+      });
     return ZLine(
       label: ZLine.unnamed,
       amount: amount,
@@ -216,7 +231,7 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
   }
 
   ZReportDraft _parseRows(List<TextRow> ocrRows) {
-    final rows = _pairLabelsWithAmounts(ocrRows);
+    final rows = [for (final r in _pairLabelsWithAmounts(ocrRows)) TextRow(_stripFooter(r.text), r.box, r.index)];
     final norm = [for (final r in rows) TextPatterns.normalize(r.text)];
     final notes = <String>[];
 
@@ -258,7 +273,8 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       final amount = amounts.last;
       if (decimalsOnly && !amount.hasDecimals) continue;
       final label = _label(rows[i].text, amount.start);
-      if (label.isEmpty || !hasLetters.hasMatch(label)) {
+      final nameLike = label.isNotEmpty && (hasLetters.hasMatch(label) || _looksLikeShortName(label));
+      if (!nameLike) {
         // A row with a rate ("12%  714,29  85,71") is VAT, not a sale.
         if (start >= 0 && amount.hasDecimals && !amount.value.isZero && !rows[i].text.contains('%')) {
           nameless.add(amount.value);
@@ -496,6 +512,33 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     return out;
   }
 
+  /// Web addresses and page numbers from the foot of the page, cut out of a
+  /// row. The row itself is never dropped for them: "öl   2 988,00 kr   https://x.com/report"
+  /// is still the row for öl.
+  static String _stripFooter(String s) => s
+      .replaceAll(RegExp(r'(https?://|www\.)\S*', caseSensitive: false), ' ')
+      .replaceAll(RegExp(r'\S+\.(com|se|no|net|org|nu|dk|fi)\b\S*', caseSensitive: false), ' ')
+      .replaceAll(RegExp(r'(?<![\d,.])\d{1,3}\s*/\s*(?:\d{1,3})?\s*$'), ' ')
+      .replaceAll(RegExp(r'\s{2,}'), '   ')
+      .trim();
+
+  /// OCR swaps look-alike characters and drops dots, most often in short
+  /// words ("0l" or "ol" for "öl"). Used only to compare a name with the owner's categories and rules.
+  static String _fold(String n) => n
+      .replaceAll('0', 'o')
+      .replaceAll('1', 'l')
+      .replaceAll('5', 's')
+      .replaceAll('8', 'b')
+      .replaceAll('ö', 'o')
+      .replaceAll('ä', 'a')
+      .replaceAll('å', 'a');
+
+  /// A very short name that has only one real letter because OCR read a digit
+  /// for the other. It counts as a name only when it matches something of the
+  /// owner's once look-alike characters are folded.
+  bool _looksLikeShortName(String label) =>
+      label.length <= 5 && RegExp(r'[A-Za-zÅÄÖåäö]').hasMatch(label) && _match(label, null).match != MatchKind.none;
+
   /// Text before the amount, without quantities, percentages and codes.
   static String _label(String row, int amountStart) {
     var s = row.substring(0, amountStart);
@@ -537,6 +580,22 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         return w == null
             ? (categoryId: c.id, suggested: null, match: MatchKind.exact, warning: null)
             : (categoryId: null, suggested: c.id, match: MatchKind.possible, warning: w);
+      }
+    }
+    // The same name read with look-alike characters ("0l" for "öl"): only
+    // suggested, the owner confirms.
+    final folded = _fold(n);
+    {
+      for (final e in aliases.entries) {
+        final c = active.where((c) => c.id == e.value).firstOrNull;
+        if (c != null && _fold(e.key) == folded) {
+          return (categoryId: null, suggested: c.id, match: MatchKind.possible, warning: rateWarning(c));
+        }
+      }
+      for (final c in active) {
+        if (_fold(normalizeLabel(c.name)) == folded) {
+          return (categoryId: null, suggested: c.id, match: MatchKind.possible, warning: rateWarning(c));
+        }
       }
     }
     // A line one letter off the owner's own rule ("avhäntning") counts as that

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'package:open_filex/open_filex.dart' show ResultType;
+
 import '../app/app_controller.dart';
+import '../app/app_update.dart';
 import '../domain/comparison.dart';
 import '../domain/dates.dart';
 import '../domain/license.dart';
@@ -69,6 +72,7 @@ class DashboardPage extends StatelessWidget {
                       .push(MaterialPageRoute(builder: (_) => const ActivationPage())),
                 ),
               ),
+            const _UpdateCard(),
             _TopCards(unpaid),
             const SizedBox(height: 8),
             IntrinsicHeight(
@@ -157,6 +161,96 @@ class _Panel extends StatelessWidget {
 }
 
 /// This month's figure and how it changed since last month.
+/// A newer version exists: download it and hand it to Android's installer.
+/// The old app is replaced and all data stays.
+class _UpdateCard extends StatefulWidget {
+  const _UpdateCard();
+
+  @override
+  State<_UpdateCard> createState() => _UpdateCardState();
+}
+
+class _UpdateCardState extends State<_UpdateCard> {
+  double? _progress;
+  String? _problem;
+
+  Future<void> _install(UpdateInfo info) async {
+    setState(() {
+      _progress = 0;
+      _problem = null;
+    });
+    try {
+      final file = await AppUpdater.download(info, (got, total) {
+        if (mounted && total > 0) setState(() => _progress = got / total);
+      });
+      final r = await AppUpdater.install(file);
+      if (mounted) {
+        setState(() {
+          _progress = null;
+          if (r.type != ResultType.done) {
+            _problem = 'Android släppte inte igenom installationen. Tillåt att Quee installerar appar i telefonens inställningar och försök igen.';
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _progress = null;
+          _problem = 'Hämtningen misslyckades. Kontrollera nätverket och försök igen.';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = AppScope.read(context);
+    return ValueListenableBuilder<UpdateInfo?>(
+      valueListenable: controller.updateAvailable,
+      builder: (context, info, _) {
+        if (info == null) return const SizedBox.shrink();
+        final t = Theme.of(context).textTheme;
+        final mb = info.size > 0 ? ', ${(info.size / 1048576).round()} MB' : '';
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Card(
+            margin: EdgeInsets.zero,
+            color: AppTheme.tint,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppTheme.seed)),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Icon(AppIcons.download, color: AppTheme.seed),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text('Ny version finns', style: t.titleSmall)),
+                ]),
+                const SizedBox(height: 4),
+                Text('${info.name}$mb. Dina uppgifter finns kvar.', style: t.bodySmall),
+                if (_progress != null) ...[
+                  const SizedBox(height: 10),
+                  LinearProgressIndicator(value: _progress),
+                  const SizedBox(height: 4),
+                  Text('Hämtar … ${(_progress! * 100).round()} %', style: t.bodySmall),
+                ] else ...[
+                  const SizedBox(height: 10),
+                  FilledButton(onPressed: () => _install(info), child: const Text('Hämta och installera')),
+                  const SizedBox(height: 6),
+                  Text('Första gången frågar Android om Quee får installera appar.', style: t.bodySmall),
+                ],
+                if (_problem != null) ...[
+                  const SizedBox(height: 6),
+                  Text(_problem!, style: t.bodySmall?.copyWith(color: AppTheme.danger)),
+                ],
+              ]),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// Two half-width cards at the top: the backup and what is left to pay.
 class _TopCards extends StatefulWidget {
   final List<Invoice> unpaid;

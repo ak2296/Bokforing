@@ -13,6 +13,7 @@ import '../../domain/invoice_parser.dart';
 import '../../domain/ocr_models.dart';
 import '../../domain/online_parser.dart';
 import '../../domain/payslip_parser.dart';
+import '../../domain/reading_doubts.dart';
 import '../../domain/text_merge.dart';
 import '../../domain/z_report_parser.dart';
 import '../../imaging/preprocess.dart';
@@ -116,6 +117,9 @@ class ScanFlowPage extends StatefulWidget {
 class _ScanFlowPageState extends State<ScanFlowPage> {
   ScanState _state = ScanState.processing;
   String _step = 'Förbättrar bilden…';
+
+  /// How far the reading has come, 0 to 1, for the bar on the waiting screen.
+  double _progress = 0.1;
   String? _error;
   final List<String> _processed = [];
   final List<QualityReport> _quality = [];
@@ -199,6 +203,7 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
     setState(() {
       _state = ScanState.processing;
       _step = 'Läser texten…';
+      _progress = 0.3;
     });
     final ocr = OcrService();
     try {
@@ -215,7 +220,10 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
       }
       _ocr = merged;
       if (!mounted) return;
-      setState(() => _step = 'Tolkar dokumentet…');
+      setState(() {
+        _step = 'Tolkar dokumentet…';
+        _progress = 0.6;
+      });
       final c = const DocumentClassifier().classify(merged.text);
       _classification = c;
       final partners = await AppScope.read(context).repo.knownPartners();
@@ -264,11 +272,90 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
     }
   }
 
+  /// A reading with doubts (a key field missing or uncertain, rows that do
+  /// not add up) on a tilted photo is read a second time with the photo turned
+  /// by the measured tilt, and the reading with fewer doubts is kept. Slower,
+  /// so only done when needed; the waiting screen says so. Used for every
+  /// type of document; [parse] and [doubts] are those of the document's type.
+  Future<(OcrResult, T)> _readAgain<T>(OcrResult first, T Function(OcrResult) parse, int Function(T) doubts) async {
+    var bestOcr = first;
+    var best = parse(first);
+    final tilt = first.tiltDegrees;
+    if (doubts(best) == 0 || tilt == null || tilt.abs() < 0.3 || _processed.length != 1 || !mounted) {
+      return (bestOcr, best);
+    }
+    setState(() {
+      _step = 'Läser en gång till, noggrannare…';
+      _progress = 0.8;
+    });
+    final ocr = OcrService();
+    try {
+      for (final candidate in await ocr.recognizeStraightened(_processed.single, tilt.abs())) {
+        final d = parse(candidate);
+        if (doubts(d) < doubts(best)) {
+          best = d;
+          bestOcr = candidate;
+        }
+      }
+    } catch (_) {
+      // The first reading stands.
+    } finally {
+      await ocr.close();
+    }
+    return (bestOcr, best);
+  }
+
   Future<void> _openReview(DocumentType detected) async {
-    final ocr = _ocr!;
+    var ocr = _ocr!;
     // A självfaktura with the partner's invoice is reviewed as an online sale
     // first, then as an invoice.
     final type = OnlineParser.isCombined(ocr.rows().map((r) => r.text).join('\n')) ? DocumentType.onlineSale : detected;
+    final controller = AppScope.read(context);
+    OnlineDraft? onlineDraft;
+    PayslipDraft? slipDraft;
+    InvoiceDraft? invoiceDraft;
+    ZReportDraft? zDraft;
+    if (type == DocumentType.onlineSale) {
+      final parser = OnlineParser(knownPartners: await controller.repo.knownPartners());
+      final r = await _readAgain(ocr, parser.parse, onlineDoubts);
+      ocr = r.$1;
+      onlineDraft = r.$2;
+    } else if (type == DocumentType.payslip) {
+      final r = await _readAgain(ocr, const PayslipParser().parse, payslipDoubts);
+      ocr = r.$1;
+      slipDraft = r.$2;
+    } else if (type == DocumentType.invoice) {
+      final aspect = widget.photoPaths.length == 1 && _aspects.length == 1 ? _aspects.single : null;
+      final profile = await controller.repo.profile();
+      final parser = InvoiceParser(
+        knownSuppliers: await controller.repo.knownSuppliers(),
+        ownName: profile.name,
+        ownNames: await controller.repo.ownNames(),
+        ownOrgNumber: profile.orgNumber,
+        ownAddress: profile.address,
+      );
+      final r = await _readAgain(ocr, (o) => parser.parse(o, paperAspect: aspect), invoiceDoubts);
+      ocr = r.$1;
+      var draft = r.$2;
+      // What the user taught by correcting this supplier's papers before.
+      final supplier = draft.supplier.value;
+      if (supplier != null) {
+        final hints = await controller.repo.supplierHints(supplier);
+        if (hints.isNotEmpty) draft = draft.withHints([for (final row in ocr.rows()) row.text], hints);
+      }
+      invoiceDraft = draft;
+    } else {
+      final parser = ZReportParser(
+        await controller.repo.categories(),
+        aliases: await controller.repo.categoryAliases(),
+        ignored: await controller.repo.ignoredZLabels(),
+        usage: await controller.repo.categoryUsage(),
+      );
+      final r = await _readAgain(ocr, parser.parse, ZReportParser.doubtsOf);
+      ocr = r.$1;
+      zDraft = r.$2;
+    }
+    _ocr = ocr;
     final ctx = ScanContext(
       imagePaths: List.of(_processed),
       ocrText: ocr.rows().map((r) => r.text).join('\n'),
@@ -276,39 +363,15 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
       type: type,
       classification: _classification,
     );
-    final controller = AppScope.read(context);
-    setState(() => _state = type == DocumentType.invoice ? ScanState.invoiceDetected : ScanState.zReportDetected);
-    Widget page;
-    if (type == DocumentType.onlineSale) {
-      final partners = await controller.repo.knownPartners();
-      page = OnlineReviewPage(draft: OnlineParser(knownPartners: partners).parse(ocr), scan: ctx);
-    } else if (type == DocumentType.payslip) {
-      page = PayslipReviewPage(draft: const PayslipParser().parse(ocr), scan: ctx);
-    } else if (type == DocumentType.invoice) {
-      final aspect = widget.photoPaths.length == 1 && _aspects.length == 1 ? _aspects.single : null;
-      final suppliers = await controller.repo.knownSuppliers();
-      final profile = await controller.repo.profile();
-      var draft = InvoiceParser(
-        knownSuppliers: suppliers,
-        ownName: profile.name,
-        ownNames: await controller.repo.ownNames(),
-        ownOrgNumber: profile.orgNumber,
-        ownAddress: profile.address,
-      ).parse(ocr, paperAspect: aspect);
-      // What the user taught by correcting this supplier's papers before.
-      final supplier = draft.supplier.value;
-      if (supplier != null) {
-        final hints = await controller.repo.supplierHints(supplier);
-        if (hints.isNotEmpty) draft = draft.withHints([for (final r in ocr.rows()) r.text], hints);
-      }
-      page = InvoiceReviewPage(draft: draft, scan: ctx);
-    } else {
-      final cats = await controller.repo.categories();
-      final aliases = await controller.repo.categoryAliases();
-      final ignored = await controller.repo.ignoredZLabels();
-      page = ZReviewPage(draft: ZReportParser(cats, aliases: aliases, ignored: ignored).parse(ocr), scan: ctx);
-    }
     if (!mounted) return;
+    setState(() => _state = type == DocumentType.invoice ? ScanState.invoiceDetected : ScanState.zReportDetected);
+    final Widget page = onlineDraft != null
+        ? OnlineReviewPage(draft: onlineDraft, scan: ctx)
+        : slipDraft != null
+            ? PayslipReviewPage(draft: slipDraft, scan: ctx)
+            : invoiceDraft != null
+                ? InvoiceReviewPage(draft: invoiceDraft, scan: ctx)
+                : ZReviewPage(draft: zDraft!, scan: ctx);
     // The review page handles saving and leaving.
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => page));
   }
@@ -357,7 +420,13 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
       case ScanState.cameraPermissionRequired:
         body = Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const CircularProgressIndicator(),
+            SizedBox(
+              width: 240,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(value: _progress, minHeight: 6),
+              ),
+            ),
             const SizedBox(height: 16),
             Text(_step),
             const SizedBox(height: 8),

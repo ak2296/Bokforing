@@ -162,6 +162,15 @@ class OcrResult {
     return l.box.height > 2.5 * w;
   }
 
+  /// The page tilt in degrees as ML Kit measured it (the median line angle),
+  /// or null when no line carries a plausible angle. Its sign convention is
+  /// not documented, so a caller tries both directions.
+  double? get tiltDegrees {
+    final angles = lines.where((l) => !isMarginText(l)).map((l) => l.angle).whereType<double>().where((a) => a.abs() < 15).toList()
+      ..sort();
+    return angles.isEmpty ? null : angles[angles.length ~/ 2];
+  }
+
   /// Groups lines into visual rows. On a slightly tilted photo a label at
   /// the left and its amount at the right end up at different heights, so
   /// the heights are corrected for the page tilt first. The tilt comes from

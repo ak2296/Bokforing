@@ -71,7 +71,10 @@ class _ShellState extends State<Shell> {
     // The first start after the setup shows the walkthrough once.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      final repo = AppScope.read(context).repo;
+      final app = AppScope.read(context);
+      // A look for a new version never blocks anything and fails quietly.
+      unawaited(app.checkForUpdate());
+      final repo = app.repo;
       if (await repo.boolSetting(SettingsKeys.tourPending) && mounted) {
         await repo.setBoolSetting(SettingsKeys.tourPending, false);
         _startTour();

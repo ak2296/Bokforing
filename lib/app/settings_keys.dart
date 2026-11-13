@@ -2,6 +2,12 @@ class SettingsKeys {
   const SettingsKeys._();
   static const setupDone = 'setup_done';
 
+  /// Look for a new version once a day (on by default), when it was last done
+  /// (ISO date), and whether the last look found a newer release.
+  static const updateCheck = 'update_check';
+  static const updateLastCheck = 'update_last_check';
+  static const updateFound = 'update_found';
+
   /// Set when the setup is finished: the first start shows the tour once.
   static const tourPending = 'tour_pending';
   static const keepImages = 'keep_images';

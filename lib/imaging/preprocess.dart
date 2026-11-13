@@ -3,10 +3,10 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
-/// Turns a JPEG by [PreprocessRotate.degrees]; plain data for an isolate.
+/// Turns a JPEG by [PreprocessRotate.degrees] (whole or fractional); plain data for an isolate.
 class PreprocessRotate {
   final Uint8List jpeg;
-  final int degrees;
+  final num degrees;
   const PreprocessRotate(this.jpeg, this.degrees);
 }
 

@@ -6,6 +6,7 @@ import '../../app/app_controller.dart';
 import '../../app/pin_lock.dart';
 import '../../app/settings_keys.dart';
 import '../../domain/license.dart';
+import '../../app/app_update.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
 import '../../domain/tax_estimate.dart';
@@ -36,6 +37,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _loading = true;
   bool _keepImages = false;
   bool _roundExpenses = false;
+  bool _updateCheck = true;
   bool _bioAvailable = false;
   bool _reminders = true;
   int _reminderDays = Reminders.defaultDays;
@@ -62,6 +64,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final license = await repo.licenseState();
     final keep = await repo.boolSetting(SettingsKeys.keepImages);
     final roundExpenses = await repo.boolSetting(SettingsKeys.roundExpenses);
+    final updateCheck = await repo.boolSetting(SettingsKeys.updateCheck, fallback: true);
     final reminders = await Reminders.enabled(repo);
     final days = await Reminders.days(repo);
     final bio = await AppScope.read(context).pinLock?.biometricAvailable ?? false;
@@ -72,6 +75,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _license = license;
       _keepImages = keep;
       _roundExpenses = roundExpenses;
+      _updateCheck = updateCheck;
       _reminders = reminders;
       _reminderDays = days;
       _bioAvailable = bio;
@@ -289,6 +293,39 @@ class _SettingsPageState extends State<SettingsPage> {
       _Group(AppIcons.info, 'Mer', 'Analys online, integritet, guide, om appen', [
         _Entry('förbättrad analys online google ai',
             nav(AppIcons.ai, 'Förbättrad analys online', 'Av som standard. Skickar en bild till Google bara när du godkänner det.', () => const AiSettingsPage())),
+        if (kSelfUpdate) ...[
+          _Entry(
+            'uppdatera uppdatering ny version',
+            SwitchListTile(
+              secondary: const Icon(AppIcons.download),
+              title: const Text('Sök efter uppdateringar'),
+              subtitle: const Text(
+                  'Frågar en gång om dagen om det finns en ny version. Inget annat skickas. Appen uppdateras bara när du trycker på Hämta och installera.'),
+              value: _updateCheck,
+              onChanged: (v) async {
+                await controller.repo.setBoolSetting(SettingsKeys.updateCheck, v);
+                if (mounted) setState(() => _updateCheck = v);
+              },
+            ),
+          ),
+          _Entry(
+            'sök nu uppdatering ny version',
+            ListTile(
+              leading: const Icon(AppIcons.refresh),
+              title: const Text('Sök efter uppdatering nu'),
+              onTap: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final r = await controller.checkForUpdate(force: true);
+                messenger.showSnackBar(SnackBar(
+                    content: Text(r == null
+                        ? 'Det gick inte att söka just nu. Kontrollera nätverket.'
+                        : r
+                            ? 'En ny version finns. Du ser den överst på Översikt.'
+                            : 'Du har den senaste versionen.')));
+              },
+            ),
+          ),
+        ],
         const _Entry(
           'språk svenska',
           ListTile(leading: Icon(AppIcons.language), title: Text('Språk'), subtitle: Text('Svenska')),
