@@ -15,6 +15,7 @@ class AppIcons {
   static const IconData category = TablerIcons.category;
   static const IconData check = TablerIcons.check;
   static const IconData checkCircle = TablerIcons.circle_check;
+  static const IconData crossCircle = TablerIcons.circle_x;
   static const IconData chevronLeft = TablerIcons.chevron_left;
   static const IconData chevronRight = TablerIcons.chevron_right;
   static const IconData close = TablerIcons.x;

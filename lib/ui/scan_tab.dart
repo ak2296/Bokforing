@@ -115,38 +115,37 @@ class ScanTab extends StatelessWidget {
                 onTap: () => startScan(context, online: true),
               ),
               const SizedBox(width: 8),
-              _Tile(icon: AppIcons.file, label: 'Från fil', onTap: () => importFile(context)),
+              _Tile(icon: AppIcons.file, label: 'Importera fil', onTap: () => importFile(context)),
               const SizedBox(width: 8),
               _Tile(icon: AppIcons.edit, label: 'Fyll i själv', onTap: () => _manual(context)),
             ]),
-          ],
-        ),
-      ),
-      // The main action, at the bottom where the thumb is.
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-        child: Material(
-          color: AppTheme.seed,
-          borderRadius: BorderRadius.circular(20),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: () => startScan(context),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-              child: Row(children: [
-                const Icon(AppIcons.scan, color: Colors.white, size: 30),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Skanna faktura eller Z-rapport',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
-                    Text('Appen känner igen dokumentet',
-                        style: t.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
-                  ]),
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Material(
+                color: AppTheme.seed,
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => startScan(context),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                    child: Row(children: [
+                      const Icon(AppIcons.scan, color: Colors.white, size: 30),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Text('Skanna faktura eller Z-rapport',
+                              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                          Text('Appen känner igen dokumentet',
+                              style: t.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
+                        ]),
+                      ),
+                    ]),
+                  ),
                 ),
-              ]),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     ]);

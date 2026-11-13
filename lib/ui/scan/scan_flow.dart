@@ -58,10 +58,15 @@ Future<void> startScan(BuildContext context, {bool online = false}) async {
 /// Reads a faktura saved as a PDF or an image, e.g. from an e-mail. A PDF is
 /// turned into page images first; the rest works like a camera scan.
 Future<void> importFile(BuildContext context) async {
-  final picked = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png']);
-  final source = picked.firstOrNull?.path;
-  if (source == null || !context.mounted) return;
-  await readSharedFile(context, source, pdf: source.toLowerCase().endsWith('.pdf'));
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final picked = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png']);
+    final source = picked.firstOrNull?.path;
+    if (source == null || !context.mounted) return;
+    await readSharedFile(context, source, pdf: source.toLowerCase().endsWith('.pdf'));
+  } catch (_) {
+    messenger.showSnackBar(const SnackBar(content: Text('Filen kunde inte öppnas. Välj en PDF, JPG eller PNG, eller försök igen.')));
+  }
 }
 
 /// Reads a PDF or image from [source]: picked in the app or shared to it from
@@ -91,7 +96,8 @@ Future<void> readSharedFile(BuildContext context, String source, {required bool 
     await Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => ScanFlowPage(photoPaths: paths, online: false, fromFile: true)));
   } catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text('Filen kunde inte läsas: $e')));
+    messenger.showSnackBar(const SnackBar(
+        content: Text('Filen kunde inte läsas. Kontrollera att den är en PDF, JPG eller PNG som inte är skadad eller låst.')));
   }
 }
 

@@ -191,6 +191,9 @@ class LedgerRow extends StatelessWidget {
 
   /// Under the amount, right aligned: what the user still has to do.
   final Widget? amountNote;
+
+  /// Overdue red, unpaid brown; a credit note stays green.
+  final Color? amountColor;
   final VoidCallback onTap;
   final Color? badgeBackground;
   final Color? badgeColor;
@@ -203,6 +206,7 @@ class LedgerRow extends StatelessWidget {
     required this.onTap,
     this.chips = const [],
     this.amountNote,
+    this.amountColor,
     this.badgeBackground,
     this.badgeColor,
   });
@@ -231,7 +235,7 @@ class LedgerRow extends StatelessWidget {
           const SizedBox(width: 8),
           Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
             Text(amount.format(compact: true),
-                style: t.titleSmall?.merge(moneyStyle).copyWith(color: amount.isNegative ? AppTheme.seed : null)),
+                style: t.titleSmall?.merge(moneyStyle).copyWith(color: amountColor ?? (amount.isNegative ? AppTheme.seed : null))),
             if (amountNote != null) ...[
               const SizedBox(height: 5),
               ConstrainedBox(constraints: const BoxConstraints(maxWidth: 120), child: amountNote!),

@@ -14,6 +14,7 @@ import 'theme.dart';
 import 'unpaid_page.dart';
 import 'widgets/common.dart';
 import 'widgets/ledger_parts.dart';
+import 'widgets/unpaid_level.dart';
 
 /// Colours for expenses, matching the expenses bars on Översikt.
 const _expense = AppTheme.pumpkin;
@@ -238,6 +239,9 @@ Widget _invoiceRow(BuildContext context, Invoice inv, {bool rounded = false}) =>
       amount: rounded ? inv.total.roundedToKr() : inv.total,
       badgeBackground: _expenseTint,
       badgeColor: _expense,
+      amountColor: inv.total.isNegative || inv.paid
+          ? null
+          : ((daysUntil(inv.dueDate) ?? 1) < 0 ? AppTheme.danger : AppTheme.warning),
       chips: [
         if (inv.total.isNegative) StatusChip('Kreditnota', color: AppTheme.seed, background: AppTheme.tint),
         if (!inv.paid) _dueChip(inv),
@@ -339,24 +343,36 @@ Future<InvoiceFilter?> showFilterSheet(BuildContext context, InvoiceFilter curre
 
 /// All unpaid invoices, whatever month: a card to open the list, or a calm
 /// confirmation when there is nothing to pay.
-class _UnpaidTile extends StatelessWidget {
+class _UnpaidTile extends StatefulWidget {
   final List<Invoice> unpaid;
   const _UnpaidTile(this.unpaid);
 
   @override
+  State<_UnpaidTile> createState() => _UnpaidTileState();
+}
+
+class _UnpaidTileState extends State<_UnpaidTile> {
+  int? _reminderDays;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    reminderWindow(AppScope.read(context).repo).then((d) {
+      if (mounted) setState(() => _reminderDays = d);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final none = unpaid.isEmpty;
-    final total = Money.sum(unpaid.map((i) => i.total));
-    final late = unpaid.any((i) => (daysUntil(i.dueDate) ?? 1) < 0);
-    final color = none ? AppTheme.seed : (late ? AppTheme.danger : AppTheme.warning);
+    final info = UnpaidInfo.of(widget.unpaid, _reminderDays);
+    final none = info.level == UnpaidLevel.none;
+    final colors = unpaidColors(info.level);
+    final color = none ? AppTheme.seed : (info.level == UnpaidLevel.normal ? AppTheme.muted : colors.text);
     return Card(
       margin: EdgeInsets.zero,
-      color: none ? AppTheme.surface : (late ? AppTheme.dangerTint : AppTheme.warningTint),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: none ? AppTheme.hairline : (late ? AppTheme.dangerBorder : AppTheme.warningBorder)),
-      ),
+      color: colors.fill,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: colors.border)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UnpaidPage())),
@@ -368,16 +384,15 @@ class _UnpaidTile extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(
-                    none
-                        ? 'Inga obetalda fakturor'
-                        : 'Att betala: ${unpaid.length} ${unpaid.length == 1 ? 'faktura' : 'fakturor'}',
-                    style: t.titleSmall?.copyWith(color: none ? null : color)),
-                Text(none ? 'Allt är betalt' : (late ? 'Minst en har förfallit' : 'Tryck för att se och betala'),
+                Text(none ? 'Inga obetalda fakturor' : 'Att betala: ${info.count} ${info.count == 1 ? 'faktura' : 'fakturor'}',
+                    style: t.titleSmall?.copyWith(color: info.level == UnpaidLevel.normal ? null : (none ? null : colors.text))),
+                Text(none ? 'Allt är betalt' : (info.overdue > 0 ? 'Förfallit: ${info.overdue}' : 'Tryck för att se och betala'),
                     style: t.bodySmall),
               ]),
             ),
-            if (!none) Text(total.format(compact: true), style: t.titleSmall?.merge(moneyStyle).copyWith(color: color)),
+            if (!none)
+              Text(info.total.format(compact: true),
+                  style: t.titleSmall?.merge(moneyStyle).copyWith(color: info.level == UnpaidLevel.normal ? null : colors.text)),
             const SizedBox(width: 4),
             Icon(AppIcons.chevronRight, size: 18, color: AppTheme.muted),
           ]),
@@ -386,3 +401,4 @@ class _UnpaidTile extends StatelessWidget {
     );
   }
 }
+

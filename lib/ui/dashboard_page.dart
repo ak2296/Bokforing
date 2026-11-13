@@ -16,6 +16,7 @@ import 'theme.dart';
 import 'unpaid_page.dart';
 import 'widgets/charts.dart';
 import 'widgets/common.dart';
+import 'widgets/unpaid_level.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -68,8 +69,7 @@ class DashboardPage extends StatelessWidget {
                       .push(MaterialPageRoute(builder: (_) => const ActivationPage())),
                 ),
               ),
-            const _BackupNotice(),
-            if (unpaid.isNotEmpty) _UnpaidCard(unpaid),
+            _TopCards(unpaid),
             const SizedBox(height: 8),
             Row(children: [
               Expanded(child: _KeyFigure('Försäljning', r.totalAllSales, previous.sales, higherIsGood: true)),
@@ -156,17 +156,19 @@ class _Panel extends StatelessWidget {
 }
 
 /// This month's figure and how it changed since last month.
-/// Shown when the automatic backup is off: the data lives only in the phone.
-class _BackupNotice extends StatefulWidget {
-  const _BackupNotice();
+/// Two half-width cards at the top: the backup and what is left to pay.
+class _TopCards extends StatefulWidget {
+  final List<Invoice> unpaid;
+  const _TopCards(this.unpaid);
 
   @override
-  State<_BackupNotice> createState() => _BackupNoticeState();
+  State<_TopCards> createState() => _TopCardsState();
 }
 
-class _BackupNoticeState extends State<_BackupNotice> {
+class _TopCardsState extends State<_TopCards> {
   bool? _on;
   DateTime? _last;
+  int? _reminderDays;
 
   @override
   void didChangeDependencies() {
@@ -175,38 +177,81 @@ class _BackupNoticeState extends State<_BackupNotice> {
   }
 
   Future<void> _load() async {
-    final backup = AppScope.read(context).autoBackup;
-    final on = await backup?.active() ?? false;
-    final last = await backup?.last();
+    final c = AppScope.read(context);
+    final on = await c.autoBackup?.active() ?? false;
+    final last = await c.autoBackup?.last();
+    final days = await reminderWindow(c.repo);
     if (mounted) {
       setState(() {
         _on = on;
         _last = last;
+        _reminderDays = days;
       });
     }
   }
+
+  Widget _card({required Color fill, required Color border, required VoidCallback onTap, required Widget child}) => Card(
+        margin: EdgeInsets.zero,
+        color: fill,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: border)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.all(12), child: child)),
+      );
 
   @override
   Widget build(BuildContext context) {
     final on = _on;
     if (on == null) return const SizedBox.shrink();
+    final t = Theme.of(context).textTheme;
+    final info = UnpaidInfo.of(widget.unpaid, _reminderDays);
+    final colors = unpaidColors(info.level);
     final last = _last == null
-        ? null
+        ? 'Ingen'
         : '${SwedishDates.iso(_last!)} ${_last!.hour.toString().padLeft(2, '0')}:${_last!.minute.toString().padLeft(2, '0')}';
-    return Card(
-      color: on ? null : AppTheme.warningTint,
-      child: ListTile(
-        leading: Icon(on ? AppIcons.checkCircle : AppIcons.backup, color: on ? AppTheme.seed : AppTheme.warning),
-        title: Text(on ? 'Automatisk säkerhetskopia är på' : 'Ingen automatisk säkerhetskopia'),
-        subtitle: Text(on
-            ? (last == null ? 'Ingen kopia har tagits än.' : 'Senaste kopia: $last')
-            : (last == null
-                ? 'Ingen säkerhetskopia har tagits. Försvinner telefonen försvinner uppgifterna. Tryck för att slå på.'
-                : 'Senaste kopia: $last. Tryck för att slå på igen.')),
-        onTap: () async {
-          await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupPage()));
-          _load();
-        },
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Expanded(
+            child: _card(
+              fill: on ? AppTheme.surface : AppTheme.warningTint,
+              border: on ? AppTheme.hairline : AppTheme.warningBorder,
+              onTap: () async {
+                await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupPage()));
+                _load();
+              },
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Säkerhetskopia', style: t.titleSmall?.copyWith(color: on ? null : AppTheme.warning)),
+                const SizedBox(height: 4),
+                Row(children: [
+                  Icon(on ? AppIcons.checkCircle : AppIcons.crossCircle,
+                      size: 16, color: on ? AppTheme.seed : AppTheme.danger),
+                  const SizedBox(width: 5),
+                  Text(on ? 'Automatisk' : 'Av', style: t.bodySmall),
+                ]),
+                const SizedBox(height: 4),
+                Text('Senaste kopia', style: t.bodySmall),
+                Text(last, style: t.bodySmall?.copyWith(color: AppTheme.ink)),
+              ]),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _card(
+              fill: colors.fill,
+              border: colors.border,
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UnpaidPage())),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Att betala', style: t.titleSmall?.copyWith(color: colors.text)),
+                const SizedBox(height: 4),
+                Text('${info.count} ${info.count == 1 ? 'faktura' : 'fakturor'}', style: t.bodySmall),
+                Text(info.total.format(compact: true), style: t.titleMedium?.merge(moneyStyle).copyWith(color: colors.text)),
+                Text('Förfallit: ${info.overdue}',
+                    style: t.bodySmall?.copyWith(color: info.overdue > 0 ? AppTheme.danger : null)),
+              ]),
+            ),
+          ),
+        ]),
       ),
     );
   }
@@ -229,11 +274,16 @@ class _ActivationLine extends StatelessWidget {
                 ? 'Aktiverad till $until (om $days d)'
                 : 'Aktiverad till $until';
     return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Center(
-        child: Text(text,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: soon ? AppTheme.danger : null)),
-      ),
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(children: [
+        const Divider(),
+        const SizedBox(height: 10),
+        Text(text,
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: soon ? AppTheme.danger : AppTheme.seed, fontWeight: FontWeight.w500)),
+      ]),
     );
   }
 }
@@ -311,39 +361,6 @@ class RegistrationTile extends StatelessWidget {
 }
 
 /// "Att betala": unpaid invoices, highlighted when one is due soon or late.
-class _UnpaidCard extends StatelessWidget {
-  final List<Invoice> unpaid;
-  const _UnpaidCard(this.unpaid);
-
-  @override
-  Widget build(BuildContext context) {
-    final total = Money.sum(unpaid.map((i) => i.total));
-    final days = unpaid.map((i) => daysUntil(i.dueDate)).whereType<int>().toList()..sort();
-    final first = days.isEmpty ? null : days.first;
-    final urgent = first != null && first <= 3;
-    final color = first != null && first < 0 ? Theme.of(context).colorScheme.error : AppTheme.warning;
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Card(
-        color: urgent ? color.withValues(alpha: 0.1) : null,
-        child: ListTile(
-          leading: Icon(AppIcons.payments, color: urgent ? color : null),
-          title: Text('Att betala: ${unpaid.length} ${unpaid.length == 1 ? 'faktura' : 'fakturor'}'),
-          subtitle: Text(first == null
-              ? 'Inget förfallodatum angivet'
-              : first < 0
-                  ? 'Minst en faktura har förfallit'
-                  : first == 0
-                      ? 'En faktura förfaller i dag'
-                      : 'Nästa förfaller om $first ${first == 1 ? 'dag' : 'dagar'}'),
-          trailing: Text(total.format(compact: true), style: moneyStyle),
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UnpaidPage())),
-        ),
-      ),
-    );
-  }
-}
-
 /// What the overview panels need beyond the month's report.
 class DashboardExtras {
   /// Average sales per weekday (Monday first) over the last 12 weeks, in kr.
