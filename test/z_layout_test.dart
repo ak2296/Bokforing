@@ -96,4 +96,23 @@ void main() {
         'Z-rapport\nFörsäljning per varugrupp\nMat   100,00\n250,00\nTotal försäljning   350,00'));
     expect(ZReportParser.doubtsOf(doubtful), greaterThan(0));
   });
+
+  test('the median line height tells small print from large', () {
+    final ocr = _ocr([_line('Mat', 50, 100, 60), _line('Vin', 50, 130, 60), _line('Öl', 50, 160, 60)]);
+    expect(ocr.medianLineHeight, 20.0);
+    expect(_ocr(const []).medianLineHeight, isNull);
+  });
+
+  test('a name one letter off a category not yet on the report is suggested', () {
+    final d = const ZReportParser(_cats).parse(OcrResult.fromPlainText(
+        'Z-rapport\nFörsäljning per varugrupp\nMat   1 912,00\nVir   89,00\nÖl   5 822,00\nTotal försäljning   7 823,00'));
+    final line = d.lines.firstWhere((l) => l.label == 'Vir');
+    expect(line.suggestedCategoryId, 2);
+    expect(line.categoryId, isNull);
+    expect(line.match, MatchKind.possible);
+    // Not when the category is already on the report: Vin and Vir are two rows then.
+    final both = const ZReportParser(_cats).parse(OcrResult.fromPlainText(
+        'Z-rapport\nFörsäljning per varugrupp\nVin   50,00\nVir   39,00\nTotal försäljning   89,00'));
+    expect(both.lines.firstWhere((l) => l.label == 'Vir').suggestedCategoryId, isNull);
+  });
 }

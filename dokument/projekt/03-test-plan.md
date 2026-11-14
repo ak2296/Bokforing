@@ -56,6 +56,7 @@ Mark each line Pass / Fail / N/A with the build number.
 
 **Scan and review**
 - [ ] Camera: yellow frame, level bubble, "I delar" for a long receipt.
+- [ ] A narrow, long Z-report (5 cm thermal paper) scanned with "I delar" in 2–3 pictures reads better than in one picture (see guide page 9).
 - [ ] Corner adjustment; "Ta om".
 - [ ] Invoice: fields filled, orange fields flagged, edit, save; duplicate warning on second save.
 - [ ] Receipt: no due date; counts on its date.

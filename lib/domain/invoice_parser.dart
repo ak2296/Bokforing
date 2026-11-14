@@ -1556,6 +1556,8 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
   /// "ntor: EVRY" when the photo cut "Leverantör".
   static String _clean(String s) {
     var t = s.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
+    // A logo read as a bracket and a stray letter in front of the name: "(C Clas Ohlson".
+    t = t.replaceFirst(RegExp(r'^[(\[{|<>*#]+\s*[A-Za-zÅÄÖåäö]?\s+(?=\S{2,})'), '');
     final m = RegExp(r'^[A-Za-zÅÄÖåäö]{1,12}\s*:\s*(.{2,})$').firstMatch(t);
     if (m != null) t = m.group(1)!.trim();
     return t;

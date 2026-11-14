@@ -10,6 +10,23 @@ class PreprocessRotate {
   const PreprocessRotate(this.jpeg, this.degrees);
 }
 
+/// Enlarges a JPEG by [PreprocessScale.factor] (never past 4000 px on the long side).
+class PreprocessScale {
+  final Uint8List jpeg;
+  final double factor;
+  const PreprocessScale(this.jpeg, this.factor);
+}
+
+Uint8List scaleJpeg(PreprocessScale r) {
+  final image = img.decodeJpg(r.jpeg)!;
+  final f = math.min(r.factor, 4000 / math.max(image.width, image.height));
+  if (f <= 1.05) return r.jpeg;
+  return img.encodeJpg(
+      img.copyResize(image,
+          width: (image.width * f).round(), height: (image.height * f).round(), interpolation: img.Interpolation.cubic),
+      quality: 92);
+}
+
 Uint8List rotateJpeg(PreprocessRotate r) =>
     img.encodeJpg(img.copyRotate(img.decodeJpg(r.jpeg)!, angle: r.degrees), quality: 90);
 

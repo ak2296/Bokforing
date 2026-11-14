@@ -61,6 +61,21 @@ class OcrService {
     return out;
   }
 
+  /// A second reading of small print: the photo is enlarged [factor] times and
+  /// read again. The file itself is not changed.
+  Future<OcrResult?> recognizeEnlarged(String path, {double factor = 2.0}) async {
+    final original = await File(path).readAsBytes();
+    final bigger = await compute(scaleJpeg, PreprocessScale(original, factor));
+    if (identical(bigger, original) || bigger.length == original.length) return null;
+    final tmp = '$path.big.jpg';
+    await File(tmp).writeAsBytes(bigger);
+    try {
+      return await _read(tmp, 0, 0);
+    } finally {
+      await File(tmp).delete();
+    }
+  }
+
   Future<OcrResult> _read(String path, int width, int height) async {
     final recognized = await _recognizer.processImage(InputImage.fromFilePath(path));
     OcrBox box(Rect r) => OcrBox(r.left, r.top, r.right, r.bottom);

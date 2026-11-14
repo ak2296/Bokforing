@@ -273,15 +273,19 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
   }
 
   /// A reading with doubts (a key field missing or uncertain, rows that do
-  /// not add up) on a tilted photo is read a second time with the photo turned
-  /// by the measured tilt, and the reading with fewer doubts is kept. Slower,
-  /// so only done when needed; the waiting screen says so. Used for every
-  /// type of document; [parse] and [doubts] are those of the document's type.
+  /// not add up) is read a second time when that can help: a tilted photo is
+  /// turned by the measured tilt, and small print is enlarged. The reading with
+  /// fewer doubts is kept. Slower, so only done when needed; the waiting screen
+  /// says so. Used for every type of document; [parse] and [doubts] are those
+  /// of the document's type.
   Future<(OcrResult, T)> _readAgain<T>(OcrResult first, T Function(OcrResult) parse, int Function(T) doubts) async {
     var bestOcr = first;
     var best = parse(first);
     final tilt = first.tiltDegrees;
-    if (doubts(best) == 0 || tilt == null || tilt.abs() < 0.3 || _processed.length != 1 || !mounted) {
+    final tilted = tilt != null && tilt.abs() >= 0.3;
+    final lineHeight = first.medianLineHeight;
+    final small = lineHeight != null && lineHeight < 26;
+    if (doubts(best) == 0 || (!tilted && !small) || _processed.length != 1 || !mounted) {
       return (bestOcr, best);
     }
     setState(() {
@@ -290,7 +294,11 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
     });
     final ocr = OcrService();
     try {
-      for (final candidate in await ocr.recognizeStraightened(_processed.single, tilt.abs())) {
+      final candidates = <OcrResult>[
+        if (tilted) ...await ocr.recognizeStraightened(_processed.single, tilt.abs()),
+        if (small) ...[await ocr.recognizeEnlarged(_processed.single)].whereType<OcrResult>(),
+      ];
+      for (final candidate in candidates) {
         final d = parse(candidate);
         if (doubts(d) < doubts(best)) {
           best = d;

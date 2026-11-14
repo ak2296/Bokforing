@@ -296,6 +296,25 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         warning: m.warning,
       ));
     }
+    // A name one letter off a category that is not on the report yet ("Vir" for
+    // "Vin"): only suggested, the owner confirms. Skipped when more than one
+    // category fits.
+    final taken = {for (final l in lines) if (l.categoryId != null) l.categoryId};
+    for (var k = 0; k < lines.length; k++) {
+      final l = lines[k];
+      if (l.match != MatchKind.none) continue;
+      final near = _oneLetterOff(l.label, taken);
+      if (near == null) continue;
+      taken.add(near.id);
+      lines[k] = ZLine(
+        label: l.label,
+        amount: l.amount,
+        printedRate: l.printedRate,
+        suggestedCategoryId: near.id,
+        match: MatchKind.possible,
+        warning: 'Liknar "${near.name}". Kontrollera mot pappret.',
+      );
+    }
     for (final a in nameless) {
       lines.add(_unnamedLine(a, lines));
     }
@@ -532,6 +551,22 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       .replaceAll('ö', 'o')
       .replaceAll('ä', 'a')
       .replaceAll('å', 'a');
+
+  /// The one active category not yet on the report whose name is one letter
+  /// away from [label] (OCR mixes up letters like n and r). Null when none or
+  /// several fit, or the name is shorter than three letters.
+  Category? _oneLetterOff(String label, Set<int?> taken) {
+    final f = _fold(normalizeLabel(label));
+    if (f.length < 3) return null;
+    final close = categories.where((c) {
+      if (!c.active || c.id == null || taken.contains(c.id)) return false;
+      final g = _fold(normalizeLabel(c.name));
+      if (g.length < 3) return false;
+      final longest = f.length > g.length ? f.length : g.length;
+      return ((1 - TextPatterns.similarity(f, g)) * longest).round() <= 1;
+    }).toList();
+    return close.length == 1 ? close.single : null;
+  }
 
   /// A very short name that has only one real letter because OCR read a digit
   /// for the other. It counts as a name only when it matches something of the

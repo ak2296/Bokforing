@@ -162,6 +162,13 @@ class OcrResult {
     return l.box.height > 2.5 * w;
   }
 
+  /// The median height of the text lines in pixels, or null without lines. Small
+  /// print (under about 26 px) reads better when the photo is enlarged first.
+  double? get medianLineHeight {
+    final h = lines.where((l) => !isMarginText(l)).map((l) => l.box.height).where((h) => h > 0).toList()..sort();
+    return h.isEmpty ? null : h[h.length ~/ 2];
+  }
+
   /// The page tilt in degrees as ML Kit measured it (the median line angle),
   /// or null when no line carries a plausible angle. Its sign convention is
   /// not documented, so a caller tries both directions.

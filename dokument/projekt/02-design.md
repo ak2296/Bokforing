@@ -154,7 +154,7 @@ sequenceDiagram
 
 Nothing is written before the user's tap. The duplicate check runs before saving and lets the user choose.
 
-For every document type the parsed draft is given a doubt count (`doubtsOf` for Z-reports, `invoiceDoubts`, `onlineDoubts`, `payslipDoubts` in `reading_doubts.dart`). If there are any and the photo is tilted, the scan flow reads the photo again turned by the tilt ML Kit measured (both directions) and keeps the reading with fewer doubts (`_readAgain` in `scan_flow.dart`). Footer text (web addresses, page numbers) is cut out of rows before parsing, and look-alike characters in short names are folded when comparing with the owner's categories.
+For every document type the parsed draft is given a doubt count (`doubtsOf` for Z-reports, `invoiceDoubts`, `onlineDoubts`, `payslipDoubts` in `reading_doubts.dart`). If there are any and the photo is tilted or the print is small (median line height under 26 px), the scan flow reads the photo again, turned by the tilt ML Kit measured (both directions) and/or enlarged two times, and keeps the reading with fewer doubts (`_readAgain` in `scan_flow.dart`). Footer text (web addresses, page numbers) is cut out of rows before parsing, and look-alike characters in short names are folded when comparing with the owner's categories.
 
 ### 4.2 Reports and SIE
 
