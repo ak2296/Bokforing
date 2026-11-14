@@ -20,6 +20,7 @@ import '../incomplete_page.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/result_charts.dart';
+import 'sie_preview_page.dart';
 
 /// The period of a resultatrapport: one month or one financial year.
 class _Period {
@@ -246,6 +247,24 @@ class _ResultBody extends StatelessWidget {
           icon: const Icon(AppIcons.file, size: 18),
           label: const Text('SIE-fil till redovisaren'),
           onPressed: () => _exportSie(context),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          icon: const Icon(AppIcons.search, size: 18),
+          label: const Text('Förhandsvisa SIE'),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => SiePreviewPage(
+              period: data.period.title,
+              vouchers: SieExport.vouchers(
+                fromIso: data.period.from,
+                toIso: data.period.to,
+                sales: data.sales,
+                invoices: data.invoices,
+                online: data.online,
+                payslips: data.payslips,
+              ),
+            ),
+          )),
         ),
         if (r.sales.ore > 0 || r.costs.isNotEmpty) ...[
           const SizedBox(height: 12),

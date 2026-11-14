@@ -110,4 +110,37 @@ void main() {
     expect(bytes.sublist(1, 2), [0x94]);
     expect(bytes.sublist(bytes.length - 2), [0x86, 0x8E]);
   });
+
+  test('SieExport.vouchers: the same verifications, numbers and lines as the file', () {
+    final vouchers = SieExport.vouchers(
+      fromIso: '2026-10-01',
+      toIso: '2026-10-31',
+      sales: _sales,
+      invoices: _invoices,
+    );
+    expect(vouchers.map((v) => '${v.series}${v.number}').toList(), ['C1', 'A1', 'C2', 'C3']);
+    final z = vouchers.firstWhere((v) => v.series == 'A');
+    expect(z.number, 1);
+    expect(z.date, '2026-10-05');
+    expect(z.text, 'Dagskassa Z 183');
+    expect(z.debit, Money.kr(1180));
+    expect(z.credit, Money.kr(1180));
+    expect(z.lines.map((r) => r.account), containsAll([1910, 3002, 2621, 3001, 2611]));
+    // Every verification balances, and the series are numbered from 1.
+    expect(vouchers.every((v) => v.balances), isTrue);
+        // The file holds exactly these verifications.
+    final text = SieExport.build(
+      profile: const BusinessProfile(name: 'Ankan'),
+      fromIso: '2026-10-01',
+      toIso: '2026-10-31',
+      yearStartIso: '2026-01-01',
+      yearEndIso: '2026-12-31',
+      sales: _sales,
+      invoices: _invoices,
+    );
+    expect(RegExp(r'#VER ').allMatches(text).length, vouchers.length);
+    for (final v in vouchers) {
+      expect(text, contains('#VER ${v.series} ${v.number} ${v.date.replaceAll('-', '')} '));
+    }
+  });
 }

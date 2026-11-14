@@ -37,6 +37,9 @@ class _ShellState extends State<Shell> {
   final _pages = PageController();
   final _tabKeys = List.generate(5, (_) => GlobalKey());
   final _gearKey = GlobalKey();
+
+  /// A tap on a tab makes a soft flash on the page, above the cards and under the bar.
+  final _flash = ValueNotifier<_FlashEvent?>(null);
   AppController? _app;
 
   static const _titles = ['Översikt', 'Försäljning', 'Skanna dokument', 'Utgifter', 'Rapporter'];
@@ -111,6 +114,7 @@ class _ShellState extends State<Shell> {
 
   @override
   void dispose() {
+    _flash.dispose();
     _app?.tourRequests.removeListener(_onTourRequest);
     _shares?.cancel();
     _pages.dispose();
@@ -149,19 +153,22 @@ class _ShellState extends State<Shell> {
       ),
       body: SafeArea(
         bottom: false,
-        child: IndexedStack(
-          index: _index == _scanTab ? 1 : 0,
-          children: [
-            PageView(
-              controller: _pages,
-              onPageChanged: (p) {
-                if (_index != _scanTab) setState(() => _index = _swipeTabs[p]);
-              },
-              children: [for (final p in swipePages) _KeepAlive(child: p)],
-            ),
-            const ScanTab(),
-          ],
-        ),
+        child: Stack(children: [
+          IndexedStack(
+            index: _index == _scanTab ? 1 : 0,
+            children: [
+              PageView(
+                controller: _pages,
+                onPageChanged: (p) {
+                  if (_index != _scanTab) setState(() => _index = _swipeTabs[p]);
+                },
+                children: [for (final p in swipePages) _KeepAlive(child: p)],
+              ),
+              const ScanTab(),
+            ],
+          ),
+          Positioned.fill(child: IgnorePointer(child: _FlashLayer(events: _flash))),
+        ]),
       ),
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
@@ -171,7 +178,12 @@ class _ShellState extends State<Shell> {
             colors: [AppTheme.background.withValues(alpha: 0), AppTheme.background.withValues(alpha: 0.92)],
           ),
         ),
-        child: _BottomBar(index: _index, onTap: _go, keys: _tabKeys),
+        child: _BottomBar(
+          index: _index,
+          onTap: _go,
+          keys: _tabKeys,
+          onFlash: (at, color) => _flash.value = _FlashEvent(at, color),
+        ),
       ),
     );
   }
@@ -221,7 +233,8 @@ class _BottomBar extends StatelessWidget {
   final int index;
   final ValueChanged<int> onTap;
   final List<GlobalKey> keys;
-  const _BottomBar({required this.index, required this.onTap, required this.keys});
+  final void Function(Offset at, Color color) onFlash;
+  const _BottomBar({required this.index, required this.onTap, required this.keys, required this.onFlash});
 
   static const _items = [
     ('Översikt', AppIcons.dashboard),
@@ -264,6 +277,7 @@ class _BottomBar extends StatelessWidget {
                         scan: i == 2,
                         dark: dark,
                         onTap: () => onTap(i),
+                      onFlash: onFlash,
                       ),
                     ),
                   ),
@@ -285,13 +299,15 @@ class _Tab extends StatelessWidget {
   final bool scan;
   final bool dark;
   final VoidCallback onTap;
+  final void Function(Offset at, Color color) onFlash;
   const _Tab(
       {required this.label,
       required this.icon,
       required this.selected,
       required this.scan,
       required this.dark,
-      required this.onTap});
+      required this.onTap,
+      required this.onFlash});
 
   @override
   Widget build(BuildContext context) {
@@ -300,6 +316,10 @@ class _Tab extends StatelessWidget {
     final light = scan ? const Color(0xFF2FD08F) : AppTheme.pumpkin;
     return InkResponse(
       onTap: onTap,
+      onTapDown: (d) => onFlash(d.globalPosition, light),
+      // The feedback is the flash on the page; no splash on the pill or behind the cards.
+      splashFactory: NoSplash.splashFactory,
+      highlightColor: Colors.transparent,
       child: Semantics(
         selected: selected,
         button: true,
@@ -383,4 +403,81 @@ class _ConePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ConePainter old) => old.color != color || old.dark != dark;
+}
+
+class _FlashEvent {
+  final Offset global;
+  final Color color;
+  const _FlashEvent(this.global, this.color);
+}
+
+/// A soft round flash that opens where a tab was tapped and fades out. It is
+/// drawn over the page, so it shows on top of cards, and under the bar.
+class _FlashLayer extends StatefulWidget {
+  final ValueNotifier<_FlashEvent?> events;
+  const _FlashLayer({required this.events});
+
+  @override
+  State<_FlashLayer> createState() => _FlashLayerState();
+}
+
+class _FlashLayerState extends State<_FlashLayer> with SingleTickerProviderStateMixin {
+  late final AnimationController _anim = AnimationController(vsync: this, duration: const Duration(milliseconds: 520));
+  Offset? _at;
+  Color _color = Colors.transparent;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.events.addListener(_start);
+  }
+
+  void _start() {
+    final e = widget.events.value;
+    final box = context.findRenderObject();
+    if (e == null || box is! RenderBox || !box.attached) return;
+    _at = box.globalToLocal(e.global);
+    _color = e.color;
+    _anim.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    widget.events.removeListener(_start);
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _anim,
+        builder: (context, _) => CustomPaint(painter: _FlashPainter(_at, _color, _anim.value)),
+      );
+}
+
+class _FlashPainter extends CustomPainter {
+  final Offset? at;
+  final Color color;
+  final double t;
+  const _FlashPainter(this.at, this.color, this.t);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = at;
+    if (c == null || t <= 0 || t >= 1) return;
+    final r = 30 + 90 * Curves.easeOut.transform(t);
+    final a = (1 - t) * 0.34;
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [color.withValues(alpha: a), color.withValues(alpha: a * 0.6), color.withValues(alpha: 0)],
+          stops: const [0, 0.6, 1],
+        ).createShader(Rect.fromCircle(center: c, radius: r)),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FlashPainter old) => old.at != at || old.color != color || old.t != t;
 }

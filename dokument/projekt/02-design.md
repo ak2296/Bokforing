@@ -88,6 +88,8 @@ flowchart TB
 - Review pages (`ui/review`) are the single place where extracted data becomes a record. Each has an "existing" mode for editing.
 - `Reloading<T>` is the common loader: it reloads when `AppController.revision` changes (after any save, edit or delete).
 - First-run tour: `ui/tour.dart` draws a dimmed overlay with a hole over a `GlobalKey` target and a text box.
+- A tap on a tab makes a soft round flash that opens where the finger touched and fades out. `_FlashLayer` in `shell.dart` draws it in the page area, so it shows above the cards and below the bar; the tabs themselves have no ink splash.
+- SIE: `SieExport.vouchers` builds the verifications (series, number, date, text, rows); `SieExport.build` writes the file from them and `SiePreviewPage` shows them, so the preview is always what the file holds.
 
 ## 3. Data design
 

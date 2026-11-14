@@ -104,6 +104,7 @@ Priority: **M** must, **S** should, **C** could. "Verified by" names automated t
 | FR-46 | A first-run tour highlights the main parts of the app and can be shown again. | C | Manual |
 | FR-47 | Company names, categories and own company names are editable; the company's own name is never used as supplier. | M | `own_company_test` |
 | FR-49 | Any scan whose first reading has doubts (a key field missing or uncertain, rows that do not add up) on a tilted photo is read a second time with the photo turned by the measured tilt; the better reading is kept. The waiting screen shows a progress bar and the step. Applies to invoices, Z-reports, online sales and payslips. | S | `z_layout_test`, `reading_doubts_test` (doubt counts); the second reading itself: Manual |
+| FR-50 | Before the SIE file is sent, the owner can open "Förhandsvisa SIE" and see every verification the file will hold: series and number, date, text, each account with debit and credit, a balance check per verification and in total. The lines are the ones the file is built from. | S | `result_sie_test`, `sie_preview_test` |
 | FR-48 | The app looks for a newer release once a day (switch in Inställningar), shows a card on Översikt, and on request downloads the APK and hands it to Android's installer; data is kept. Off in a Google Play build. | S | `app_update_test` (release parsing, download); installer step Manual |
 
 ## 5. Non-functional requirements

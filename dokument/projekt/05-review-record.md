@@ -62,6 +62,7 @@ Status values: **Open**, **Partly fixed**, **Fixed** (in code, not always seen o
 |---|---|---|---|---|
 | F-14 | Privacy and security review | – | Pass, with notes | Network library is used only in `lib/ai/gemini_client.dart`; the INTERNET permission exists only for the optional online reading, after consent; `allowBackup` is false; PIN is a salted hash (15 000 iterations) in secure storage; backup is encrypted; activation uses an Ed25519 public key. Notes: PIN hash iterations are modest; forgotten backup password cannot be recovered (stated in the UI) |
 | F-16 | Portability: domain code has no Flutter imports | – | Pass | `lib/domain` is plain Dart |
+| F-28 | Nav bar tap feedback was hidden behind the cards (the splash was painted on the page surface); a first attempt painted it on the bar itself, which was not wanted | Low | Fixed (page-level flash, to be confirmed on a phone) | `shell.dart` `_FlashLayer` |
 | F-27 | Build and release pipeline | – | Pass, with notes | Analysis and tests gate the build; signing certificate verified in CI with a fixed key. Notes: the signing key secret is a single point of failure (R-03); the build number has never been raised from 2 and CI does not set it (R-04) |
 
 ## 3. Document inspection

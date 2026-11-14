@@ -72,6 +72,7 @@ Mark each line Pass / Fail / N/A with the build number.
 - [ ] Månad, År, Resultat, Jämför show matching numbers for the same period.
 - [ ] Export PDF, Excel, print; month export contains every day.
 - [ ] SIE file by e-mail and saved; imports in accounting software.
+- [ ] Förhandsvisa SIE shows the same verifications as the file (count, texts, amounts) and says they balance.
 - [ ] Tax estimate lines for AB and for enskild firma (percent and yearly amount).
 - [ ] Avrunda utgifter on and off.
 
@@ -87,6 +88,7 @@ Mark each line Pass / Fail / N/A with the build number.
 - [ ] Large system font size: no overflow in nav bar, cards or review pages.
 - [ ] Bright sunlight: selected tab and orange text readable.
 - [ ] Swipe between the four main tabs; Skanna and Rapporter inner tabs tap only.
+- [ ] Tapping a tab: a soft flash opens where the finger touched, above cards and under the bar; nothing splashes on the bar itself.
 
 ## 7. Update test (before publishing a release)
 

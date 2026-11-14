@@ -25,8 +25,14 @@ Built in the app only, with no running costs and no company needed.
 ### 8. Checklist before closing a month
 - A read-only list with a link to each problem: invoices with "Fyll i", Z-reports with a difference or missing days, possible duplicates, doubtful moms.
 
-### 10. Verifikationslista and "Förhandsvisa SIE"
-- Shows the verifikationer the SIE file will contain (number, date, account, debit, credit) before it is sent to the redovisare. Low priority if the owner only sends the file.
+### 15. Order an activation code from the download page
+- A "Beställ aktivering" button on the download page (`https://ak2296.github.io/quee/`, a static page without a server) opens an order form, so a new customer can ask for a code without contacting the owner some other way.
+- Preferred way: a **Google Form** made from a separate Google account used only for Quee. The form belongs to that account, customers do not see the owner's name or address and need no login. Fields: company name, organisation number (the code carries both), e-mail and/or phone for the answer, wanted period, and a short line that the data is only used to make and send the code. Answers arrive in a table, with a notification e-mail to the owner. Alternative: a button that opens a ready-made e-mail to a separate business address (no form, but the address is public and gets spam).
+- Codes stay signed by hand with the owner's secret key. The page must never create codes: that would put the key on a server.
+- No payment on the page while there is no company (see section 11 onwards); it is a request only.
+- Needs a short privacy line on the page about what is collected and why. Check the form once in a private browser window before the link is published.
+- Under Google Play the payment rules may stop selling codes outside the app (see `PLAY_MIGRATION.local.md`).
+- Decision needed first: form or e-mail button; for the form the owner makes it and gives the link.
 
 ## Open points on finished functions
 

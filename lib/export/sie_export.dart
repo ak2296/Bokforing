@@ -54,18 +54,15 @@ class SieExport {
         _ => null,
       };
 
-  /// The file as text; [encode] turns it into the bytes to save.
-  static String build({
-    required BusinessProfile profile,
+  /// The verifications the file holds, in file order and with the numbers they
+  /// get there. The preview in the app shows exactly these.
+  static List<SieVoucher> vouchers({
     required String fromIso,
     required String toIso,
-    required String yearStartIso,
-    required String yearEndIso,
     required List<DailySales> sales,
     required List<Invoice> invoices,
     List<OnlineSale> online = const [],
     List<Payslip> payslips = const [],
-    DateTime? generated,
   }) {
     bool inPeriod(String? d) => d != null && d.compareTo(fromIso) >= 0 && d.compareTo(toIso) <= 0;
     final vers = <_Ver>[];
@@ -139,11 +136,39 @@ class SieExport {
     }
 
     vers.sort((a, b) => a.date.compareTo(b.date));
+    final numbers = <String, int>{};
+    return [
+      for (final v in vers)
+        SieVoucher(v.series, numbers[v.series] = (numbers[v.series] ?? 0) + 1, v.date, v.text, [
+          for (final t in v.trans) SieRow(t.account, _nameOf(t), t.amount),
+        ]),
+    ];
+  }
+
+  static String _nameOf(_Trans t) =>
+      t.name ??
+      _accountNames[t.account] ??
+      CostType.all.firstWhere((c) => c.account == t.account, orElse: () => CostType.other).label;
+
+  /// The file as text; [encode] turns it into the bytes to save.
+  static String build({
+    required BusinessProfile profile,
+    required String fromIso,
+    required String toIso,
+    required String yearStartIso,
+    required String yearEndIso,
+    required List<DailySales> sales,
+    required List<Invoice> invoices,
+    List<OnlineSale> online = const [],
+    List<Payslip> payslips = const [],
+    DateTime? generated,
+  }) {
+    final vouchers = SieExport.vouchers(
+        fromIso: fromIso, toIso: toIso, sales: sales, invoices: invoices, online: online, payslips: payslips);
     final names = <int, String>{};
-    for (final v in vers) {
-      for (final t in v.trans) {
-        names[t.account] ??= t.name ?? _accountNames[t.account] ?? CostType.all.firstWhere((c) => c.account == t.account,
-            orElse: () => CostType.other).label;
+    for (final v in vouchers) {
+      for (final r in v.rows) {
+        names[r.account] ??= r.name;
       }
     }
     final out = StringBuffer();
@@ -161,14 +186,12 @@ class SieExport {
     for (final a in names.keys.toList()..sort()) {
       line('#KONTO $a ${_q(names[a]!)}');
     }
-    final numbers = <String, int>{};
-    for (final v in vers) {
-      final n = numbers[v.series] = (numbers[v.series] ?? 0) + 1;
-      line('#VER ${v.series} $n ${d(v.date)} ${_q(v.text)}');
+    for (final v in vouchers) {
+      line('#VER ${v.series} ${v.number} ${d(v.date)} ${_q(v.text)}');
       line('{');
-      for (final t in v.trans) {
-        if (t.amount.isZero) continue;
-        line('   #TRANS ${t.account} {} ${_amount(t.amount)}');
+      for (final r in v.rows) {
+        if (r.amount.isZero) continue;
+        line('   #TRANS ${r.account} {} ${_amount(r.amount)}');
       }
       line('}');
     }
@@ -215,4 +238,35 @@ class _Ver {
   _Ver(this.series, this.date, this.text);
 
   void add(int account, Money amount, {String? name}) => trans.add(_Trans(account, amount, name));
+}
+
+/// One line of a verification: an account and an amount, plus for debit and minus for credit.
+class SieRow {
+  final int account;
+  final String name;
+  final Money amount;
+  const SieRow(this.account, this.name, this.amount);
+
+  Money get debit => amount.isNegative ? Money.zero : amount;
+  Money get credit => amount.isNegative ? -amount : Money.zero;
+}
+
+/// A verification as it will stand in the SIE file: series (A Z-reports, B online
+/// sales, C invoices and payments, D payslips), number within the series, date, text.
+class SieVoucher {
+  final String series;
+  final int number;
+  final String date;
+  final String text;
+  final List<SieRow> rows;
+  const SieVoucher(this.series, this.number, this.date, this.text, this.rows);
+
+  /// The lines the file carries: lines of 0 kr are left out there.
+  List<SieRow> get lines => [for (final r in rows) if (!r.amount.isZero) r];
+
+  Money get debit => Money.sum(lines.map((r) => r.debit));
+  Money get credit => Money.sum(lines.map((r) => r.credit));
+
+  /// A verification must balance: debit and credit are equal.
+  bool get balances => debit == credit;
 }
