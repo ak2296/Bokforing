@@ -247,23 +247,28 @@ class _BottomBar extends StatelessWidget {
             boxShadow: dark ? null : const [BoxShadow(color: Color(0x1A000000), blurRadius: 16, offset: Offset(0, 4))],
           ),
           clipBehavior: Clip.antiAlias,
-          child: Row(
-            children: [
-              for (var i = 0; i < _items.length; i++)
-                Expanded(
-                  child: KeyedSubtree(
-                    key: keys[i],
-                    child: _Tab(
-                      label: _items[i].$1,
-                      icon: _items[i].$2,
-                      selected: i == index,
-                      scan: i == 2,
-                      dark: dark,
-                      onTap: () => onTap(i),
+          // The tap splash is painted on the nearest Material. Without one here that is the
+          // page's, behind the cards, so the splash was hidden. This one sits on the pill.
+          child: Material(
+            type: MaterialType.transparency,
+            child: Row(
+              children: [
+                for (var i = 0; i < _items.length; i++)
+                  Expanded(
+                    child: KeyedSubtree(
+                      key: keys[i],
+                      child: _Tab(
+                        label: _items[i].$1,
+                        icon: _items[i].$2,
+                        selected: i == index,
+                        scan: i == 2,
+                        dark: dark,
+                        onTap: () => onTap(i),
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
