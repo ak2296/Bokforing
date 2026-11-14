@@ -43,6 +43,7 @@ Seen on the owner's phone during development (screenshots on file with the owner
 - Lönebesked review in dark and light mode; date fields, unreadable warning fields and look of entry fields were found and fixed (F-01, F-02, F-03).
 - Översikt after the card changes; unequal card heights found and fixed (F-04).
 - Fingerprint unlock confirmed working by the owner.
+- **In-app update (2026-11-14):** from a build without the fix to release `v2026.11.14` (build 29910225) with "Hämta och installera"; the owner reported that everything worked and the data was intact. This is a first real update test of the update path, not the full checklist.
 - Floating navigation bar and spotlight confirmed by the owner after several iterations.
 
 Not yet seen on a phone: the first-run tour, thousands separators in fields, the latest tax estimate cards, "Importera fil" after the error handling change.
