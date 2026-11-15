@@ -20,7 +20,6 @@ EDGE_PATHS = [
 ]
 DOCS = [
     "dokument/anvandarguide/anvandarguide.html",
-    "dokument/anvandarguide/anvandarguide-tryck.html",
     "dokument/anvandarguide/anvandarguide-telefon.html",
     "dokument/anvandarguide/anvandarguide-A6-tryckfil.html",
     "dokument/kort/kort.html",

@@ -57,7 +57,7 @@ SCRIPT = r"""
 <script>
 (function () {
   var MM = 96 / 25.4;
-  function limit(page) { return page.clientHeight - 12 * MM; }
+  function limit(page) { return page.clientHeight - CFG.bottom * MM; }
   function el(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
   // The units a chapter is cut into. Lists and tables go row by row.
   // A block cut into the pieces it may be split into: tables row by row, lists item by item.
@@ -93,7 +93,9 @@ SCRIPT = r"""
         var wrap = el('div', 'fl'); var s = shot.cloneNode(true); s.classList.add('shot');
         if (kids.indexOf(shot) === 0) s.classList.add('l');
         wrap.appendChild(s);
-        wrap.__txt = [].concat.apply([], Array.from(txt.children).map(pieces));
+        var tp = [].concat.apply([], Array.from(txt.children).map(pieces));
+        if (CFG.stack) { tp.forEach(function (x) { out.push(x); }); out.push(wrap); return; }
+        wrap.__txt = tp;
         wrap.__shot = s;
         out.push(wrap);
       } else pieces(c).forEach(function (x) { out.push(x); });
@@ -186,7 +188,7 @@ SCRIPT = r"""
     for (var q = 0; q < all.length; q++) {
       var pg = all[q];
       var kids = Array.from(pg.children).filter(function (c) { return !c.classList.contains('folio'); });
-      var lim = pg.clientHeight - 12 * MM;
+      var lim = pg.clientHeight - CFG.bottom * MM;
       for (var j = kids.length - 1; j > 0 && kids[j].offsetTop + kids[j].offsetHeight > lim + 0.5; j--) {
         var nxt = all[q + 1];
         if (!nxt || nxt.__title !== pg.querySelector('.folio span').textContent) {
@@ -211,11 +213,12 @@ SCRIPT = r"""
 """
 
 
-def build() -> list[str]:
+def build(style: str = STYLE, bottom: float = 12, stack: bool = False) -> list[str]:
     """The guide as a list of A6 page sections (HTML), page numbers set."""
     html = SRC.read_text(encoding="utf-8")
     html = html.replace("@page { size: 148mm 210mm; margin: 0; }", "")
-    html = html.replace("</head>", STYLE + "</head>", 1).replace("</body>", SCRIPT + "</body>", 1)
+    cfg = f"<script>var CFG = {{bottom: {bottom}, stack: {str(stack).lower()}}};</script>"
+    html = html.replace("</head>", style + "</head>", 1).replace("</body>", cfg + SCRIPT + "</body>", 1)
     TMP.write_text(html, encoding="utf-8")
     try:
         out = subprocess.run([EDGE, "--headless", "--disable-gpu", "--dump-dom", "--virtual-time-budget=8000", TMP.as_uri()],

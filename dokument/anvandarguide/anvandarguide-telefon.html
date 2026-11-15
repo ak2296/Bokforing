@@ -188,19 +188,17 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 </style>
 
 <style>
-@page { size: 70mm 140mm; margin: 0; }
 body { font-size: 10.5pt; line-height: 1.5; }
-.page { width: 70mm; height: auto; min-height: 0; padding: 7mm 5.5mm 9mm; overflow: visible; }
+.page { width: 70mm; height: auto; min-height: 0; padding: 7mm 5.5mm 8mm; overflow: hidden; page-break-after: always; }
+.page:last-child { page-break-after: auto; }
 .folio { display: none; }
 h1 { font-size: 17pt; line-height: 1.15; margin-bottom: 3mm; }
 h2 { font-size: 13pt; margin: 6mm 0 2mm; }
 h3 { font-size: 11.5pt; }
 .kicker { font-size: 8.5pt; }
 .lead { font-size: 10.5pt; }
-p, li, .tip, .warn, .detail, table.t tr, .ui, .toc li { break-inside: avoid; }
-h1, h2, h3, .kicker { break-after: avoid; }
 ul, ol { padding-left: 5mm; }
-.tip, .warn { font-size: 9.8pt; padding: 3mm 3.5mm; }
+.tip, .warn { font-size: 9.8pt; padding: 3mm 3.5mm; margin: 3.5mm 0; }
 .kbd, .btn { font-size: 9.6pt; }
 .steps li { padding-left: 8.5mm; }
 .steps li::before { width: 5.6mm; height: 5.6mm; font-size: 8.5pt; }
@@ -215,26 +213,45 @@ table.t tr:has(th) { display: none; }
 table.t td { border: 0; padding: 0; }
 table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0.6mm; }
 
-/* two columns become one */
-.two, .two.left { display: block; }
-.shot { width: 50mm; margin: 3mm auto; }
-.two > .shot { order: -1; }
+/* two columns become one: the text first, then the sketch */
+.two, .two.left { display: flex; flex-direction: column; }
+.two > .shot, .two > .phone, .two > div:has(> .phone) { order: 2; width: 46mm; margin: 3mm auto 1mm; }
+.shot { width: 46mm; margin: 3mm auto; }
 .detail { font-size: 8.8pt; }
 .detail .cap { font-size: 8pt; }
+.detail[style*="grid"] { grid-template-columns: 1fr !important; }
 .ui small { font-size: 7.6pt; }
 .flow { flex-direction: column; }
 .flow .arr { transform: rotate(90deg); }
 .num { width: 5mm; height: 5mm; font-size: 8pt; }
 .pill { font-size: 7.6pt; }
-.cover { height: 140mm; overflow: hidden; }
+.cover { height: 124mm; overflow: hidden; }
 .cover .inner { padding: 10mm 6mm; }
 .cover .logo { width: 18mm; height: 18mm; } .cover .logo img { width: 18mm; height: 18mm; }
 .cover h1 { font-size: 30pt; margin-top: 7mm; }
 .cover .sub { font-size: 13pt; }
-.cover .deco { right: -10mm; top: 66mm; transform: rotate(-12deg) scale(.62); transform-origin: top right; }
+.cover .deco { right: -10mm; top: 62mm; transform: rotate(-12deg) scale(.62); transform-origin: top right; }
 .cover .tag { left: 6mm; bottom: 8mm; font-size: 8.5pt; }
 </style>
-</head>
+<style>@page { margin: 0; }
+@page c0 { size: 70mm 124mm; margin: 0; } section.page:nth-of-type(1) { page: c0; }
+@page c1 { size: 70mm 248mm; margin: 0; } section.page:nth-of-type(2) { page: c1; }
+@page c2 { size: 70mm 406mm; margin: 0; } section.page:nth-of-type(3) { page: c2; }
+@page c3 { size: 70mm 373mm; margin: 0; } section.page:nth-of-type(4) { page: c3; }
+@page c4 { size: 70mm 358mm; margin: 0; } section.page:nth-of-type(5) { page: c4; }
+@page c5 { size: 70mm 403mm; margin: 0; } section.page:nth-of-type(6) { page: c5; }
+@page c6 { size: 70mm 359mm; margin: 0; } section.page:nth-of-type(7) { page: c6; }
+@page c7 { size: 70mm 318mm; margin: 0; } section.page:nth-of-type(8) { page: c7; }
+@page c8 { size: 70mm 346mm; margin: 0; } section.page:nth-of-type(9) { page: c8; }
+@page c9 { size: 70mm 377mm; margin: 0; } section.page:nth-of-type(10) { page: c9; }
+@page c10 { size: 70mm 339mm; margin: 0; } section.page:nth-of-type(11) { page: c10; }
+@page c11 { size: 70mm 380mm; margin: 0; } section.page:nth-of-type(12) { page: c11; }
+@page c12 { size: 70mm 340mm; margin: 0; } section.page:nth-of-type(13) { page: c12; }
+@page c13 { size: 70mm 369mm; margin: 0; } section.page:nth-of-type(14) { page: c13; }
+@page c14 { size: 70mm 354mm; margin: 0; } section.page:nth-of-type(15) { page: c14; }
+@page c15 { size: 70mm 248mm; margin: 0; } section.page:nth-of-type(16) { page: c15; }
+@page c16 { size: 70mm 296mm; margin: 0; } section.page:nth-of-type(17) { page: c16; }
+</style></head>
 <body>
 
 <!-- ============ 1. Omslag ============ -->
@@ -447,8 +464,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </div></div></div>
     </div>
   </div>
-  <div class="tip"><b>Appen lär sig:</b> rättar du ett fält läser den där nästa gång för samma leverantör. Den varnar också om fakturan redan finns.</div>
-  <div class="warn"><b>Appen ändrar aldrig ett tryckt belopp i tysthet</b> – en tolkning visas i en ruta överst. Jämför alltid med dokumentet.</div>
+  <div class="tip"><b>Appen lär sig:</b> rättar du ett fält läser den där nästa gång för samma leverantör. Den ändrar aldrig ett tryckt belopp i tysthet: en tolkning visas i en ruta överst, så jämför alltid med dokumentet.</div>
   <div class="folio"><span>Kontrollera uppgifterna</span><span>7</span></div>
 </section>
 
@@ -729,5 +745,5 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 var n = parseInt((location.hash || '').replace('#s', ''), 10);
 if (n) document.querySelectorAll('.page').forEach(function (pg, i) { if (i !== n - 1) pg.style.display = 'none'; });
 </script>
-<script>var n = parseInt((location.hash || '').replace('#s', ''), 10);if (n) document.querySelectorAll('.page').forEach(function (s, i) { if (i !== n - 1) s.style.display = 'none'; });</script></body>
+</body>
 </html>
