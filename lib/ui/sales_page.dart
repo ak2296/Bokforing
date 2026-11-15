@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_controller.dart';
+import '../domain/closed_days.dart';
 import '../domain/dates.dart';
 import '../domain/money.dart';
 import 'app_icons.dart';
 import 'record_details.dart';
+import 'scan/scan_flow.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
 import 'widgets/ledger_parts.dart';
@@ -19,11 +22,19 @@ class _SalesPageState extends State<SalesPage> {
   YearMonth _ym = YearMonth.now();
 
   @override
-  Widget build(BuildContext context) => Reloading<MonthData>(
+  Widget build(BuildContext context) => Reloading<(MonthData, ClosedDays)>(
         deps: _ym.title,
-        loader: (c) => MonthData.load(c, _ym),
-        builder: (context, m) {
+        loader: (c) async => (await MonthData.load(c, _ym), await c.repo.closedDays()),
+        builder: (context, data) {
+          final (m, closed) = data;
           final r = m.report;
+          final coverage = ZCoverage.of(
+            year: _ym.year,
+            month: _ym.month,
+            today: DateTime.now(),
+            scannedDates: {for (final d in m.sales) d.businessDate},
+            closed: closed,
+          );
           final categories = [
             for (final c in r.columns) (c.name, r.columnTotals[c.key] ?? Money.zero),
             if (!r.totalOnline.isZero) ('Online', r.totalOnline),
@@ -75,13 +86,22 @@ class _SalesPageState extends State<SalesPage> {
                 label: 'Försäljning',
                 total: r.totalAllSales,
                 icon: AppIcons.register,
-                color: AppTheme.seed,
+                color: AppTheme.sales,
                 stats: [
                   ('Utgående moms', r.totalOutputVat.format(compact: true)),
-                  ('Z-rapporter', '${m.sales.length}'),
+                  ('Z-rapporter', coverage.text),
                   ('Online', r.totalOnline.format(compact: true)),
                 ],
               ),
+              if (coverage.missing.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _Notice(
+                  coverage.missing.length == 1
+                      ? 'Z-rapport saknas för ${SwedishDates.mediumDay(coverage.missing.first)}.'
+                      : 'Z-rapport saknas för ${coverage.missing.length} dagar.',
+                  onTap: () => showMissingZ(context, coverage.missing),
+                ),
+              ],
               if (withDifference > 0) ...[
                 const SizedBox(height: 10),
                 _Notice(
@@ -147,22 +167,89 @@ List<Widget> _weeks(List<(String, Widget)> entries) {
 
 class _Notice extends StatelessWidget {
   final String text;
-  const _Notice(this.text);
+
+  /// When set the whole card is tappable (it opens a box to choose in).
+  final VoidCallback? onTap;
+  const _Notice(this.text, {this.onTap});
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppTheme.warningTint,
+  Widget build(BuildContext context) => Material(
+        color: AppTheme.warningTint,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.warningBorder),
+          side: BorderSide(color: AppTheme.warningBorder),
         ),
-        child: Row(children: [
-          Icon(AppIcons.warning, size: 18, color: AppTheme.warning),
-          const SizedBox(width: 10),
-          Expanded(child: Text(text, style: TextStyle(color: AppTheme.warning, fontSize: 13))),
-        ]),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(children: [
+              Icon(AppIcons.warning, size: 18, color: AppTheme.warning),
+              const SizedBox(width: 10),
+              Expanded(child: Text(text, style: TextStyle(color: AppTheme.warning, fontSize: 13))),
+              if (onTap != null) Icon(AppIcons.chevronRight, size: 18, color: AppTheme.warning),
+            ]),
+          ),
+        ),
       );
+}
+
+/// The box that opens from the alert: for the oldest day without a Z-report the
+/// owner chooses to scan it or to say the shop was closed that day. The x in the
+/// corner closes it without changing anything.
+Future<void> showMissingZ(BuildContext context, List<String> missing) async {
+  final controller = AppScope.read(context);
+  final days = [...missing];
+  while (days.isNotEmpty && context.mounted) {
+    final day = days.first;
+    final d = SwedishDates.parseIso(day);
+    const names = ['måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag', 'söndag'];
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        titlePadding: const EdgeInsets.fromLTRB(24, 8, 8, 0),
+        title: Row(children: [
+          const Expanded(child: Text('Z-rapport saknas')),
+          IconButton(
+            tooltip: 'Stäng',
+            icon: const Icon(AppIcons.close),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${d == null ? day : '${names[d.weekday - 1]} ${SwedishDates.mediumDay(day)}'}'
+              '${days.length > 1 ? ' (och ${days.length - 1} dagar till)' : ''}'),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              icon: const Icon(AppIcons.scan),
+              label: const Text('Skanna Z-rapporten'),
+              onPressed: () => Navigator.pop(context, 'scan'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(AppIcons.checkCircle),
+              label: const Text('Butiken var stängd'),
+              onPressed: () => Navigator.pop(context, 'closed'),
+            ),
+          ),
+        ]),
+      ),
+    );
+    if (choice == 'scan') {
+      if (context.mounted) await startScan(context);
+      return;
+    }
+    if (choice != 'closed') return; // x: nothing changes
+    await controller.repo.saveClosedDays((await controller.repo.closedDays()).withDate(day));
+    controller.dataChanged();
+    days.removeAt(0);
+  }
 }
 
 class _Empty extends StatelessWidget {

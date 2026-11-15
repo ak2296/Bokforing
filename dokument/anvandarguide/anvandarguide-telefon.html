@@ -132,6 +132,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 
 
 
+
 /* ---------- Skisser som i appen (skisser.py) ---------- */
 .screen .body { padding: 0 2.2mm; }
 .two-c { display: flex; gap: 1.2mm; margin-bottom: 1.2mm; }
@@ -254,10 +255,10 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 @page c7 { size: 70mm 384mm; margin: 0; } section.page:nth-of-type(8) { page: c7; }
 @page c8 { size: 70mm 346mm; margin: 0; } section.page:nth-of-type(9) { page: c8; }
 @page c9 { size: 70mm 394mm; margin: 0; } section.page:nth-of-type(10) { page: c9; }
-@page c10 { size: 70mm 339mm; margin: 0; } section.page:nth-of-type(11) { page: c10; }
+@page c10 { size: 70mm 384mm; margin: 0; } section.page:nth-of-type(11) { page: c10; }
 @page c11 { size: 70mm 380mm; margin: 0; } section.page:nth-of-type(12) { page: c11; }
 @page c12 { size: 70mm 340mm; margin: 0; } section.page:nth-of-type(13) { page: c12; }
-@page c13 { size: 70mm 369mm; margin: 0; } section.page:nth-of-type(14) { page: c13; }
+@page c13 { size: 70mm 427mm; margin: 0; } section.page:nth-of-type(14) { page: c13; }
 @page c14 { size: 70mm 354mm; margin: 0; } section.page:nth-of-type(15) { page: c14; }
 @page c15 { size: 70mm 259mm; margin: 0; } section.page:nth-of-type(16) { page: c15; }
 @page c16 { size: 70mm 296mm; margin: 0; } section.page:nth-of-type(17) { page: c16; }
@@ -577,7 +578,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </div><div class="pill-nav"><div class=""><i class="ni"></i>Översikt</div><div class=""><i class="ni"></i>Försälj.</div><div class=" sc"><i class="ni"></i>Skanna</div><div class="on"><i class="ni"></i>Utgifter</div><div class=""><i class="ni"></i>Rapporter</div></div></div></div>
     </div>
     <div>
-      <p class="lead">Flikarna Försäljning och Utgifter visar en månad i taget. Byt månad med pilarna.</p>
+      <p class="lead">Flikarna Försäljning och Utgifter visar en månad i taget. Byt månad med pilarna. På Försäljning står <b>Z-rapporter: 5 av 6</b>: fem Z-rapporter för sex dagar hittills i månaden (stängda dagar räknas inte). Saknas en dag visas en gul ruta; tryck på den och välj <b>Skanna Z-rapporten</b> eller <b>Butiken var stängd</b>. Krysset uppe i hörnet stänger rutan utan ändring.</p>
       <ul>
         <li><b>Det stora kortet</b> visar månadens summa och moms.</li>
         <li><b>Stapeln</b> visar fördelningen per kategori eller kostnadstyp.</li>
@@ -658,11 +659,11 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
   <p style="font-size:7.6pt;color:var(--muted);margin-top:-1mm"><span class="num">1</span>Kugghjulet uppe till höger, på alla flikar, öppnar Inställningar.</p>
   <table class="t">
     <tr><th style="width:34mm">Del</th><th>Vad den gör</th></tr>
-    <tr><td><b>Sök</b></td><td>Fältet överst hittar en inställning på ett ord, t.ex. "pin" eller "moms". Delarna nedan fälls ut och in.</td></tr>
-    <tr><td><b>Utseende</b></td><td>Auto (som telefonen), Ljust eller Mörkt.</td></tr>
+    <tr><td><b>Sök</b></td><td>Fältet överst hittar en inställning på ett ord, t.ex. "pin" eller "moms". Därunder: kortet med företaget (tryck för företagsuppgifter och aktivering), Utseende och rader som Försäljning, Utgifter och dokument, Påminnelser, Säkerhet, Data och Mer. Tryck på en rad för att öppna den; pilen uppe till vänster tar dig tillbaka.</td></tr>
+    <tr><td><b>Utseende</b></td><td>Auto (som telefonen), Ljust eller Mörkt. Valet ligger på första sidan.</td></tr>
     <tr><td><b>Företag</b></td><td>Namn, företagsform, organisationsnummer, adress, räkenskapsårets startmånad, uppskattad skatt (egen procent eller preliminär skatt per år för enskild firma), andra namn på dokument och aktivering.</td></tr>
-    <tr><td><b>Försäljning</b></td><td>Kategorier med momssats (dra för ordning) och vad varje rad på Z-rapporten registreras som.</td></tr>
-    <tr><td><b>Utgifter och dokument</b></td><td>Avrunda utgifter (hela kronor i listor och rapporter), behåll originalbilder, inlärda fält och lagring.</td></tr>
+    <tr><td><b>Försäljning</b></td><td>Kategorier med momssats (dra för ordning), vad varje rad på Z-rapporten registreras som och <b>Stängda dagar</b>: veckodagar som alltid är stängda och enstaka dagar.</td></tr>
+    <tr><td><b>Utgifter och dokument</b></td><td>Kostnadstyper (lägg till egna), avrunda utgifter (hela kronor i listor och rapporter), behåll originalbilder, inlärda fält och lagring.</td></tr>
     <tr><td><b>Påminnelser</b></td><td>Avisering före förfallodagen.</td></tr>
     <tr><td><b>Säkerhet</b></td><td>PIN-kod med 4–6 siffror, och <b>fingeravtryck</b> för att låsa upp snabbare (PIN-koden finns kvar). Appen låser sig när den varit borta i mer än 2 minuter.</td></tr>
     <tr><td><b>Data</b></td><td>Automatisk säkerhetskopia, kopia till molnet, export, import och historik. Är kopian av visar Översikt en varning med senaste kopian.</td></tr>

@@ -20,6 +20,7 @@ import 'activation_page.dart';
 import 'ai_settings_page.dart';
 import 'backup_page.dart';
 import 'category_editor.dart';
+import 'closed_days_page.dart';
 import 'cost_types_page.dart';
 import 'hints_page.dart';
 import 'storage_page.dart';
@@ -35,6 +36,9 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final _search = TextEditingController();
+
+  /// The group shown instead of the home list; null = home.
+  String? _openGroup;
   bool _loading = true;
   bool _keepImages = false;
   bool _roundExpenses = false;
@@ -171,6 +175,8 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ]),
       _Group(AppIcons.register, 'Försäljning', 'Kategorier och Z-rapportens fält', [
+        _Entry('stängda dagar veckodag helgdag stängt z-rapport saknas',
+            nav(AppIcons.calendar, 'Stängda dagar', 'Veckodagar och enstaka dagar utan Z-rapport', () => const ClosedDaysPage())),
         _Entry('försäljningskategorier moms momssats kategori',
             nav(AppIcons.category, 'Försäljningskategorier', 'Namn och momssats per kategori', () => const CategoriesPage())),
         _Entry('z-rapport fält rader',
@@ -378,55 +384,189 @@ class _SettingsPageState extends State<SettingsPage> {
           if (query.isNotEmpty && ('${g.title} ${e.keywords}').toLowerCase().contains(query)) e.child,
     ];
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Inställningar')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-              children: [
-                TextField(
-                  controller: _search,
-                  onChanged: (_) => setState(() {}),
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: 'Sök i inställningar',
-                    prefixIcon: const Icon(AppIcons.search),
-                    suffixIcon: query.isEmpty
-                        ? null
-                        : IconButton(
-                            tooltip: 'Rensa',
-                            icon: const Icon(AppIcons.close),
-                            onPressed: () => setState(_search.clear),
-                          ),
-                  ),
+    _Group? open;
+    for (final g in groups) {
+      if (g.title == _openGroup) open = g;
+    }
+    const verksamheten = ['Försäljning', 'Utgifter och dokument', 'Påminnelser'];
+    const trygghet = ['Säkerhet', 'Data'];
+    const ovrigt = ['Mer'];
+    List<_Group> pick(List<String> titles) => [for (final g in groups) if (titles.contains(g.title)) g];
+    final appearance = groups.firstWhere((g) => g.title == 'Utseende');
+
+    Widget section(String title, List<_Group> gs) => gs.isEmpty
+        ? const SizedBox.shrink()
+        : Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+                child: Text(title.toUpperCase(),
+                    style: t.labelSmall?.copyWith(color: AppTheme.muted, letterSpacing: 1.2, fontWeight: FontWeight.w600)),
+              ),
+              Card(
+                margin: EdgeInsets.zero,
+                clipBehavior: Clip.antiAlias,
+                child: Column(children: [
+                  for (final (i, g) in gs.indexed) ...[
+                    if (i > 0) Divider(height: 1, indent: 72, color: AppTheme.hairline),
+                    _HomeRow(g, onTap: () => setState(() => _openGroup = g.title)),
+                  ],
+                ]),
+              ),
+            ]),
+          );
+
+    final home = <Widget>[
+      // The company and the activation at a glance.
+      Card(
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => setState(() => _openGroup = 'Företag'),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [AppTheme.seed, Color.lerp(AppTheme.seed, Colors.black, 0.3)!]),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(height: 12),
-                if (query.isNotEmpty)
-                  if (hits.isEmpty)
-                    const EmptyState(icon: AppIcons.search, text: 'Ingen inställning matchar sökningen.')
-                  else
-                    Card(child: Column(children: hits))
-                else
-                  for (final g in groups)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: Theme(
-                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                          child: ExpansionTile(
-                            key: PageStorageKey(g.title),
-                            leading: IconTile(g.icon),
-                            title: Text(g.title, style: t.titleSmall),
-                            subtitle: Text(g.summary, style: t.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-                            children: [for (final e in g.entries) e.child],
-                          ),
-                        ),
+                child: const Icon(AppIcons.store, color: Colors.white),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(_profile.name.isEmpty ? 'Företagsnamn saknas' : _profile.name, style: t.titleMedium),
+                  Text(
+                    [
+                      if (_form != null) _form!.label,
+                      if (_profile.orgNumber.isNotEmpty) 'Org.nr ${_profile.orgNumber}',
+                    ].join(' · ').ifEmpty('Tryck för att fylla i'),
+                    style: t.bodySmall,
+                  ),
+                  if (_license != null) ...[
+                    const SizedBox(height: 6),
+                    Text(licenseStatusText(_license!),
+                        style: t.bodySmall?.copyWith(color: AppTheme.seed, fontWeight: FontWeight.w500)),
+                  ],
+                ]),
+              ),
+              Icon(AppIcons.chevronRight, color: AppTheme.muted),
+            ]),
+          ),
+        ),
+      ),
+      // Light, dark or follow the phone: three choices, so shown right here.
+      Padding(
+        padding: const EdgeInsets.only(top: 20),
+        child: Card(
+          margin: EdgeInsets.zero,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: Row(children: [
+                Icon(AppIcons.settings, size: 20, color: AppTheme.seed),
+                const SizedBox(width: 10),
+                Text('Utseende', style: t.titleSmall),
+              ]),
+            ),
+            for (final e in appearance.entries) e.child,
+          ]),
+        ),
+      ),
+      section('Verksamheten', pick(verksamheten)),
+      section('Trygghet', pick(trygghet)),
+      section('Övrigt', pick(ovrigt)),
+    ];
+
+    return PopScope(
+      canPop: open == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(() => _openGroup = null);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(open?.title ?? 'Inställningar'),
+          leading: open == null
+              ? null
+              : IconButton(icon: const Icon(AppIcons.back), onPressed: () => setState(() => _openGroup = null)),
+        ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                children: [
+                  if (open == null) ...[
+                    TextField(
+                      controller: _search,
+                      onChanged: (_) => setState(() {}),
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText: 'Sök i inställningar',
+                        prefixIcon: const Icon(AppIcons.search),
+                        suffixIcon: query.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Rensa',
+                                icon: const Icon(AppIcons.close),
+                                onPressed: () => setState(_search.clear),
+                              ),
                       ),
                     ),
-              ],
-            ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (open == null && query.isNotEmpty)
+                    if (hits.isEmpty)
+                      const EmptyState(icon: AppIcons.search, text: 'Ingen inställning matchar sökningen.')
+                    else
+                      Card(child: Column(children: hits))
+                  else if (open != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+                      child: Text(open.summary, style: t.bodySmall),
+                    ),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(children: [for (final e in open.entries) e.child]),
+                    ),
+                  ] else
+                    ...home,
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+/// A row on the settings home: a tinted icon, the name, what is set now, and an arrow.
+class _HomeRow extends StatelessWidget {
+  final _Group group;
+  final VoidCallback onTap;
+  const _HomeRow(this.group, {required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(children: [
+          IconTile(group.icon),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(group.title, style: t.titleSmall),
+              Text(group.summary, style: t.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ]),
+          ),
+          Icon(AppIcons.chevronRight, color: AppTheme.muted, size: 20),
+        ]),
+      ),
     );
   }
 }

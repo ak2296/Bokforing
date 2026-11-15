@@ -18,6 +18,11 @@ class SettingsKeys {
   /// Cost types the owner added: JSON, see CostType.encodeCustom.
   static const customCostTypes = 'custom_cost_types';
 
+  /// Days the shop is closed, so no Z-report is expected: weekdays (JSON list of
+  /// 1..7, Monday = 1) and single dates (JSON list of ISO dates).
+  static const closedWeekdays = 'closed_weekdays';
+  static const closedDates = 'closed_dates';
+
   /// Estimated tax to set aside (enskild firma): 'percent' or 'amount', the
   /// percent in tenths and the yearly amount in öre.
   static const taxMode = 'tax_mode';

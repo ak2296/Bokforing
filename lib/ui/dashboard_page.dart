@@ -340,7 +340,7 @@ class _MonthHero extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: dark ? const [Color(0xFF3F55A8), Color(0xFF28387C)] : const [Color(0xFF2F4A9E), Color(0xFF1E3373)],
+            colors: dark ? const [Color(0xFF2A8F6D), Color(0xFF1B6650)] : const [Color(0xFF0B6B4E), Color(0xFF084D38)],
           ),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

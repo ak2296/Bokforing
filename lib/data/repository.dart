@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import '../app/settings_keys.dart';
 import '../domain/dates.dart';
 import '../domain/license.dart';
+import '../domain/closed_days.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
 import '../domain/tax_estimate.dart';
@@ -31,6 +32,14 @@ class Repository {
   Future<void> setSetting(String key, String value) => db.insert(
       'settings', {'key': key, 'value': value},
       conflictAlgorithm: ConflictAlgorithm.replace);
+
+  Future<ClosedDays> closedDays() async =>
+      ClosedDays.decode(await setting(SettingsKeys.closedWeekdays), await setting(SettingsKeys.closedDates));
+
+  Future<void> saveClosedDays(ClosedDays c) async {
+    await setSetting(SettingsKeys.closedWeekdays, c.encodeWeekdays());
+    await setSetting(SettingsKeys.closedDates, c.encodeDates());
+  }
 
   Future<bool> boolSetting(String key, {bool fallback = false}) async {
     final v = await setting(key);

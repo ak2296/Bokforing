@@ -8,6 +8,10 @@ class AppTheme {
   static bool dark = false;
 
   static Color get seed => dark ? const Color(0xFF2FA07A) : const Color(0xFF0B6B4E);
+  /// Slate blue for the Försäljning page (hero and accents): a cool third colour
+  /// next to the green of the overview and the pumpkin of the costs. Mid
+  /// saturation like the green, so white text keeps its contrast in both themes.
+  static Color get sales => dark ? const Color(0xFF4A6FA8) : const Color(0xFF3A5A8C);
   static Color get ink => dark ? const Color(0xFFE6EEEA) : const Color(0xFF10201B);
   static Color get muted => dark ? const Color(0xFF9AA8A1) : const Color(0xFF62706A);
   static Color get background => dark ? const Color(0xFF111917) : const Color(0xFFF5F7F4);
