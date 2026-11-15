@@ -39,3 +39,21 @@ Alla dubbelsidiga skrivare lägger baksidan någon millimeter åt sidan. Så hä
 3. Ange värdet i `BACK_OFFSET_MM` överst i `dokument/verktyg/make_booklet.py` och kör `python dokument/verktyg/make_docs.py`. Baksidorna flyttas då lika långt åt andra hållet.
 
 PDF-filen görs om med `python dokument/verktyg/make_docs.py`; häftet görs samtidigt av `make_booklet.py`.
+
+## Till tryckeriet
+
+Filerna är gjorda för att skickas som de är. Alla mått är verkliga (1:1). Färgerna är RGB (grön #0B6B4E, orange #E2600D och #F2832E); tryckeriet gör om dem till CMYK, be om ett korrektur (provtryck) på grönt och orange. Typsnitten (Inter, Poppins) är inbäddade i PDF-filerna.
+
+| Fil | Vad | Mått |
+|---|---|---|
+| `anvandarguide/anvandarguide-A6-tryckfil.pdf` | Häftet, 36 sidor i läsordning (omslag, tom, innehåll, anteckningar, tom, baksida), en sida per PDF-sida. Tryckeriet lägger ut och häftar. | Färdigt A6 stående, 105 × 148,5 mm. Sidan är 111 × 154,5 mm: 3 mm utfall runt om. Bara omslaget har färg ut i kanten |
+| `kort/kort.pdf` | Kortet, sida 1 framsida och sida 2 baksida | Färdigt 55 × 85 mm stående. Sidan är 61 × 91 mm: 3 mm utfall |
+| `forpackning/forpackning-tryckfil.pdf` | Lådans tryck utan linjer: grönt med 3 mm utfall utanför skärlinjen, vitt på baksidan. Limfliken och insidan är otryckta | A4 liggande, 1:1. Lådan är 244 × 203 mm med flikar |
+| `forpackning/forpackning-stans.pdf` | Stans- och biglinjerna ensamma, samma storlek och läge som tryckfilen. Röd heldragen = skär, blå streckad = vik | A4 liggande, 1:1 |
+
+Lådan: tuck-box (vikbar ask med instick), innermått 109 × 152 × 7 mm, för ett A6-häfte med kortet ovanpå. Tryckeriet har oftast en egen stansmall för måttet; skicka då tryckfilen och be dem lägga konsten på sin mall (ytorna är: baksida 109 × 152, framsida 109 × 152, två kortsidor 7 × 152, lock 109 × 7 med instick). Förslag på papper: häfte 115 g insida och 250–300 g omslag, kort och låda 350 g kartong, matt. Fråga tryckeriet om vad de rekommenderar.
+
+Omslaget på häftet har en telefonbild som går ut över högerkanten: den ska beskäras vid färdigt format, inte vid utfallet.
+
+PDF-filerna görs om med `python dokument/verktyg/make_docs.py`.
+

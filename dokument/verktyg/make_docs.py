@@ -22,8 +22,11 @@ DOCS = [
     "dokument/anvandarguide/anvandarguide.html",
     "dokument/anvandarguide/anvandarguide-tryck.html",
     "dokument/anvandarguide/anvandarguide-telefon.html",
+    "dokument/anvandarguide/anvandarguide-A6-tryckfil.html",
     "dokument/kort/kort.html",
     "dokument/forpackning/forpackning.html",
+    "dokument/forpackning/forpackning-tryckfil.html",
+    "dokument/forpackning/forpackning-stans.html",
 ]
 
 
@@ -35,6 +38,7 @@ def main() -> int:
     # The print booklet is made from the guide first.
     subprocess.run([sys.executable, "-I", str(ROOT / "dokument/verktyg/make_booklet.py")], check=True)
     subprocess.run([sys.executable, "-I", str(ROOT / "dokument/verktyg/make_telefon.py")], check=True)
+    subprocess.run([sys.executable, "-I", str(ROOT / "dokument/verktyg/make_tryckfiler.py")], check=True)
     for rel in DOCS:
         src = ROOT / rel
         if not src.exists():

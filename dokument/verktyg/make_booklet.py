@@ -149,6 +149,19 @@ def main() -> None:
     preview = ("<script>var n = parseInt((location.hash || '').replace('#s', ''), 10);"
                "if (n) document.querySelectorAll('.side').forEach(function (s, i) { if (i !== n - 1) s.style.display = 'none'; });"
                "</script>")
+    # The same pages for a printing company: one page each, in reading order,
+    # A6 plus 3 mm bleed on every side (111 x 154.5 mm). The printer imposes it.
+    bleed = []
+    for i, pg in enumerate(book):
+        bg = "#0B6B4E" if i == 0 else "#fff"
+        bleed.append(f'<div class="bl" style="background:{bg}"><div class="in">{pg}</div></div>')
+    hp = h.replace("@page { size: 210mm 297mm; margin: 0; }", "@page { size: 111mm 154.5mm; margin: 0; }").replace(
+        "</head>", "<style>.bl{width:111mm;height:154.5mm;position:relative;overflow:hidden;page-break-after:always}"
+        ".bl:last-child{page-break-after:auto}.bl .in{position:absolute;left:3mm;top:3mm}"
+        ".bl .page{page-break-after:auto}</style></head>", 1)
+    hp = re.sub(r"<title>.*?</title>", "<title>TRYCKFIL – Quee användarguide A6 med 3 mm utfall</title>", hp, count=1)
+    (OUT.parent / "anvandarguide-A6-tryckfil.html").write_text(
+        hp + "<body>\n" + "\n".join(bleed) + "\n</body>\n</html>\n", encoding="utf-8")
     OUT.write_text(h + "<body>\n" + "\n".join(sides) + f"\n{preview}\n</body>\n</html>\n", encoding="utf-8")
     for name in OLD:
         for ext in (".html", ".pdf"):
