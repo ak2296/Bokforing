@@ -23,7 +23,7 @@ QR-koden leder till https://ak2296.github.io/quee/, där den senaste versionen a
 
 ## Skriv ut användarguiden som häfte
 
-Häftet är A6 (105 × 148 mm) med text i verklig storlek (8,8 pt), inte förminskad från A5. Allt finns i en fil, `anvandarguide/anvandarguide-tryck.pdf`: 36 sidor på 5 A4-ark, fyra sidor per arksida. Framsidan, guiden, två sidor "Anteckningar" och baksidan; insidan av fram- och baksidan är vit.
+Häftet är A6 (105 × 148 mm) med text i verklig storlek (8,8 pt), inte förminskad från A5. Allt finns i en fil, `anvandarguide/anvandarguide-tryck.pdf`: 32 sidor på 4 A4-ark, fyra sidor per arksida. Framsidan, guiden och baksidan; insidan av fram- och baksidan är vit.
 
 1. Skriv ut **dubbelsidigt**, vänd längs **långsidan**, i **verklig storlek (100 %)**.
 2. Skär varje A4-ark mitt itu på bredden (de små strecken, 6 mm från kanten, visar var). Det sista arkets nedre halva kan vara tom, förutom en mätskala (se nedan), och kan slängas.
@@ -46,7 +46,7 @@ Filerna är gjorda för att skickas som de är. Alla mått är verkliga (1:1). F
 
 | Fil | Vad | Mått |
 |---|---|---|
-| `anvandarguide/anvandarguide-A6-tryckfil.pdf` | Häftet, 36 sidor i läsordning (omslag, tom, innehåll, anteckningar, tom, baksida), en sida per PDF-sida. Tryckeriet lägger ut och häftar. | Färdigt A6 stående, 105 × 148,5 mm. Sidan är 111 × 154,5 mm: 3 mm utfall runt om. Bara omslaget har färg ut i kanten |
+| `anvandarguide/anvandarguide-A6-tryckfil.pdf` | Häftet, 32 sidor i läsordning (omslag, tom, innehåll, guiden, tom, baksida), en sida per PDF-sida. Tryckeriet lägger ut och häftar. | Färdigt A6 stående, 105 × 148,5 mm. Sidan är 111 × 154,5 mm: 3 mm utfall runt om. Bara omslaget har färg ut i kanten |
 | `kort/kort.pdf` | Kortet, sida 1 framsida och sida 2 baksida | Färdigt 55 × 85 mm stående. Sidan är 61 × 91 mm: 3 mm utfall |
 | `forpackning/forpackning-tryckfil.pdf` | Lådans tryck utan linjer: grönt med 3 mm utfall utanför skärlinjen, vitt på baksidan. Limfliken och insidan är otryckta | A4 liggande, 1:1. Lådan är 244 × 203 mm med flikar |
 | `forpackning/forpackning-stans.pdf` | Stans- och biglinjerna ensamma, samma storlek och läge som tryckfilen. Röd heldragen = skär, blå streckad = vik | A4 liggande, 1:1 |

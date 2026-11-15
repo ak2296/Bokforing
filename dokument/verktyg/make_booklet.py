@@ -136,9 +136,9 @@ def main() -> None:
     cover, inner = pages[0], pages[1:]
     # Front cover, its blank back, the guide (numbers kept: contents = 2),
     # notes to fill up, the back cover's blank front and the back cover.
-    while (len(inner) + 4) % 4:
-        inner.append(notes_page(len(inner) + 2))
     book = [cover, BLANK, *inner, BLANK, BACK_COVER]
+    while len(book) % 4:  # a booklet has a multiple of four pages: blanks before the back cover
+        book.insert(-2, BLANK)
     assert len(book) % 4 == 0
 
     h = head.replace("@page { size: 148mm 210mm; margin: 0; }", "").replace("</head>", paginera_a6.STYLE.replace("@page { size: 105mm 148.5mm; margin: 0; }", "") + "</head>", 1)

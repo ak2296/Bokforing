@@ -32,6 +32,7 @@ ul, ol { padding-left: 5mm; }
 .steps li { padding-left: 8.5mm; }
 .steps li::before { width: 5.6mm; height: 5.6mm; font-size: 8.5pt; }
 .toc li { font-size: 10.5pt; }
+.toc li span:last-child { display: none; }
 
 /* tables become stacked rows: label above, text below */
 table.t, table.t tbody, table.t tr, table.t td, table.t th { display: block; width: auto !important; }

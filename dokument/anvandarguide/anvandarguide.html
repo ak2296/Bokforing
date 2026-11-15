@@ -129,6 +129,43 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 .legend { display: flex; align-items: center; gap: 1mm; font-size: 4.8pt; padding: 0.3mm 0; }
 .legend i { width: 1.6mm; height: 1.6mm; border-radius: 50%; display: inline-block; }
 
+/* ---------- Skisser som i appen (skisser.py) ---------- */
+.screen .body { padding: 0 2.2mm; }
+.two-c { display: flex; gap: 1.2mm; margin-bottom: 1.2mm; }
+.two-c > .card { flex: 1; margin: 0; padding: 1.5mm; }
+.card.amb { background: #FFF6E5; border-color: #F4E2BC; }
+.ok { color: #0B6B4E; } .mu { color: #62706A; font-size: 4.6pt; } .am { color: #8A5300; font-weight: 500; }
+.big { font-size: 7pt; font-weight: 500; } .big2 { font-size: 9pt; font-weight: 500; margin: 0.6mm 0 1mm; }
+.row2 { display: flex; align-items: center; gap: 1.6mm; }
+.vatic { width: 3.4mm; height: 3.4mm; border: 0.4mm solid #0B6B4E; border-radius: 0.8mm; flex: none; }
+.card.amb .vatic { border-color: #8A5300; }
+.fld { position: relative; background: #fff; border: 0.3mm solid #B4BFB9; border-radius: 1.6mm; padding: 1.5mm 1.8mm 1mm; margin: 2mm 0 1.4mm; }
+.fld.warn-f { background: #FBE9D8; border-color: #E9B98A; }
+.fld label { position: absolute; left: 1.6mm; top: -1.3mm; background: #F5F7F4; padding: 0 0.6mm; font-size: 4.2pt; color: #62706A; }
+.fld.warn-f label { background: #FBE9D8; }
+.fv { display: flex; align-items: center; gap: 1.2mm; font-size: 5.6pt; }
+.fi { width: 2.8mm; height: 2.8mm; border: 0.4mm solid #0B6B4E; border-radius: 50%; flex: none; }
+.fi.wa { border: 0; background: #E2600D; color: #fff; font-size: 4pt; text-align: center; line-height: 2.8mm; font-weight: 500; }
+.fi.s { width: 2.4mm; height: 2.4mm; line-height: 2.4mm; }
+.dt { font-weight: 500; margin: 1.2mm 0 0.4mm; }
+.scan { display: flex; align-items: center; gap: 1.4mm; }
+.pic { width: 3mm; height: 3mm; border: 0.4mm solid #0B6B4E; border-radius: 0.8mm; flex: none; }
+.zr .zl { display: flex; align-items: center; gap: 1.2mm; padding: 0.9mm 0; border-top: 0.2mm solid #E8ECE6; font-size: 5pt; }
+.zr .zl:first-of-type { margin-top: 1mm; }
+.month { text-align: center; padding: 1mm; border: 0.25mm solid #E8ECE6; border-radius: 3mm; background: #fff; margin-bottom: 1.2mm; font-size: 5.4pt; }
+.sec { font-weight: 500; margin: 1.2mm 0 0.8mm; display: flex; justify-content: space-between; }
+.share { display: flex; gap: 0.3mm; height: 2mm; border-radius: 1mm; overflow: hidden; margin-bottom: 1mm; }
+.share s { display: block; text-decoration: none; }
+.legend b { margin-left: auto; font-weight: 400; color: #62706A; }
+.outl { border: 0.4mm solid #0B6B4E; color: #0B6B4E; border-radius: 2mm; text-align: center; padding: 1.2mm; margin: 1.2mm 0; font-weight: 500; }
+.btns { display: flex; gap: 1.2mm; margin-bottom: 1.2mm; } .btns span { flex: 1; text-align: center; border: 0.25mm solid #E8ECE6; background: #fff; border-radius: 1.6mm; padding: 0.9mm 0; }
+.rl { display: flex; justify-content: space-between; padding: 0.7mm 0; } .rl.t { border-top: 0.2mm solid #E8ECE6; font-weight: 500; margin-top: 0.4mm; }
+.pill-nav { position: absolute; left: 1.6mm; right: 1.6mm; bottom: 1.6mm; height: 7.4mm; background: #fff; border: 0.25mm solid #E8ECE6; border-radius: 3.7mm; display: flex; justify-content: space-around; align-items: center; font-size: 3.6pt; color: #62706A; box-shadow: 0 0.4mm 1.2mm rgba(0,0,0,.12); }
+.pill-nav div { text-align: center; position: relative; } .pill-nav .ni { display: block; width: 2.6mm; height: 2.6mm; border: 0.4mm solid currentColor; border-radius: 0.7mm; margin: 0 auto 0.3mm; }
+.pill-nav .sc { color: #0B6B4E; } .pill-nav .on { color: #E2600D; font-weight: 500; }
+.pill-nav .on::before { content: ""; position: absolute; left: -1mm; right: -1mm; top: -1.5mm; height: 0.5mm; background: #E2600D; border-radius: 0.3mm; box-shadow: 0 1mm 1.6mm rgba(226,96,13,.5); }
+.screen .hero.coral { margin-bottom: 1.2mm; }
+
 /* ---------- Omslag ---------- */
 .cover { background: var(--green); color: #fff; padding: 0; }
 .cover .inner { position: absolute; inset: 0; padding: 20mm 14mm; }
@@ -160,19 +197,18 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     <div class="sub">Användarguide</div>
     <p style="margin-top:6mm; max-width:80mm; opacity:.9">Skanna fakturor, kvitton och Z-rapporter. Kontrollera. Klart – med moms och rapporter för varje månad.</p>
     <div class="deco">
-      <div class="phone small"><div class="screen">
-        <div class="bar"><span>09:41</span><span>●●●</span></div>
-        <div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="gear"></div></div>
-        <div class="body">
-          <div class="hero"><div>Försäljning</div><div class="big">48 312 kr</div>
-            <div class="stats"><div>Moms<b>5 902</b></div><div>Z<b>6</b></div><div>Online<b>3 140</b></div></div></div>
-          <div class="card"><div class="bars">
-            <div><s style="height:55%"></s><s style="height:35%"></s></div><div><s style="height:70%"></s><s style="height:40%"></s></div>
-            <div><s style="height:60%"></s><s style="height:45%"></s></div><div><s style="height:85%"></s><s style="height:38%"></s></div>
-            <div><s style="height:75%"></s><s style="height:50%"></s></div><div><s style="height:95%"></s><s style="height:42%"></s></div></div></div>
-        </div>
-        <div class="nav"><div class="on"><div class="ic"></div>Översikt</div><div><div class="ic"></div>Försälj.</div><div><div class="scan"><span></span></div></div><div><div class="ic"></div>Utgifter</div><div><div class="ic"></div>Rapporter</div></div>
-      </div></div>
+      <div class="phone small"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="gear"></div></div><div class="body">
+  <div class="two-c">
+    <div class="card"><b>Säkerhetskopia</b><br><span class="ok">✓</span> Automatisk<br><span class="mu">Senaste kopia<br>14 nov 17:08</span></div>
+    <div class="card amb"><b>Att betala</b><br><span class="mu">3 fakturor</span><br><b class="am">12 480 kr</b><br><span class="mu">Nästa: 19 nov</span></div>
+  </div>
+  <div class="two-c">
+    <div class="card"><span class="mu">Försäljning</span><br><b class="big">48 312 kr</b><br><span class="ok">↗ +8 % mot förra mån.</span></div>
+    <div class="card"><span class="mu">Utgifter</span><br><b class="big">21 506 kr</b><br><span class="ok">↘ −3 % mot förra mån.</span></div>
+  </div>
+  <div class="card"><span class="mu">Försäljning och utgifter, 6 månader</span><div class="bars"><div><s style="height:55%"></s><s style="height:35%"></s></div><div><s style="height:70%"></s><s style="height:40%"></s></div><div><s style="height:60%"></s><s style="height:45%"></s></div><div><s style="height:85%"></s><s style="height:38%"></s></div><div><s style="height:75%"></s><s style="height:50%"></s></div><div><s style="height:95%"></s><s style="height:42%"></s></div></div></div>
+  <div class="card row2"><span class="vatic"></span><div><span class="mu">Moms att betala (beräknad)</span><br><b class="big">2 492 kr</b></div></div>
+</div><div class="pill-nav"><div class="on"><i class="ni"></i>Översikt</div><div class=""><i class="ni"></i>Försälj.</div><div class=" sc"><i class="ni"></i>Skanna</div><div class=""><i class="ni"></i>Utgifter</div><div class=""><i class="ni"></i>Rapporter</div></div></div></div>
     </div>
     <div class="tag">Version 1.3 · november 2026</div>
   </div>
@@ -196,8 +232,9 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     <li><span>11</span><span>Säkerhetskopia och lagring</span><span>13</span></li>
     <li><span>12</span><span>Inställningar</span><span>14</span></li>
     <li><span>13</span><span>Vanliga frågor</span><span>15</span></li>
+    <li><span>14</span><span>Snabbguide: dag, vecka, månad</span><span>16</span></li>
+    <li><span>15</span><span>Ordlista</span><span>17</span></li>
   </ul>
-  <div class="tip" style="margin-top:4mm"><b>Allt stannar i telefonen.</b> Appen skickar inga uppgifter någonstans, om du inte själv slår på "Förbättrad analys online" eller skickar en säkerhetskopia. Ingen inloggning behövs.</div>
   <div class="folio"><span>Quee · Användarguide</span><span>2</span></div>
 </section>
 
@@ -276,26 +313,21 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
       <div class="tip"><b>Svep åt sidan</b> för att byta flik (utom Skanna). Första gången visar appen en rundtur; den kan visas igen under Inställningar → Mer. Kortet "Att betala" blir gult inom påminnelsetiden och rött när en faktura har förfallit.</div>
     </div>
     <div class="shot">
-      <div class="phone"><div class="screen">
-        <div class="bar"><span>09:41</span><span>●●●</span></div>
-        <div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="gear"></div></div>
-        <div class="body">
-          <div class="card" style="background:#FFF6E5;border-color:#F4E2BC"><b style="font-weight:500;color:#8A5300">Att betala: 2 fakturor</b><br><span style="color:#62706A">Nästa förfaller om 5 dagar</span></div>
-          <div style="display:flex;gap:1.2mm">
-            <div class="card" style="flex:1"><span style="color:#62706A">Försäljning</span><br><b style="font-weight:500;font-size:7pt">48 312</b><br><span style="color:#0B6B4E">+8 %</span></div>
-            <div class="card" style="flex:1"><span style="color:#62706A">Utgifter</span><br><b style="font-weight:500;font-size:7pt">21 506</b><br><span style="color:#0B6B4E">−3 %</span></div>
-          </div>
-          <div class="card"><span style="color:#62706A">Försäljning och utgifter, 6 månader</span><div class="bars">
-            <div><s style="height:55%"></s><s style="height:35%"></s></div><div><s style="height:70%"></s><s style="height:40%"></s></div>
-            <div><s style="height:60%"></s><s style="height:45%"></s></div><div><s style="height:85%"></s><s style="height:38%"></s></div>
-            <div><s style="height:75%"></s><s style="height:50%"></s></div><div><s style="height:95%"></s><s style="height:42%"></s></div></div></div>
-          <div class="card"><span style="color:#62706A">Moms att betala (beräknad)</span><br><b style="font-weight:500;font-size:7pt">2 492 kr</b></div>
-        </div>
-        <div class="nav"><div class="on"><div class="ic"></div>Översikt</div><div><div class="ic"></div>Försälj.</div><div><div class="scan"><span></span></div></div><div><div class="ic"></div>Utgifter</div><div><div class="ic"></div>Rapporter</div></div>
-      </div></div>
-      <span class="num" style="left:-2mm;top:13mm">1</span>
-      <span class="num" style="left:-2mm;top:24mm">2</span>
-      <span class="num" style="left:22mm;top:93mm">3</span>
+      <div class="phone"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="gear"></div></div><div class="body">
+  <div class="two-c">
+    <div class="card"><b>Säkerhetskopia</b><br><span class="ok">✓</span> Automatisk<br><span class="mu">Senaste kopia<br>14 nov 17:08</span></div>
+    <div class="card amb"><b>Att betala</b><br><span class="mu">3 fakturor</span><br><b class="am">12 480 kr</b><br><span class="mu">Nästa: 19 nov</span></div>
+  </div>
+  <div class="two-c">
+    <div class="card"><span class="mu">Försäljning</span><br><b class="big">48 312 kr</b><br><span class="ok">↗ +8 % mot förra mån.</span></div>
+    <div class="card"><span class="mu">Utgifter</span><br><b class="big">21 506 kr</b><br><span class="ok">↘ −3 % mot förra mån.</span></div>
+  </div>
+  <div class="card"><span class="mu">Försäljning och utgifter, 6 månader</span><div class="bars"><div><s style="height:55%"></s><s style="height:35%"></s></div><div><s style="height:70%"></s><s style="height:40%"></s></div><div><s style="height:60%"></s><s style="height:45%"></s></div><div><s style="height:85%"></s><s style="height:38%"></s></div><div><s style="height:75%"></s><s style="height:50%"></s></div><div><s style="height:95%"></s><s style="height:42%"></s></div></div></div>
+  <div class="card row2"><span class="vatic"></span><div><span class="mu">Moms att betala (beräknad)</span><br><b class="big">2 492 kr</b></div></div>
+</div><div class="pill-nav"><div class="on"><i class="ni"></i>Översikt</div><div class=""><i class="ni"></i>Försälj.</div><div class=" sc"><i class="ni"></i>Skanna</div><div class=""><i class="ni"></i>Utgifter</div><div class=""><i class="ni"></i>Rapporter</div></div></div></div>
+      <span class="num" style="left:-2mm;top:16mm">1</span>
+      <span class="num" style="left:-2mm;top:31mm">2</span>
+      <span class="num" style="left:20mm;top:84mm">3</span>
     </div>
   </div>
   <p style="font-size:8.4pt;color:var(--muted)"><span class="num">1</span>Att betala &nbsp; <span class="num">2</span>Månadens siffror med ändring mot förra månaden &nbsp; <span class="num">3</span>Skanna</p>
@@ -354,21 +386,17 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
       <p>Tryck <span class="btn">Godkänn och spara</span> när allt stämmer.</p>
     </div>
     <div class="shot">
-      <div class="phone"><div class="screen">
-        <div class="bar"><span>09:41</span><span>●●●</span></div>
-        <div class="apphead"><div>Kontrollera uppgifterna</div></div>
-        <div class="body">
-          <div style="font-weight:500;margin-bottom:1mm">Dokumenttyp: Faktura</div>
-          <div class="field"><label>Datum</label><div class="v">2026-10-16</div><span class="ok"></span></div>
-          <div class="field warn-f"><label>Leverantör</label><div class="v">Telefon</div><span class="q"></span></div>
-          <div class="field"><label>Kostnadstyp</label><div class="v">Telefon och internet</div></div>
-          <div class="field"><label>Summa (att betala)</label><div class="v">1 433,00 kr</div><span class="ok"></span></div>
-          <div class="field"><label>Moms</label><div class="v">286,50 kr</div><span class="ok"></span></div>
-          <div class="field"><label>OCR-nummer</label><div class="v">526730297326</div></div>
-          <div class="save">✓ Godkänn och spara</div>
-          <div class="links"><span>Skanna igen</span><span>Avbryt</span></div>
-        </div>
-      </div></div>
+      <div class="phone"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>‹ Kontrollera uppgifterna</div></div><div class="body">
+  <div class="card scan"><span class="pic"></span><div><b>Skannat dokument</b><br><span class="mu">Tryck för att jämföra med bilden</span></div><span class="mu">⌃</span></div>
+  <div class="dt">Dokumenttyp: Faktura</div>
+  <div class="fld"><label>Datum</label><div class="fv"><span class="fi ok"></span><span class="grow">2026-10-16</span><span class="mu">▦</span></div></div>
+  <div class="fld warn-f"><label>Leverantör</label><div class="fv"><span class="fi wa">!</span><span class="grow">Telefon och internet</span></div></div>
+  <div class="fld"><label>Kostnadstyp</label><div class="fv"><span class="grow">Ej vald</span><span class="mu">▾</span></div></div>
+  <div class="fld"><label>Summa (att betala)</label><div class="fv"><span class="fi ok"></span><span class="grow">1 433,00 kr</span></div></div>
+  <div class="fld"><label>Moms</label><div class="fv"><span class="fi ok"></span><span class="grow">286,50 kr</span></div></div>
+  <div class="save">✓ Godkänn och spara</div>
+  <div class="links"><span>Skanna igen</span><span>Avbryt</span></div>
+</div></div></div>
     </div>
   </div>
   <div class="tip"><b>Appen lär sig:</b> rättar du ett fält läser den där nästa gång för samma leverantör. Den varnar också om fakturan redan finns.</div>
@@ -394,14 +422,6 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <p>Har fakturan flera momssatser (t.ex. 12 % och 25 %) tryck <span class="kbd">Lägg till momssats</span> så visas en rad per sats. Saknar dokumentet moms, slå på <span class="kbd">Ingen moms</span>; momsfälten blir då gråa. Appen gör det själv när dokumentet säger det.</p>
   <h2>Kostnadstyp</h2>
   <p>Välj vad fakturan gäller, t.ex. Varuinköp, Lokalhyra, El eller Säkerhet (larm, kameror, bevakning; konto 5090, redovisaren bekräftar kontot). Används i resultatrapporten och SIE-filen.</p>
-  <div class="detail">
-    <div class="flow">
-      <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap"><span class="grow">Kreditnota</span><span class="sw"></span></div>
-      <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap;opacity:.5"><span class="grow">Moms <span style="color:var(--muted)">Ingen moms</span></span></div>
-      <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap;border-color:var(--green)"><span class="grow">Ingen moms</span><span class="sw on"></span></div>
-      <div class="ui" style="flex-direction:row;align-items:center;white-space:nowrap"><span class="grow">Varuinköp ▾</span></div>
-    </div>
-  </div>
   <div class="folio"><span>Fakturor och kvitton</span><span>8</span></div>
 </section>
 
@@ -420,22 +440,19 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
       </ol>
     </div>
     <div>
-      <div class="phone"><div class="screen">
-        <div class="bar"><span>21:58</span><span>●●●</span></div>
-        <div class="apphead"><div>Kontrollera uppgifterna</div></div>
-        <div class="body">
-          <div style="font-weight:500;margin-bottom:1mm">Dokumenttyp: Z-rapport</div>
-          <div class="field"><label>Datum</label><div class="v">2026-11-02</div><span class="ok"></span></div>
-          <div class="card"><b style="font-weight:500">Försäljning per kategori</b>
-            <div class="row"><div class="grow"><b>Mat avhämtning</b><span>Räknas som Avhämtning · 6 %</span></div><div class="amt">932,00</div></div>
-            <div class="row"><div class="grow"><b>Mat</b><span>Räknas som Mat · 12 %</span></div><div class="amt">661,00</div></div>
-            <div class="row"><div class="grow"><b>Tobak</b><span>Räknas som Tobak · 25 %</span></div><div class="amt">786,00</div></div>
-            <div class="row"><div class="grow"><b>Drycka</b><span>Räknas som Dryck · 12 %</span></div><div class="amt">80,00</div></div>
-          </div>
-          <div class="card"><b style="font-weight:500">Beräknad moms</b><br><span style="color:#62706A">25 %: 157,20 · 12 %: 79,39 · 6 %: 52,75</span></div>
-          <div class="save">✓ Godkänn och spara</div>
-        </div>
-      </div></div>
+      <div class="phone"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>‹ Kontrollera uppgifterna</div></div><div class="body">
+  <div class="card scan"><span class="pic"></span><div><b>Skannat dokument</b><br><span class="mu">Tryck för att jämföra med bilden</span></div><span class="mu">⌄</span></div>
+  <div class="dt">Dokumenttyp: Z-rapport</div>
+  <div class="fld"><label>Datum</label><div class="fv"><span class="fi ok"></span><span class="grow">2026-11-02</span><span class="mu">▦</span></div></div>
+  <div class="card zr"><b>Försäljning per kategori</b>
+    <div class="zl"><span class="fi ok s"></span><span class="grow">Avhämtning<br><span class="mu">Räknas som Avhämtning · 6 %</span></span><b>932,00</b></div>
+    <div class="zl"><span class="fi ok s"></span><span class="grow">Mat<br><span class="mu">Räknas som Mat · 12 %</span></span><b>661,00</b></div>
+    <div class="zl"><span class="fi wa s">!</span><span class="grow">Tobak<br><span class="mu">Kontrollera</span></span><b>786,00</b></div>
+    <div class="zl"><span class="fi ok s"></span><span class="grow">Drycka<br><span class="mu">Räknas som Dryck · 12 %</span></span><b>80,00</b></div>
+  </div>
+  <div class="card"><b>Beräknad moms</b><br><span class="mu">25 %: 157,20 · 12 %: 79,39 · 6 %: 52,75</span></div>
+  <div class="save">✓ Godkänn och spara</div>
+</div></div></div>
     </div>
   </div>
   <div class="tip"><b>Fältet på Z-rapporten</b> (Inställningar) visar alla rader appen har lärt sig och vad de räknas som. Där kan du ändra eller ta bort en koppling.</div>
@@ -484,23 +501,16 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <h1>Försäljning, utgifter och att betala</h1>
   <div class="two left">
     <div>
-      <div class="phone"><div class="screen">
-        <div class="bar"><span>09:41</span><span>●●●</span></div>
-        <div class="apphead"><div>Utgifter</div><div class="gear"></div></div>
-        <div class="body">
-          <div class="card" style="text-align:center;padding:1mm;border-radius:3mm">‹ &nbsp; November 2026 &nbsp; ›</div>
-          <div class="hero coral"><div>Utgifter</div><div class="big">21 506,40 kr</div>
-            <div class="stats"><div>Ing. moms<b>3 410</b></div><div>Fakturor<b>9</b></div><div>Obetalda<b>2</b></div></div></div>
-          <div class="card" style="background:#FFF6E5;border-color:#F4E2BC"><b style="font-weight:500;color:#8A5300">Att betala: 2 fakturor</b><br><span style="color:#62706A">Tryck för att se och betala</span></div>
-          <div class="card"><div class="share"><i style="flex:62;background:#E2600D"></i><i style="flex:20;background:#F2832E"></i><i style="flex:18;background:#F9B27A"></i></div>
-            <div class="legend"><i style="background:#E2600D"></i>Varuinköp 62 %</div><div class="legend"><i style="background:#F2832E"></i>Telefon 20 %</div></div>
-          <div class="card" style="padding:0.6mm 1.6mm">
-            <div class="row"><div class="date c">05<i>tor</i></div><div class="grow"><b>Grossist</b><span>Varuinköp</span></div><div class="amt">5 443</div></div>
-            <div class="row"><div class="date c">02<i>mån</i></div><div class="grow"><b>Telefon</b><span class="chip">Obetald · 13 d kvar</span></div><div class="amt">1 433</div></div>
-            <div class="row"><div class="date c">01<i>sön</i></div><div class="grow"><b>Elbolaget</b><span class="chip" style="background:#EEEDFE;color:#3C3489">Fyll i: kostnadstyp</span></div><div class="amt">1 860</div></div>
-          </div>
-        </div>
-      </div></div>
+      <div class="phone"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>Utgifter</div><div class="gear"></div></div><div class="body">
+  <div class="month">‹ &nbsp; ▦ November 2026 &nbsp; ›</div>
+  <div class="card amb row2"><span class="vatic"></span><div><b class="am">Att betala: 3 fakturor</b><br><span class="mu">Förfallit: 1</span></div><b class="am">12 480 kr</b></div>
+  <div class="hero coral"><div>Utgifter</div><div class="big2">21 506,40 kr</div>
+    <div class="stats"><div>Ingående moms<b>3 410</b></div><div>Fakturor<b>9</b></div><div>Obetalda<b>2</b></div></div></div>
+  <div class="sec">Per kostnadstyp <span class="mu">exkl. moms</span></div>
+  <div class="card"><div class="share"><s style="flex:62;background:#E2600D"></s><s style="flex:20;background:#F2832E"></s><s style="flex:10;background:#F9B27A"></s><s style="flex:8;background:#8A5300"></s></div>
+    <div class="legend"><i style="background:#E2600D"></i>Varuinköp<b>62 %</b></div><div class="legend"><i style="background:#F2832E"></i>Telefon<b>20 %</b></div></div>
+  <div class="outl">Matcha betalningar från bankfil</div>
+</div><div class="pill-nav"><div class=""><i class="ni"></i>Översikt</div><div class=""><i class="ni"></i>Försälj.</div><div class=" sc"><i class="ni"></i>Skanna</div><div class="on"><i class="ni"></i>Utgifter</div><div class=""><i class="ni"></i>Rapporter</div></div></div></div>
     </div>
     <div>
       <p class="lead">Flikarna Försäljning och Utgifter visar en månad i taget. Byt månad med pilarna.</p>
@@ -536,24 +546,14 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
       <p>Resultat har <span class="kbd">Förhandsvisa SIE</span> (verifikationerna) och <span class="kbd">SIE-fil till redovisaren</span>: <b>Skicka med e-post</b> eller <b>Spara på telefonen</b>. Läses av Fortnox, Visma, Bokio och de flesta byråer.</p>
     </div>
     <div>
-      <div class="phone"><div class="screen">
-        <div class="bar"><span>09:41</span><span>●●●</span></div>
-        <div class="apphead"><div>Rapporter</div><div class="gear"></div></div>
-        <div class="body">
-          <div class="tabs"><div>Månad</div><div>År</div><div class="on">Resultat</div><div>Jämför</div></div>
-          <div style="display:flex;gap:0.8mm;margin-bottom:1mm"><div class="card" style="flex:1;text-align:center;padding:0.8mm">PDF</div><div class="card" style="flex:1;text-align:center;padding:0.8mm">Excel</div><div class="card" style="flex:1;text-align:center;padding:0.8mm">Skriv ut</div></div>
-          <div class="card" style="text-align:center;padding:0.8mm">SIE-fil till redovisaren</div>
-          <div class="card">
-            <b style="font-weight:500">Intäkter</b>
-            <div class="row"><div class="grow">Försäljning i kassan</div><div>42 690</div></div>
-            <div class="row"><div class="grow">Onlineförsäljning</div><div>2 804</div></div>
-            <b style="font-weight:500;display:block;margin-top:1mm">Kostnader</b>
-            <div class="row"><div class="grow">Varuinköp</div><div>−13 336</div></div>
-            <div class="row"><div class="grow">Telefon och internet</div><div>−1 146</div></div>
-            <div class="row"><div class="grow"><b>Resultat</b></div><div class="amt">31 012</div></div>
-          </div>
-        </div>
-      </div></div>
+      <div class="phone"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>Rapporter</div><div class="gear"></div></div><div class="body">
+  <div class="tabs"><div>Månad</div><div>År</div><div class="on">Resultat</div><div>Jämför</div></div>
+  <div class="month">‹ &nbsp; November 2026 &nbsp; ›</div>
+  <div class="btns"><span>PDF</span><span>Excel</span><span>Skriv ut</span></div>
+  <div class="card"><div class="rl"><span>Försäljning exkl. moms</span><b>35 745</b></div><div class="rl"><span>Utgifter exkl. moms</span><b>−61 652</b></div><div class="rl t"><span>Resultat före skatt</span><b>−25 907</b></div></div>
+  <div class="card"><div class="rl"><span>Totala utgifter</span><b>75 327</b></div><div class="rl"><span>Utgående moms</span><b>6 715</b></div><div class="rl"><span>Ingående moms</span><b>13 674</b></div><div class="rl t"><span>Moms att få tillbaka</span><b>6 959</b></div></div>
+  <div class="outl">SIE-fil till redovisaren</div>
+</div><div class="pill-nav"><div class=""><i class="ni"></i>Översikt</div><div class=""><i class="ni"></i>Försälj.</div><div class=" sc"><i class="ni"></i>Skanna</div><div class=""><i class="ni"></i>Utgifter</div><div class="on"><i class="ni"></i>Rapporter</div></div></div></div>
     </div>
   </div>
   <div class="warn"><b>Momsen och resultatet är beräknade</b> utifrån det som finns i appen. De ersätter inte momsdeklarationen eller den officiella bokföringen.</div>
@@ -623,11 +623,57 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <h3>Kan jag använda appen på en ny telefon?</h3>
   <p>Ja. Installera appen, importera den senaste säkerhetskopian och skriv in aktiveringskoden.</p>
   <h3>Kan någon annan se mina uppgifter?</h3>
-  <p>Nej. Allt ligger krypterat i telefonen och i dina säkerhetskopior. Ingenting skickas utan att du väljer det.</p>
+  <p>Nej. Allt ligger krypterat i telefonen och i dina säkerhetskopior. Appen skickar inga uppgifter någonstans om du inte själv slår på "Förbättrad analys online" eller skickar en säkerhetskopia. Ingen inloggning behövs.</p>
   <h3>Telefonen frågar om appen är säker vid installation.</h3>
   <p>Appen installeras utanför Google Play, därför frågar Android. Ladda bara ner den via QR-koden på kortet.</p>
   <div class="tip" style="margin-top:6mm"><b>Behöver du hjälp?</b> Kontakta den som sålde appen till dig. Ha gärna versionen till hands: Inställningar → Om appen.</div>
   <div class="folio"><span>Vanliga frågor</span><span>15</span></div>
+</section>
+
+
+<!-- ============ 16. Snabbguide ============ -->
+<section class="page">
+  <div class="kicker">14 · Snabbguide</div>
+  <h1>Snabbguide: dag, vecka, månad</h1>
+  <h2>Varje dag</h2>
+  <ol class="steps">
+    <li><b>Skanna dagens Z-rapport.</b> Tryck på <span class="kbd">Skanna</span>. Smal och lång rapport: välj <b>I delar</b>.</li>
+    <li><b>Kontrollera</b> datum, raderna och totalen, och tryck <span class="btn">Godkänn och spara</span>.</li>
+    <li><b>Fota kvitton och fakturor</b> när de kommer. Kontrollera leverantör, summa och moms.</li>
+  </ol>
+  <h2>Varje vecka</h2>
+  <ul>
+    <li>Titta på kortet <b>Att betala</b> på Översikt och betala före förfallodagen.</li>
+    <li>Betalat? Tryck <span class="kbd">Matcha betalningar från bankfil</span> på Utgifter, så markeras fakturorna som betalda.</li>
+  </ul>
+  <h2>Varje månad</h2>
+  <ul>
+    <li>Öppna <b>Rapporter → Månad</b>. Saknas någon dag? Skanna den Z-rapporten.</li>
+    <li>Skicka <span class="kbd">PDF</span> och <span class="kbd">SIE-fil till redovisaren</span> (Resultat-fliken).</li>
+    <li>Titta att <b>Säkerhetskopia</b> på Översikt visar en ny kopia.</li>
+    <li><b>Varje år:</b> kontrollera årsrapporten. Spara originalen i sju år.</li>
+  </ul>
+  <div class="folio"><span>Snabbguide</span><span>16</span></div>
+</section>
+
+<!-- ============ 17. Ordlista ============ -->
+<section class="page">
+  <div class="kicker">15 · Ordlista</div>
+  <h1>Ordlista</h1>
+  <p class="lead">Orden som används i appen och i guiden.</p>
+  <table class="t">
+    <tr><td><b>Faktura</b></td><td>En räkning du ska betala. Har förfallodatum, ofta bankgiro och OCR-nummer.</td></tr>
+    <tr><td><b>Kvitto</b></td><td>Beviset på något du redan har betalat.</td></tr>
+    <tr><td><b>Kreditnota</b></td><td>En faktura åt andra hållet: leverantören betalar tillbaka. Beloppen blir minus.</td></tr>
+    <tr><td><b>Z-rapport</b></td><td>Kassans dagsavslut: dagens försäljning per varugrupp och totalt.</td></tr>
+    <tr><td><b>Förfallodatum</b></td><td>Sista dagen att betala. I appen räknas utgiften på den dagen.</td></tr>
+    <tr><td><b>Moms</b></td><td>Utgående moms är den du tar in på försäljningen, ingående den du betalar på inköp. Skillnaden är beräknad moms att betala eller få tillbaka.</td></tr>
+    <tr><td><b>Kostnadstyp</b></td><td>Vad en utgift gäller, t.ex. Varuinköp eller El. Används i resultatrapporten.</td></tr>
+    <tr><td><b>OCR-nummer</b></td><td>Numret som identifierar en faktura vid betalning.</td></tr>
+    <tr><td><b>SIE-fil</b></td><td>En fil med verifikationerna som redovisarens program kan läsa.</td></tr>
+    <tr><td><b>Redovisare</b></td><td>Den som gör bokföringen, momsdeklarationen och bokslutet åt dig.</td></tr>
+  </table>
+  <div class="folio"><span>Ordlista</span><span>17</span></div>
 </section>
 
 <script>
