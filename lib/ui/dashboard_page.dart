@@ -11,6 +11,7 @@ import '../domain/models.dart';
 import '../domain/money.dart';
 import '../domain/reports.dart';
 import 'app_icons.dart';
+import 'history_page.dart';
 import 'incomplete_page.dart';
 import 'record_details.dart';
 import 'settings/activation_page.dart';
@@ -73,33 +74,10 @@ class DashboardPage extends StatelessWidget {
                 ),
               ),
             const _UpdateCard(),
+            _MonthHero(report: r, previous: previous, title: ym.title),
             _TopCards(unpaid),
             const SizedBox(height: 8),
-            IntrinsicHeight(
-              child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Expanded(child: _KeyFigure('Försäljning', r.totalAllSales, previous.sales, higherIsGood: true)),
-                const SizedBox(width: 8),
-                Expanded(child: _KeyFigure('Utgifter', r.totalExpenses, previous.expenses, higherIsGood: false)),
-              ]),
-            ),
-            const SizedBox(height: 8),
-            _Panel(
-              title: 'Försäljning och utgifter, 6 månader',
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                PairedBarChart(
-                  labels: [for (final m in months) SwedishDates.shortMonths[m.$1 - 1]],
-                  first: [for (final m in months) m.$2.sales.ore / 100],
-                  second: [for (final m in months) m.$2.expenses.ore / 100],
-                  semanticLabel: 'Försäljning och utgifter för de senaste sex månaderna',
-                ),
-                const SizedBox(height: 6),
-                Wrap(spacing: 14, children: [
-                  LegendDot(AppTheme.seed, 'Försäljning'),
-                  LegendDot(chartSecond, 'Utgifter'),
-                ]),
-              ]),
-            ),
-            _Panel(title: 'Veckodagar, snitt senaste 12 veckorna', child: _Weekdays(extras.weekdayAverages)),
+            _TrendPanel(months: months, weekdays: extras.weekdayAverages),
             _Panel(
               child: Row(children: [
                 Icon(AppIcons.vat, color: AppTheme.seed),
@@ -124,12 +102,25 @@ class DashboardPage extends StatelessWidget {
                   period: ym.title),
             ],
             const SizedBox(height: 20),
-            Text('Senaste registreringar', style: t.titleMedium),
-            const SizedBox(height: 4),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text('Senaste registreringar', style: t.titleMedium),
+              TextButton(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryPage())),
+                child: const Text('Visa alla'),
+              ),
+            ]),
             if (recent.isEmpty)
               const EmptyState(icon: AppIcons.inbox, text: 'Börja med att skanna ditt första dokument: tryck på Skanna längst ner.')
             else
-              for (final e in recent) RegistrationTile(entry: e),
+              Card(
+                margin: EdgeInsets.zero,
+                child: Column(children: [
+                  for (final (i, e) in recent.indexed) ...[
+                    if (i > 0) Divider(height: 1, indent: 64, color: AppTheme.hairline),
+                    _RecentRow(e),
+                  ],
+                ]),
+              ),
             if (license.license?.until != null) _ActivationLine(license.license!.until!),
           ],
         );
@@ -138,24 +129,17 @@ class DashboardPage extends StatelessWidget {
   }
 }
 
-/// A rounded white panel with an optional small title.
+/// A rounded panel for a chart or a figure.
 class _Panel extends StatelessWidget {
-  final String? title;
   final Widget child;
-  const _Panel({this.title, required this.child});
+  const _Panel({required this.child});
 
   @override
   Widget build(BuildContext context) => Card(
         margin: const EdgeInsets.only(bottom: 8),
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            if (title != null) ...[
-              Text(title!, style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: 10),
-            ],
-            child,
-          ]),
+          child: child,
         ),
       );
 }
@@ -290,7 +274,7 @@ class _TopCardsState extends State<_TopCards> {
         color: fill,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: border)),
         clipBehavior: Clip.antiAlias,
-        child: InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.all(12), child: child)),
+        child: InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), child: child)),
       );
 
   @override
@@ -309,53 +293,54 @@ class _TopCardsState extends State<_TopCards> {
         ? 'Ingen'
         : '${SwedishDates.iso(_last!)} ${_last!.hour.toString().padLeft(2, '0')}:${_last!.minute.toString().padLeft(2, '0')}';
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: IntrinsicHeight(
-        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Expanded(
-            child: _card(
-              fill: on ? AppTheme.surface : AppTheme.warningTint,
-              border: on ? AppTheme.hairline : AppTheme.warningBorder,
-              onTap: () async {
-                await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupPage()));
-                _load();
-              },
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _card(
+          fill: colors.fill,
+          border: colors.border,
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UnpaidPage())),
+          child: Row(children: [
+            Icon(AppIcons.payments, color: colors.text),
+            const SizedBox(width: 12),
+            Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Säkerhetskopia', style: t.titleSmall?.copyWith(color: on ? null : AppTheme.warning)),
-                const SizedBox(height: 4),
-                Row(children: [
-                  Icon(on ? AppIcons.checkCircle : AppIcons.crossCircle,
-                      size: 16, color: on ? AppTheme.seed : AppTheme.danger),
-                  const SizedBox(width: 5),
-                  Text(on ? 'Automatisk' : 'Av', style: t.bodySmall),
-                ]),
-                const SizedBox(height: 4),
-                Text('Senaste kopia', style: t.bodySmall),
-                Text(last, style: t.bodySmall?.copyWith(color: AppTheme.ink)),
+                Text('Att betala · ${info.count} ${info.count == 1 ? 'faktura' : 'fakturor'}',
+                    style: t.titleSmall?.copyWith(color: colors.text)),
+                Text(
+                  [
+                    if (info.overdue > 0) '${info.overdue} förfallna',
+                    if (next != null) 'Nästa ${SwedishDates.shortDay(next.dueDate!)}, ${next.total.format(compact: true)}',
+                  ].join(' · '),
+                  style: t.bodySmall?.copyWith(color: AppTheme.ink),
+                ),
               ]),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _card(
-              fill: colors.fill,
-              border: colors.border,
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UnpaidPage())),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Att betala', style: t.titleSmall?.copyWith(color: colors.text)),
-                const SizedBox(height: 4),
-                Text('${info.count} ${info.count == 1 ? 'faktura' : 'fakturor'}', style: t.bodySmall),
-                Text(info.total.format(compact: true), style: t.titleMedium?.merge(moneyStyle).copyWith(color: colors.text)),
-                Text('Förfallit: ${info.overdue}',
-                    style: t.bodySmall?.copyWith(color: info.overdue > 0 ? AppTheme.danger : null)),
-                if (next != null)
-                  Text('Nästa: ${SwedishDates.shortDay(next.dueDate!)}, ${next.total.format(compact: true)}',
-                      style: t.bodySmall?.copyWith(color: AppTheme.ink, fontWeight: FontWeight.w500)),
-              ]),
+            const SizedBox(width: 8),
+            Text(info.total.format(compact: true), style: t.titleMedium?.merge(moneyStyle).copyWith(color: colors.text)),
+            Icon(AppIcons.chevronRight, size: 18, color: colors.text),
+          ]),
+        ),
+        const SizedBox(height: 8),
+        _card(
+          fill: on ? AppTheme.surface : AppTheme.warningTint,
+          border: on ? AppTheme.hairline : AppTheme.warningBorder,
+          onTap: () async {
+            await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupPage()));
+            _load();
+          },
+          child: Row(children: [
+            Icon(on ? AppIcons.checkCircle : AppIcons.crossCircle, size: 20, color: on ? AppTheme.seed : AppTheme.danger),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                on ? 'Säkerhetskopia · senast $last' : 'Säkerhetskopia är av · senast $last',
+                style: t.bodyMedium?.copyWith(color: on ? null : AppTheme.warning),
+              ),
             ),
-          ),
-        ]),
-      ),
+            Icon(AppIcons.chevronRight, size: 18, color: AppTheme.muted),
+          ]),
+        ),
+      ]),
     );
   }
 }
@@ -391,14 +376,65 @@ class _ActivationLine extends StatelessWidget {
   }
 }
 
-class _KeyFigure extends StatelessWidget {
+/// The month at a glance: the result before tax (without moms, as in the
+/// report) and, under it, sales and expenses with the change since last month.
+class _MonthHero extends StatelessWidget {
+  final MonthlyReport report;
+  final YearRow previous;
+  final String title;
+  const _MonthHero({required this.report, required this.previous, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final r = report;
+    final result = (r.totalAllSales - r.totalOutputVat) - (r.totalExpenses - r.totalInputVat);
+    const white = Colors.white;
+    final soft = Colors.white.withValues(alpha: 0.78);
+    final dark = AppTheme.dark;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: dark ? const [Color(0xFF2A8F6D), Color(0xFF1B6650)] : const [Color(0xFF0B6B4E), Color(0xFF084D38)],
+          ),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Resultat före skatt, $title', style: t.bodySmall?.copyWith(color: soft)),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(result.format(compact: true),
+                style: t.headlineMedium?.merge(moneyStyle).copyWith(color: white, fontWeight: FontWeight.w600)),
+          ),
+          Text('Exkl. moms', style: t.bodySmall?.copyWith(color: soft)),
+          const SizedBox(height: 12),
+          Divider(height: 1, color: Colors.white.withValues(alpha: 0.25)),
+          const SizedBox(height: 12),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: _HeroFigure('Försäljning', r.totalAllSales, previous.sales, higherIsGood: true)),
+            const SizedBox(width: 12),
+            Expanded(child: _HeroFigure('Utgifter', r.totalExpenses, previous.expenses, higherIsGood: false)),
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
+class _HeroFigure extends StatelessWidget {
   final String label;
   final Money value;
   final Money previous;
 
   /// For sales a rise is good news; for expenses it is not.
   final bool higherIsGood;
-  const _KeyFigure(this.label, this.value, this.previous, {required this.higherIsGood});
+  const _HeroFigure(this.label, this.value, this.previous, {required this.higherIsGood});
 
   @override
   Widget build(BuildContext context) {
@@ -406,29 +442,109 @@ class _KeyFigure extends StatelessWidget {
     final change = CompareRow(0, value, previous).changePercent;
     final up = change != null && change > 0;
     final good = change == null || change == 0 || up == higherIsGood;
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: t.bodySmall),
-          const SizedBox(height: 2),
-          FittedBox(child: Text(value.format(compact: true), style: t.titleLarge?.merge(moneyStyle))),
-          const SizedBox(height: 2),
-          if (change == null)
-            Text('Ingen jämförelse', style: t.bodySmall)
-          else
-            Row(children: [
-              Icon(up ? AppIcons.trendUp : AppIcons.trendDown,
-                  size: 14, color: good ? AppTheme.seed : AppTheme.warning),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text('${formatChange(change)} mot förra månaden',
-                    style: t.bodySmall?.copyWith(color: good ? AppTheme.seed : AppTheme.warning)),
-              ),
-            ]),
-        ]),
+    final soft = Colors.white.withValues(alpha: 0.78);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: t.bodySmall?.copyWith(color: soft)),
+      FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(value.format(compact: true),
+            style: t.titleMedium?.merge(moneyStyle).copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
+      if (change == null)
+        Text('Ingen jämförelse', style: t.bodySmall?.copyWith(color: soft))
+      else
+        Row(children: [
+          Icon(up ? AppIcons.trendUp : AppIcons.trendDown,
+              size: 14, color: good ? Colors.white : const Color(0xFFFFC98F)),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text('${formatChange(change)} mot förra mån.',
+                style: t.bodySmall?.copyWith(color: good ? soft : const Color(0xFFFFC98F)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+          ),
+        ]),
+    ]);
+  }
+}
+
+/// Six months of sales and expenses, or the weekday averages, one card with a
+/// switch. Months before the first with any figure are left out (at least three
+/// stay), so the bars use the width.
+class _TrendPanel extends StatefulWidget {
+  final List<(int, YearRow)> months;
+  final List<double> weekdays;
+  const _TrendPanel({required this.months, required this.weekdays});
+
+  @override
+  State<_TrendPanel> createState() => _TrendPanelState();
+}
+
+class _TrendPanelState extends State<_TrendPanel> {
+  bool _weekdays = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    var months = widget.months;
+    final firstUsed = months.indexWhere((m) => m.$2.sales.ore != 0 || m.$2.expenses.ore != 0);
+    if (firstUsed > 0) months = months.sublist(firstUsed.clamp(0, months.length - 3));
+    return _Panel(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          Expanded(child: Text(_weekdays ? 'Veckodagar, snitt senaste 12 veckorna' : 'Försäljning och utgifter', style: t.bodySmall)),
+          SegmentedButton<bool>(
+            showSelectedIcon: false,
+            style: const ButtonStyle(visualDensity: VisualDensity.compact),
+            segments: const [
+              ButtonSegment(value: false, label: Text('Månader')),
+              ButtonSegment(value: true, label: Text('Veckodag')),
+            ],
+            selected: {_weekdays},
+            onSelectionChanged: (v) => setState(() => _weekdays = v.first),
+          ),
+        ]),
+        const SizedBox(height: 10),
+        if (_weekdays)
+          _Weekdays(widget.weekdays)
+        else ...[
+          PairedBarChart(
+            labels: [for (final m in months) SwedishDates.shortMonths[m.$1 - 1]],
+            first: [for (final m in months) m.$2.sales.ore / 100],
+            second: [for (final m in months) m.$2.expenses.ore / 100],
+            semanticLabel: 'Försäljning och utgifter för de senaste månaderna',
+          ),
+          const SizedBox(height: 6),
+          Wrap(spacing: 14, children: [
+            LegendDot(AppTheme.seed, 'Försäljning'),
+            LegendDot(chartSecond, 'Utgifter'),
+          ]),
+        ],
+      ]),
+    );
+  }
+}
+
+/// One line in the latest registrations: what it is, when, and the amount.
+class _RecentRow extends StatelessWidget {
+  final RegistrationSummary entry;
+  const _RecentRow(this.entry);
+
+  @override
+  Widget build(BuildContext context) {
+    final e = entry;
+    final title = e.title.isEmpty ? e.typeLabel : (e.kind == 'z' ? 'Z-rapport ${e.title}' : e.title);
+    return ListTile(
+      leading: IconTile(switch (e.kind) {
+        'invoice' => AppIcons.expenses,
+        'online' => AppIcons.delivery,
+        'payslip' => AppIcons.payments,
+        _ => AppIcons.register,
+      }),
+      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text('${SwedishDates.shortDay(e.date)} · ${e.typeLabel}'),
+      trailing: Text(e.amount.format(compact: true), style: moneyStyle),
+      onTap: () => openRecord(context, e.kind, e.id),
     );
   }
 }
