@@ -4,7 +4,7 @@ Användarguide, nedladdningskort och förpackning för appen Quee.
 
 | Mapp | Innehåll |
 |---|---|
-| `anvandarguide/` | Användarguiden: HTML-källan `anvandarguide.html` (A5, 15 sidor; ur den görs de andra), telefonversionen `anvandarguide-telefon.pdf` (70 mm bred, samma som i appen) och häftet för utskrift i A6: `anvandarguide-tryck.pdf` |
+| `anvandarguide/` | Användarguiden: HTML-källan `anvandarguide.html` (A5, 15 sidor; ur den görs de andra), telefonversionen `anvandarguide-telefon.pdf` (70 mm bred, samma som i appen) och tryckfilen för häftet i A6 med utfall: `anvandarguide-A6-tryckfil.pdf` |
 | `kort/` | Kort 55 × 85 mm (stående) med QR-kod, fram- och baksida |
 | `forpackning/` | Tuck-box 109 × 152 × 7 mm för A6-häftet med kortet ovanpå: tryckfil med stans- och biglinjer (A3) och förhandsvisning |
 | `bilder/` | Appikon och QR-koden till nedladdningssidan |
