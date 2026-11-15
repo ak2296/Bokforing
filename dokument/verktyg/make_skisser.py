@@ -48,11 +48,23 @@ CSS = """/* ---------- Skisser som i appen (skisser.py) ---------- */
 .pill-nav .sc { color: #0B6B4E; } .pill-nav .on { color: #E2600D; font-weight: 500; }
 .pill-nav .on::before { content: ""; position: absolute; left: -1mm; right: -1mm; top: -1.5mm; height: 0.5mm; background: #E2600D; border-radius: 0.3mm; box-shadow: 0 1mm 1.6mm rgba(226,96,13,.5); }
 .screen .hero.coral { margin-bottom: 1.2mm; }
+.screen .hero { margin-bottom: 1.2mm; }
+.mu2 { font-size: 4.6pt; opacity: .8; margin-bottom: 1mm; }
+.seg { display: flex; } .seg i { font-style: normal; padding: 0 1mm; font-size: 4pt; border: 0.2mm solid #B4BFB9; } .seg i.on { background: #E4F2EC; color: #0B6B4E; }
 """
 
+_over = [0]
+
+
+def _oversikt() -> str:
+    """The first overview sketch in the file is the small one on the cover."""
+    _over[0] += 1
+    return k.oversikt(small=_over[0] == 1)
+
+
 BLOCKS = [  # (identifying text, new html)
-    ("Försäljning 48 312 kr Moms", lambda: k.oversikt(small=True)),
-    ("Att betala: 2 fakturor", k.oversikt),
+    ("DIN RESTAURANG November 2026 Säkerhetskopia", _oversikt),
+    ("DIN RESTAURANG November 2026 Resultat", _oversikt),
     ("Dokumenttyp: Faktura", k.kontrollera_faktura),
     ("Dokumenttyp: Z-rapport", k.kontrollera_z),
     ("Utgifter ‹", k.utgifter),

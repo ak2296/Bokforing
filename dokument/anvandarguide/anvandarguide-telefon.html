@@ -129,6 +129,8 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 .legend { display: flex; align-items: center; gap: 1mm; font-size: 4.8pt; padding: 0.3mm 0; }
 .legend i { width: 1.6mm; height: 1.6mm; border-radius: 50%; display: inline-block; }
 
+
+
 /* ---------- Skisser som i appen (skisser.py) ---------- */
 .screen .body { padding: 0 2.2mm; }
 .two-c { display: flex; gap: 1.2mm; margin-bottom: 1.2mm; }
@@ -165,6 +167,9 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 .pill-nav .sc { color: #0B6B4E; } .pill-nav .on { color: #E2600D; font-weight: 500; }
 .pill-nav .on::before { content: ""; position: absolute; left: -1mm; right: -1mm; top: -1.5mm; height: 0.5mm; background: #E2600D; border-radius: 0.3mm; box-shadow: 0 1mm 1.6mm rgba(226,96,13,.5); }
 .screen .hero.coral { margin-bottom: 1.2mm; }
+.screen .hero { margin-bottom: 1.2mm; }
+.mu2 { font-size: 4.6pt; opacity: .8; margin-bottom: 1mm; }
+.seg { display: flex; } .seg i { font-style: normal; padding: 0 1mm; font-size: 4pt; border: 0.2mm solid #B4BFB9; } .seg i.on { background: #E4F2EC; color: #0B6B4E; }
 
 /* ---------- Omslag ---------- */
 .cover { background: var(--green); color: #fff; padding: 0; }
@@ -238,7 +243,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 @page c1 { size: 70mm 248mm; margin: 0; } section.page:nth-of-type(2) { page: c1; }
 @page c2 { size: 70mm 406mm; margin: 0; } section.page:nth-of-type(3) { page: c2; }
 @page c3 { size: 70mm 373mm; margin: 0; } section.page:nth-of-type(4) { page: c3; }
-@page c4 { size: 70mm 358mm; margin: 0; } section.page:nth-of-type(5) { page: c4; }
+@page c4 { size: 70mm 335mm; margin: 0; } section.page:nth-of-type(5) { page: c4; }
 @page c5 { size: 70mm 403mm; margin: 0; } section.page:nth-of-type(6) { page: c5; }
 @page c6 { size: 70mm 359mm; margin: 0; } section.page:nth-of-type(7) { page: c6; }
 @page c7 { size: 70mm 318mm; margin: 0; } section.page:nth-of-type(8) { page: c7; }
@@ -262,17 +267,12 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
     <div class="sub">Användarguide</div>
     <p style="margin-top:6mm; max-width:80mm; opacity:.9">Skanna fakturor, kvitton och Z-rapporter. Kontrollera. Klart – med moms och rapporter för varje månad.</p>
     <div class="deco">
-      <div class="phone small"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="gear"></div></div><div class="body">
-  <div class="two-c">
-    <div class="card"><b>Säkerhetskopia</b><br><span class="ok">✓</span> Automatisk<br><span class="mu">Senaste kopia<br>14 nov 17:08</span></div>
-    <div class="card amb"><b>Att betala</b><br><span class="mu">3 fakturor</span><br><b class="am">12 480 kr</b><br><span class="mu">Nästa: 19 nov</span></div>
-  </div>
-  <div class="two-c">
-    <div class="card"><span class="mu">Försäljning</span><br><b class="big">48 312 kr</b><br><span class="ok">↗ +8 % mot förra mån.</span></div>
-    <div class="card"><span class="mu">Utgifter</span><br><b class="big">21 506 kr</b><br><span class="ok">↘ −3 % mot förra mån.</span></div>
-  </div>
-  <div class="card"><span class="mu">Försäljning och utgifter, 6 månader</span><div class="bars"><div><s style="height:55%"></s><s style="height:35%"></s></div><div><s style="height:70%"></s><s style="height:40%"></s></div><div><s style="height:60%"></s><s style="height:45%"></s></div><div><s style="height:85%"></s><s style="height:38%"></s></div><div><s style="height:75%"></s><s style="height:50%"></s></div><div><s style="height:95%"></s><s style="height:42%"></s></div></div></div>
-  <div class="card row2"><span class="vatic"></span><div><span class="mu">Moms att betala (beräknad)</span><br><b class="big">2 492 kr</b></div></div>
+      <div class="phone"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="gear"></div></div><div class="body">
+  <div class="hero"><div>Resultat före skatt</div><div class="big2">−32 867 kr</div><div class="mu2">Exkl. moms</div>
+    <div class="stats"><div>Försäljning<b>42 460</b></div><div>Utgifter<b>75 327</b></div></div></div>
+  <div class="card amb row2"><span class="vatic"></span><div><b class="am">Att betala</b><br><span class="mu">3 fakturor</span></div><b class="am">12 480 kr</b></div>
+  <div class="card row2"><span class="ok">✓</span><span>Säkerhetskopia · senast 14 nov</span></div>
+  <div class="card"><div class="sec"><span class="mu">Försäljning och utgifter</span><span class="seg"><i class="on">Månader</i><i>Veckodag</i></span></div><div class="bars"><div><s style="height:55%"></s><s style="height:35%"></s></div><div><s style="height:70%"></s><s style="height:40%"></s></div><div><s style="height:60%"></s><s style="height:45%"></s></div><div><s style="height:85%"></s><s style="height:38%"></s></div><div><s style="height:75%"></s><s style="height:50%"></s></div><div><s style="height:95%"></s><s style="height:42%"></s></div></div></div>
 </div><div class="pill-nav"><div class="on"><i class="ni"></i>Översikt</div><div class=""><i class="ni"></i>Försälj.</div><div class=" sc"><i class="ni"></i>Skanna</div><div class=""><i class="ni"></i>Utgifter</div><div class=""><i class="ni"></i>Rapporter</div></div></div></div>
     </div>
     <div class="tag">Version 1.3 · november 2026</div>
@@ -369,7 +369,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
     <div>
       <p class="lead">Längst ner finns fem flikar. Kugghjulet uppe till höger öppnar Inställningar.</p>
       <table class="t">
-        <tr><td><b>Översikt</b></td><td>Månadens siffror jämfört med förra månaden, sexmånadersdiagram, kort för säkerhetskopia och att betala (med nästa förfallodag), snitt per veckodag, beräknad moms och de fem senaste registreringarna. Längst ner: när aktiveringen tar slut.</td></tr>
+        <tr><td><b>Översikt</b></td><td>Månadens resultat, att betala och säkerhetskopia, ett diagram (månader eller veckodag), beräknad moms och de senaste registreringarna. Längst ner: när aktiveringen tar slut.</td></tr>
         <tr><td><b>Försäljning</b></td><td>Z-rapporter och onlineförsäljning, dag för dag.</td></tr>
         <tr><td><b>Skanna</b></td><td>Den gröna knappen i mitten. Här börjar allt nytt.</td></tr>
         <tr><td><b>Utgifter</b></td><td>Fakturor och kvitton med sökfält, och vad som återstår att betala.</td></tr>
@@ -378,24 +378,19 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
       <div class="tip"><b>Svep åt sidan</b> för att byta flik (utom Skanna). Första gången visar appen en rundtur; den kan visas igen under Inställningar → Mer. Kortet "Att betala" blir gult inom påminnelsetiden och rött när en faktura har förfallit.</div>
     </div>
     <div class="shot">
-      <div class="phone"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="gear"></div></div><div class="body">
-  <div class="two-c">
-    <div class="card"><b>Säkerhetskopia</b><br><span class="ok">✓</span> Automatisk<br><span class="mu">Senaste kopia<br>14 nov 17:08</span></div>
-    <div class="card amb"><b>Att betala</b><br><span class="mu">3 fakturor</span><br><b class="am">12 480 kr</b><br><span class="mu">Nästa: 19 nov</span></div>
-  </div>
-  <div class="two-c">
-    <div class="card"><span class="mu">Försäljning</span><br><b class="big">48 312 kr</b><br><span class="ok">↗ +8 % mot förra mån.</span></div>
-    <div class="card"><span class="mu">Utgifter</span><br><b class="big">21 506 kr</b><br><span class="ok">↘ −3 % mot förra mån.</span></div>
-  </div>
-  <div class="card"><span class="mu">Försäljning och utgifter, 6 månader</span><div class="bars"><div><s style="height:55%"></s><s style="height:35%"></s></div><div><s style="height:70%"></s><s style="height:40%"></s></div><div><s style="height:60%"></s><s style="height:45%"></s></div><div><s style="height:85%"></s><s style="height:38%"></s></div><div><s style="height:75%"></s><s style="height:50%"></s></div><div><s style="height:95%"></s><s style="height:42%"></s></div></div></div>
-  <div class="card row2"><span class="vatic"></span><div><span class="mu">Moms att betala (beräknad)</span><br><b class="big">2 492 kr</b></div></div>
+      <div class="phone small"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="gear"></div></div><div class="body">
+  <div class="hero"><div>Resultat före skatt</div><div class="big2">−32 867 kr</div><div class="mu2">Exkl. moms</div>
+    <div class="stats"><div>Försäljning<b>42 460</b></div><div>Utgifter<b>75 327</b></div></div></div>
+  <div class="card amb row2"><span class="vatic"></span><div><b class="am">Att betala</b><br><span class="mu">3 fakturor</span></div><b class="am">12 480 kr</b></div>
+  <div class="card row2"><span class="ok">✓</span><span>Säkerhetskopia · senast 14 nov</span></div>
+  <div class="card"><div class="sec"><span class="mu">Försäljning och utgifter</span><span class="seg"><i class="on">Månader</i><i>Veckodag</i></span></div><div class="bars"><div><s style="height:55%"></s><s style="height:35%"></s></div><div><s style="height:70%"></s><s style="height:40%"></s></div><div><s style="height:60%"></s><s style="height:45%"></s></div><div><s style="height:85%"></s><s style="height:38%"></s></div><div><s style="height:75%"></s><s style="height:50%"></s></div><div><s style="height:95%"></s><s style="height:42%"></s></div></div></div>
 </div><div class="pill-nav"><div class="on"><i class="ni"></i>Översikt</div><div class=""><i class="ni"></i>Försälj.</div><div class=" sc"><i class="ni"></i>Skanna</div><div class=""><i class="ni"></i>Utgifter</div><div class=""><i class="ni"></i>Rapporter</div></div></div></div>
-      <span class="num" style="left:-2mm;top:16mm">1</span>
-      <span class="num" style="left:-2mm;top:31mm">2</span>
+      <span class="num" style="left:-2mm;top:21mm">1</span>
+      <span class="num" style="left:-2mm;top:41mm">2</span>
       <span class="num" style="left:20mm;top:84mm">3</span>
     </div>
   </div>
-  <p style="font-size:8.4pt;color:var(--muted)"><span class="num">1</span>Att betala &nbsp; <span class="num">2</span>Månadens siffror med ändring mot förra månaden &nbsp; <span class="num">3</span>Skanna</p>
+  <p style="font-size:8.4pt;color:var(--muted)"><span class="num">1</span>Månadens resultat &nbsp; <span class="num">2</span>Att betala &nbsp; <span class="num">3</span>Skanna</p>
   <div class="folio"><span>Appens flikar</span><span>5</span></div>
 </section>
 
