@@ -4,9 +4,9 @@ Användarguide, nedladdningskort och förpackning för appen Quee.
 
 | Mapp | Innehåll |
 |---|---|
-| `anvandarguide/` | Användarguiden, 15 sidor A5 (HTML-källa och PDF, samma som i appen) och häftet för utskrift i A6: `anvandarguide-tryck.pdf` |
+| `anvandarguide/` | Användarguiden: HTML-källan `anvandarguide.html` (A5, 15 sidor; ur den görs de andra), telefonversionen `anvandarguide-telefon.pdf` (70 mm bred, samma som i appen) och häftet för utskrift i A6: `anvandarguide-tryck.pdf` |
 | `kort/` | Kort 55 × 85 mm (stående) med QR-kod, fram- och baksida |
-| `forpackning/` | Tuck-box 154 × 216 × 14 mm: tryckfil med stans- och biglinjer (A3) och förhandsvisning |
+| `forpackning/` | Tuck-box 109 × 152 × 7 mm för A6-häftet med kortet ovanpå: tryckfil med stans- och biglinjer (A3) och förhandsvisning |
 | `bilder/` | Appikon och QR-koden till nedladdningssidan |
 | `forhandsvisning/` | Bilder av utvalda sidor |
 | `verktyg/` | Skript som gör PDF-filerna och förhandsbilderna med Microsoft Edge |
@@ -23,10 +23,10 @@ QR-koden leder till https://ak2296.github.io/quee/, där den senaste versionen a
 
 ## Skriv ut användarguiden som häfte
 
-Häftet är A6 (105 × 148 mm). Allt finns i en fil, `anvandarguide/anvandarguide-tryck.pdf`: 20 sidor på 3 A4-ark, fyra sidor per arksida. Framsidan, guiden, två sidor "Anteckningar" och baksidan; insidan av fram- och baksidan är vit.
+Häftet är A6 (105 × 148 mm) med text i verklig storlek (8,8 pt), inte förminskad från A5. Allt finns i en fil, `anvandarguide/anvandarguide-tryck.pdf`: 36 sidor på 5 A4-ark, fyra sidor per arksida. Framsidan, guiden, två sidor "Anteckningar" och baksidan; insidan av fram- och baksidan är vit.
 
 1. Skriv ut **dubbelsidigt**, vänd längs **långsidan**, i **verklig storlek (100 %)**.
-2. Skär varje A4-ark mitt itu på bredden (de små strecken, 6 mm från kanten, visar var). Det sista arkets nedre halva är tom, förutom en mätskala (se nedan), och kan slängas.
+2. Skär varje A4-ark mitt itu på bredden (de små strecken, 6 mm från kanten, visar var). Det sista arkets nedre halva kan vara tom, förutom en mätskala (se nedan), och kan slängas.
 3. Lägg halvorna i den ordning de skrevs ut, med första arkets övre halva ytterst.
 4. Vik allt på mitten (strecken visar mitten) och häfta två gånger i vikningen.
 

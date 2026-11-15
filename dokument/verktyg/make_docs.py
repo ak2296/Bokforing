@@ -21,6 +21,7 @@ EDGE_PATHS = [
 DOCS = [
     "dokument/anvandarguide/anvandarguide.html",
     "dokument/anvandarguide/anvandarguide-tryck.html",
+    "dokument/anvandarguide/anvandarguide-telefon.html",
     "dokument/kort/kort.html",
     "dokument/forpackning/forpackning.html",
 ]
@@ -33,6 +34,7 @@ def main() -> int:
         return 1
     # The print booklet is made from the guide first.
     subprocess.run([sys.executable, "-I", str(ROOT / "dokument/verktyg/make_booklet.py")], check=True)
+    subprocess.run([sys.executable, "-I", str(ROOT / "dokument/verktyg/make_telefon.py")], check=True)
     for rel in DOCS:
         src = ROOT / rel
         if not src.exists():
@@ -44,8 +46,9 @@ def main() -> int:
             check=True, capture_output=True,
         )
         print(f"{rel} -> {out.name}")
-    # The app carries the guide, opened from Inställningar → Användarguide.
-    guide = ROOT / "dokument/anvandarguide/anvandarguide.pdf"
+    # The app carries the phone version of the guide (set for a phone's width),
+    # opened from Inställningar → Användarguide.
+    guide = ROOT / "dokument/anvandarguide/anvandarguide-telefon.pdf"
     if guide.exists():
         shutil.copyfile(guide, ROOT / "assets/anvandarguide.pdf")
         print("assets/anvandarguide.pdf uppdaterad")

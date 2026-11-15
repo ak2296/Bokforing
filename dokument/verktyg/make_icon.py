@@ -4,7 +4,7 @@ Microsoft Edge (headless, already on Windows; nothing installed):
     python dokument/verktyg/make_icon.py
 
 Writes android_icon/res (copied into the app by the GitHub build) and
-dokument/bilder/app-ikon.png.
+dokument/bilder/app-ikon.png and the logo with the name, dokument/bilder/quee-logo.png.
 """
 import pathlib
 import subprocess
@@ -16,6 +16,13 @@ LOGO = ROOT / "dokument/logo/quee-ikon.svg"
 FOREGROUND = ROOT / "dokument/logo/quee-ikon-forgrund.svg"
 RES = ROOT / "android_icon/res"
 DENSITIES = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
+
+
+def render_page(page: pathlib.Path, size: int, out: pathlib.Path) -> None:
+    """A page that carries its own fonts (the logo with the name)."""
+    subprocess.run([EDGE, "--headless", "--disable-gpu", "--hide-scrollbars", "--default-background-color=00000000",
+                    f"--window-size={size},{size}", "--virtual-time-budget=3000", f"--screenshot={out}",
+                    page.as_uri()], check=True, capture_output=True)
 
 
 def render(svg: pathlib.Path, size: int, out: pathlib.Path) -> None:
@@ -35,6 +42,7 @@ for name, factor in DENSITIES.items():
     render(LOGO, round(48 * factor), RES / f"mipmap-{name}/ic_launcher.png")
     render(FOREGROUND, round(108 * factor), RES / f"mipmap-{name}/ic_launcher_foreground.png")
 render(LOGO, 192, ROOT / "dokument/bilder/app-ikon.png")
+render_page(ROOT / "dokument/logo/quee-logo.html", 600, ROOT / "dokument/bilder/quee-logo.png")
 (RES / "values/ic_launcher_background.xml").write_text(
     '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#0B6B4E</color>\n</resources>\n',
     encoding="utf-8")

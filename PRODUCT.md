@@ -32,7 +32,7 @@ Quee turns paper and PDF bookkeeping documents into checked records, monthly and
 
 - Scanning with automatic type detection (faktura/kvitto, Z-report, online sales, payslip), crop, OCR, manual entry, file import and share-in from other apps.
 - Reports: monthly, yearly, result with cost types, comparison; PDF, Excel, print; SIE file; estimated tax to set aside (aktiebolag 20,6 %, enskild firma by the owner's own percentage or yearly amount).
-- Overview, unpaid invoices with reminders, bank-file payment matching, learning of where a supplier prints each field (from the user's corrections), automatic encrypted backup, PIN and fingerprint lock, light and dark theme, first-run tour, user guide (A5 PDF and A6 print booklet).
+- Overview, unpaid invoices with reminders, bank-file payment matching, learning of where a supplier prints each field (from the user's corrections), automatic encrypted backup, PIN and fingerprint lock, light and dark theme, first-run tour, user guide (phone-width PDF in the app, A6 print booklet).
 - No company exists yet. Features that only make sense with a company (closing a month, filing a moms return, and similar) are parked in `FUTURE_FUNCTIONS.md`.
 - Android now, iOS later: keep code portable but build and test on Android only for now. The app is built with Flutter; there is no local Flutter install, so builds are verified on GitHub CI.
 - The owner's own bank CSV and data are private: learn layouts only, never copy real data into the repository.
@@ -45,7 +45,7 @@ Quee turns paper and PDF bookkeeping documents into checked records, monthly and
 
 ## Evidence on Hand
 
-- User guide, A5 and A6 booklet: `dokument/anvandarguide/`; download card: `dokument/kort/`; packaging: `dokument/forpackning/`.
+- User guide (source A5, phone PDF, A6 booklet): `dokument/anvandarguide/`; download card: `dokument/kort/`; packaging: `dokument/forpackning/`.
 - Releases are published to the download repo `ak2296/quee` as `Quee.apk` after each green build.
 - Absent and not to be invented: customer testimonials, named customers, pricing, benchmarks, usage numbers, accountant endorsements.
 

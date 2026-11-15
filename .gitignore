@@ -11,3 +11,4 @@ pubspec.lock
 .idea/
 # Old code kept locally only
 /_gammal_kod/
+__pycache__/

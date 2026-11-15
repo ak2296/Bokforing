@@ -10,6 +10,7 @@
 <style>
 @font-face { font-family: Inter; src: url(../../assets/fonts/Inter-Regular.otf); font-weight: 400; }
 @font-face { font-family: Inter; src: url(../../assets/fonts/Inter-Medium.otf); font-weight: 500; }
+@font-face { font-family: Poppins; src: url(../logo/fonts/Poppins-SemiBold.ttf); font-weight: 600; }
 @page { size: 148mm 210mm; margin: 0; }
 :root {
   --green: #0B6B4E; --green-2: #3E9B7A; --tint: #E4F2EC; --ink: #10201B; --muted: #62706A;
@@ -133,7 +134,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 .cover .inner { position: absolute; inset: 0; padding: 20mm 14mm; }
 .cover .logo { width: 22mm; height: 22mm; border-radius: 5mm; box-shadow: 0 0 0 0.6mm rgba(255,255,255,.35); overflow: hidden; }
 .cover .logo img { width: 22mm; height: 22mm; display: block; }
-.cover h1 { font-size: 34pt; margin: 10mm 0 2mm; letter-spacing: -0.8pt; }
+.cover h1 { font-family: Poppins, Inter, sans-serif; font-weight: 600; font-size: 34pt; margin: 10mm 0 2mm; letter-spacing: 0; }
 .cover .sub { font-size: 13pt; opacity: 0.9; }
 .cover .tag { position: absolute; left: 14mm; bottom: 18mm; font-size: 9pt; opacity: 0.85; }
 .cover .deco { position: absolute; right: -18mm; top: 70mm; transform: rotate(-12deg); opacity: 0.95; }
@@ -359,7 +360,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
         <div class="body">
           <div style="font-weight:500;margin-bottom:1mm">Dokumenttyp: Faktura</div>
           <div class="field"><label>Datum</label><div class="v">2026-10-16</div><span class="ok"></span></div>
-          <div class="field warn-f"><label>Leverantör</label><div class="v">Telenor</div><span class="q"></span></div>
+          <div class="field warn-f"><label>Leverantör</label><div class="v">Telefon</div><span class="q"></span></div>
           <div class="field"><label>Kostnadstyp</label><div class="v">Telefon och internet</div></div>
           <div class="field"><label>Summa (att betala)</label><div class="v">1 433,00 kr</div><span class="ok"></span></div>
           <div class="field"><label>Moms</label><div class="v">286,50 kr</div><span class="ok"></span></div>
@@ -445,7 +446,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 <section class="page">
   <div class="kicker">8 · Mer att skanna</div>
   <h1>Onlineförsäljning och filer</h1>
-  <h2>Onlineförsäljning (Foodora och andra)</h2>
+  <h2>Onlineförsäljning (leveransappar)</h2>
   <p>Tryck Skanna → <span class="kbd">Onlineförsäljning</span> och fotografera partnerns betalningsbesked eller självfaktura. Appen läser utbetalningsdatum, belopp och moms.</p>
     <h2>Faktura i e-post eller som PDF</h2>
   <ul>
@@ -494,8 +495,8 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
           <div class="card"><div class="share"><i style="flex:62;background:#E2600D"></i><i style="flex:20;background:#F2832E"></i><i style="flex:18;background:#F9B27A"></i></div>
             <div class="legend"><i style="background:#E2600D"></i>Varuinköp 62 %</div><div class="legend"><i style="background:#F2832E"></i>Telefon 20 %</div></div>
           <div class="card" style="padding:0.6mm 1.6mm">
-            <div class="row"><div class="date c">05<i>tor</i></div><div class="grow"><b>Snabbgross</b><span>Varuinköp</span></div><div class="amt">5 443</div></div>
-            <div class="row"><div class="date c">02<i>mån</i></div><div class="grow"><b>Telenor</b><span class="chip">Obetald · 13 d kvar</span></div><div class="amt">1 433</div></div>
+            <div class="row"><div class="date c">05<i>tor</i></div><div class="grow"><b>Grossist</b><span>Varuinköp</span></div><div class="amt">5 443</div></div>
+            <div class="row"><div class="date c">02<i>mån</i></div><div class="grow"><b>Telefon</b><span class="chip">Obetald · 13 d kvar</span></div><div class="amt">1 433</div></div>
             <div class="row"><div class="date c">01<i>sön</i></div><div class="grow"><b>Elbolaget</b><span class="chip" style="background:#EEEDFE;color:#3C3489">Fyll i: kostnadstyp</span></div><div class="amt">1 860</div></div>
           </div>
         </div>

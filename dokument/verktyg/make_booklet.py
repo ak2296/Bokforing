@@ -17,14 +17,18 @@ Page numbers are the same as in the normal guide.
 """
 import pathlib
 import re
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import paginera_a6
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SRC = ROOT / "dokument/anvandarguide/anvandarguide.html"
 OUT = ROOT / "dokument/anvandarguide/anvandarguide-tryck.html"
 OLD = ["anvandarguide-tryck-omslag", "anvandarguide-tryck-inlaga"]
 
-# The A5 guide page (148 x 210 mm) shrunk to A6 (105 x 148.5 mm).
-SCALE = 148.5 / 210
+# The pages are made at A6 size (105 x 148.5 mm) by paginera_a6.py, not shrunk.
+SCALE = 1
 
 # Printer registration. A duplex printer puts the back a little to one side of
 # the front. Print the last A4 sheet (it has a measuring scale in its empty
@@ -58,7 +62,7 @@ div.side:last-of-type {{ page-break-after: auto; }}
 .side.back {{ transform: translateX({BACK_OFFSET_MM}mm); }}
 .half {{ position: absolute; left: 0; width: 210mm; height: 148.5mm; display: flex; }}
 .slot {{ width: 105mm; height: 148.5mm; overflow: hidden; position: relative; }}
-.slot > .page {{ transform: scale({SCALE:.5f}); transform-origin: 0 0; page-break-after: auto; }}
+.slot > .page {{ page-break-after: auto; }}
 .mark-v {{ position: absolute; left: 105mm; width: 0; height: 3mm; border-left: 0.25mm solid #777; }}
 .mark-h {{ position: absolute; top: 148.5mm; height: 0; width: 4mm; border-top: 0.25mm solid #777; }}
 .cal {{ position: absolute; left: 0; width: 210mm; font-size: 6pt; color: #555; }}
@@ -67,7 +71,7 @@ div.side:last-of-type {{ page-break-after: auto; }}
 .cal .lab {{ position: absolute; width: 8mm; margin-left: -4mm; text-align: center; font-size: 5.5pt; }}
 .backcover .mark {{ position: absolute; left: 0; right: 0; bottom: 16mm; display: flex; flex-direction: column; align-items: center; gap: 2mm; }}
 .backcover .mark img {{ width: 11mm; height: 11mm; border-radius: 2.6mm; }}
-.backcover .mark span {{ font-size: 9pt; font-weight: 500; color: #0B6B4E; letter-spacing: 0.3pt; }}
+.backcover .mark span {{ font-family: Poppins, Inter, sans-serif; font-size: 10pt; font-weight: 600; color: #0B6B4E; letter-spacing: 0.3pt; }}
 .notes .line {{ height: 7.4mm; border-bottom: 0.25mm solid #DCE3DB; }}
 </style>
 """
@@ -128,9 +132,7 @@ def impose(book: list[str]) -> list[str]:
 def main() -> None:
     html = SRC.read_text(encoding="utf-8")
     head = html[: html.index("<body>")]
-    pages = re.findall(r'<section class="page[^"]*">.*?</section>', html, flags=re.S)
-    if len(pages) < 2:
-        raise SystemExit("Inga sidor hittades i guiden.")
+    pages = paginera_a6.build()
     cover, inner = pages[0], pages[1:]
     # Front cover, its blank back, the guide (numbers kept: contents = 2),
     # notes to fill up, the back cover's blank front and the back cover.
@@ -139,7 +141,7 @@ def main() -> None:
     book = [cover, BLANK, *inner, BLANK, BACK_COVER]
     assert len(book) % 4 == 0
 
-    h = head.replace("@page { size: 148mm 210mm; margin: 0; }", "")
+    h = head.replace("@page { size: 148mm 210mm; margin: 0; }", "").replace("</head>", paginera_a6.STYLE.replace("@page { size: 105mm 148.5mm; margin: 0; }", "") + "</head>", 1)
     h = re.sub(r"<title>.*?</title>", "<title>TRYCK – Quee användarguide A6 (dubbelsidigt, vänd längs långsidan)</title>", h, count=1)
     h = h.replace("</head>", STYLE + "</head>", 1)
     sides = impose(book)

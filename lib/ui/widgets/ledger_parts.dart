@@ -305,9 +305,14 @@ class ShareBar extends StatelessWidget {
                 Expanded(child: Text(p.$1, style: t.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis)),
                 Text('${(p.$2.ore * 100 / total).round()} %', style: t.bodySmall),
                 const SizedBox(width: 10),
+                // One line, always: a long amount is scaled down instead of breaking.
                 SizedBox(
-                  width: 92,
-                  child: Text(p.$2.format(compact: true), textAlign: TextAlign.right, style: moneyStyle),
+                  width: 108,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(p.$2.format(compact: true), maxLines: 1, softWrap: false, style: moneyStyle),
+                  ),
                 ),
               ]),
             ),
@@ -317,7 +322,14 @@ class ShareBar extends StatelessWidget {
   }
 }
 
-/// Greens for sales, warm tones for costs, from dark to light. The bar keeps
-/// a small gap between the parts.
-const salesPalette = [Color(0xFF0B6B4E), Color(0xFF3E9B7A), Color(0xFF7CC4A6), Color(0xFFB9DFCC), Color(0xFF5B7F72), Color(0xFF9AA9A2)];
-const costPalette = [AppTheme.pumpkin, AppTheme.pumpkinLight, AppTheme.pumpkinPale, Color(0xFF8A5300), Color(0xFFD9A066), Color(0xFFB0A08A)];
+/// Eight clearly different hues for sales categories, so no two neighbours in
+/// the bar or the list look alike. Warm tones for costs. The bar keeps a small
+/// gap between the parts.
+const salesPalette = [
+  Color(0xFF2FBF8F), Color(0xFFF2C14E), Color(0xFF7C5CFF), Color(0xFF4DA3FF),
+  Color(0xFFE56B8A), Color(0xFF8AD16B), Color(0xFF25B7C9), Color(0xFFC48B5A),
+];
+const costPalette = [
+  AppTheme.pumpkin, AppTheme.pumpkinLight, AppTheme.pumpkinPale, Color(0xFF8A5300),
+  Color(0xFFD9A066), Color(0xFFB0A08A), Color(0xFFC2410C), Color(0xFFFFD08A),
+];

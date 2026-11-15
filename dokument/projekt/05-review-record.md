@@ -77,6 +77,7 @@ Each project document was compared with the code and the shipped behaviour.
 | DOC-2 | `PRODUCT.md` | Current; written 2026-11-13; open decisions (pricing, accountant workflow) are marked | – | Pass |
 | DOC-3 | `FUTURE_FUNCTIONS.md` | Current; lists parked company-only functions | – | Pass |
 | DOC-4 | User guide (A5 PDF, version 1.3) | Updated for the changes up to the tour and tax estimate; the phone mock-up on the tab page still shows the old amber "Att betala" banner, not the new half-width cards | Low | Open |
+| DOC-6 | User guide was hard to read: the A5 page opened on a phone is shrunk to about 44 % (body text about 4 pt), and the A6 booklet was A5 scaled to 71 % (about 6.8 pt) | Medium | Fixed (to be confirmed on a phone and on paper) | The app now carries a phone version (page 70 mm wide, body 10.5 pt, one column). The booklet is set at A6 size (body 8.8 pt) and cut into pages by `paginera_a6.py`; it grew from 20 to 36 pages (about 3 mm thick). The box was resized to 109 x 152 x 7 mm so the card lies on top of the A6 booklet |
 | DOC-5 | User guide print booklet (A6) | Rebuilt from the guide each time; pages were not re-inspected after the last text edits | Low | Open |
 | DOC-6 | Download card and packaging files | Not changed in this period; not re-inspected | Low | Not reviewed |
 | DOC-7 | These project documents (01–07) | New; first baseline | – | For owner review |

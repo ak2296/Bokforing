@@ -106,7 +106,8 @@ class ScanTab extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
               child: Text('Annat sätt', style: t.titleSmall),
             ),
-            Row(children: [
+            IntrinsicHeight(
+              child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               _Tile(
                 icon: AppIcons.delivery,
                 color: AppTheme.online,
@@ -118,7 +119,8 @@ class ScanTab extends StatelessWidget {
               _Tile(icon: AppIcons.file, label: 'Importera fil', onTap: () => importFile(context)),
               const SizedBox(width: 8),
               _Tile(icon: AppIcons.edit, label: 'Fyll i själv', onTap: () => _manual(context)),
-            ]),
+              ]),
+            ),
             Padding(
               padding: const EdgeInsets.only(top: 16),
               child: Material(
@@ -175,7 +177,7 @@ class _Tile extends StatelessWidget {
             onTap: onTap,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
-              child: Column(children: [
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 IconTile(icon, background: background ?? AppTheme.tint, color: color ?? AppTheme.seed),
                 const SizedBox(height: 8),
                 Text(label, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.ink)),
