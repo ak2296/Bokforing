@@ -21,6 +21,7 @@ import '../scan/scan_flow.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/fields.dart';
+import '../widgets/cost_type_dialog.dart';
 import 'ai_assist.dart';
 import '../settings/activation_page.dart';
 import 'review_common.dart';
@@ -70,6 +71,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   late final TextEditingController _paidDate, _bankgiro, _plusgiro;
 
   /// [CostType.key]; '' until chosen. Suggested from the supplier's last one.
+  static const _newCostType = '__ny';
   late String _costType = widget.existing?.costType ?? '';
   bool _costSuggested = false;
 
@@ -434,24 +436,48 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
             if (d?.ownNameQuestion != null) _ownNameCard(d!.ownNameQuestion!),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              key: ValueKey('kostnadstyp-$_costSuggested'),
+              key: ValueKey('kostnadstyp-$_costSuggested-$_costType'),
               initialValue: _costType,
               isExpanded: true,
               decoration: InputDecoration(
                 labelText: 'Kostnadstyp',
-                helperText: _costSuggested ? 'Samma som förra fakturan från leverantören' : 'Används i resultatrapporten',
+                // Yellow (Kontrollera) until the owner has chosen: empty, or only
+                // suggested from the supplier's last invoice.
+                filled: true,
+                fillColor: _costType.isEmpty || _costSuggested ? AppTheme.unsureTint : AppTheme.surface,
+                prefixIcon: _costType.isEmpty || _costSuggested
+                    ? Padding(padding: const EdgeInsets.all(12), child: Icon(AppIcons.warning, color: AppTheme.unsure))
+                    : Padding(padding: const EdgeInsets.all(12), child: Icon(AppIcons.checkCircle, color: AppTheme.ok)),
+                helperText: _costType.isEmpty
+                    ? 'Kontrollera: välj kostnadstyp'
+                    : _costSuggested
+                        ? 'Förslag: samma som förra fakturan från leverantören. Kontrollera'
+                        : 'Används i resultatrapporten',
+                helperMaxLines: 2,
+                helperStyle: _costType.isEmpty || _costSuggested ? TextStyle(color: AppTheme.unsure) : null,
               ),
               items: [
                 const DropdownMenuItem(value: '', child: Text('Ej vald')),
-                for (final c in CostType.all) DropdownMenuItem(value: c.key, child: Text(c.label)),
+                for (final c in CostType.selectable) DropdownMenuItem(value: c.key, child: Text(c.label)),
+                const DropdownMenuItem(value: _newCostType, child: Text('+ Ny kostnadstyp …')),
               ],
               onChanged: !_editing
                   ? null
-                  : (v) => setState(() {
+                  : (v) async {
+                      if (v == _newCostType) {
+                        final added = await addCostTypeDialog(context);
+                        if (added == null || !mounted) {
+                          setState(() {});
+                          return;
+                        }
+                        v = added.key;
+                      }
+                      setState(() {
                         _costType = v ?? '';
                         _costSuggested = false;
                         _edited = true;
-                      }),
+                      });
+                    },
             ),
             const SizedBox(height: 12),
             KeyedSubtree(

@@ -131,6 +131,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 
 
 
+
 /* ---------- Skisser som i appen (skisser.py) ---------- */
 .screen .body { padding: 0 2.2mm; }
 .two-c { display: flex; gap: 1.2mm; margin-bottom: 1.2mm; }
@@ -168,6 +169,10 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 .pill-nav .on::before { content: ""; position: absolute; left: -1mm; right: -1mm; top: -1.5mm; height: 0.5mm; background: #E2600D; border-radius: 0.3mm; box-shadow: 0 1mm 1.6mm rgba(226,96,13,.5); }
 .screen .hero.coral { margin-bottom: 1.2mm; }
 .screen .hero { margin-bottom: 1.2mm; }
+.hero { background: linear-gradient(135deg, #2F4A9E, #1E3373) !important; }
+.hr { display: flex; align-items: center; gap: 1.6mm; } .cl { color: #0B6B4E; font-size: 6pt; }
+.rkrow { display: flex; justify-content: flex-end; margin-bottom: 1.2mm; }
+.rk { background: #FFF6E5; border: 0.25mm solid #F4E2BC; color: #8A5300; border-radius: 3mm; padding: 0.5mm 1.4mm; font-weight: 500; } .rk b { background: #8A5300; color: #fff; border-radius: 2mm; padding: 0 1mm; margin-left: 0.8mm; }
 .mu2 { font-size: 4.6pt; opacity: .8; margin-bottom: 1mm; }
 .seg { display: flex; } .seg i { font-style: normal; padding: 0 1mm; font-size: 4pt; border: 0.2mm solid #B4BFB9; } .seg i.on { background: #E4F2EC; color: #0B6B4E; }
 
@@ -243,18 +248,18 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 @page c1 { size: 70mm 248mm; margin: 0; } section.page:nth-of-type(2) { page: c1; }
 @page c2 { size: 70mm 406mm; margin: 0; } section.page:nth-of-type(3) { page: c2; }
 @page c3 { size: 70mm 373mm; margin: 0; } section.page:nth-of-type(4) { page: c3; }
-@page c4 { size: 70mm 335mm; margin: 0; } section.page:nth-of-type(5) { page: c4; }
+@page c4 { size: 70mm 351mm; margin: 0; } section.page:nth-of-type(5) { page: c4; }
 @page c5 { size: 70mm 403mm; margin: 0; } section.page:nth-of-type(6) { page: c5; }
 @page c6 { size: 70mm 359mm; margin: 0; } section.page:nth-of-type(7) { page: c6; }
-@page c7 { size: 70mm 318mm; margin: 0; } section.page:nth-of-type(8) { page: c7; }
+@page c7 { size: 70mm 384mm; margin: 0; } section.page:nth-of-type(8) { page: c7; }
 @page c8 { size: 70mm 346mm; margin: 0; } section.page:nth-of-type(9) { page: c8; }
-@page c9 { size: 70mm 377mm; margin: 0; } section.page:nth-of-type(10) { page: c9; }
+@page c9 { size: 70mm 394mm; margin: 0; } section.page:nth-of-type(10) { page: c9; }
 @page c10 { size: 70mm 339mm; margin: 0; } section.page:nth-of-type(11) { page: c10; }
 @page c11 { size: 70mm 380mm; margin: 0; } section.page:nth-of-type(12) { page: c11; }
 @page c12 { size: 70mm 340mm; margin: 0; } section.page:nth-of-type(13) { page: c12; }
 @page c13 { size: 70mm 369mm; margin: 0; } section.page:nth-of-type(14) { page: c13; }
 @page c14 { size: 70mm 354mm; margin: 0; } section.page:nth-of-type(15) { page: c14; }
-@page c15 { size: 70mm 248mm; margin: 0; } section.page:nth-of-type(16) { page: c15; }
+@page c15 { size: 70mm 259mm; margin: 0; } section.page:nth-of-type(16) { page: c15; }
 @page c16 { size: 70mm 296mm; margin: 0; } section.page:nth-of-type(17) { page: c16; }
 </style></head>
 <body>
@@ -267,11 +272,11 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
     <div class="sub">Användarguide</div>
     <p style="margin-top:6mm; max-width:80mm; opacity:.9">Skanna fakturor, kvitton och Z-rapporter. Kontrollera. Klart – med moms och rapporter för varje månad.</p>
     <div class="deco">
-      <div class="phone"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="gear"></div></div><div class="body">
+      <div class="phone"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="hr"><span class="cl">&#9729;</span><div class="gear"></div></div></div><div class="body">
+  <div class="rkrow"><span class="rk">Räkningar <b>3</b></span></div>
   <div class="hero"><div>Resultat före skatt</div><div class="big2">−32 867 kr</div><div class="mu2">Exkl. moms</div>
     <div class="stats"><div>Försäljning<b>42 460</b></div><div>Utgifter<b>75 327</b></div></div></div>
-  <div class="card amb row2"><span class="vatic"></span><div><b class="am">Att betala</b><br><span class="mu">3 fakturor</span></div><b class="am">12 480 kr</b></div>
-  <div class="card row2"><span class="ok">✓</span><span>Säkerhetskopia · senast 14 nov</span></div>
+  <div class="card row2"><span class="vatic"></span><div><span class="mu">Moms att betala (beräknad)</span><br><b class="big">2 492 kr</b></div></div>
   <div class="card"><div class="sec"><span class="mu">Försäljning och utgifter</span><span class="seg"><i class="on">Månader</i><i>Veckodag</i></span></div><div class="bars"><div><s style="height:55%"></s><s style="height:35%"></s></div><div><s style="height:70%"></s><s style="height:40%"></s></div><div><s style="height:60%"></s><s style="height:45%"></s></div><div><s style="height:85%"></s><s style="height:38%"></s></div><div><s style="height:75%"></s><s style="height:50%"></s></div><div><s style="height:95%"></s><s style="height:42%"></s></div></div></div>
 </div><div class="pill-nav"><div class="on"><i class="ni"></i>Översikt</div><div class=""><i class="ni"></i>Försälj.</div><div class=" sc"><i class="ni"></i>Skanna</div><div class=""><i class="ni"></i>Utgifter</div><div class=""><i class="ni"></i>Rapporter</div></div></div></div>
     </div>
@@ -369,28 +374,28 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
     <div>
       <p class="lead">Längst ner finns fem flikar. Kugghjulet uppe till höger öppnar Inställningar.</p>
       <table class="t">
-        <tr><td><b>Översikt</b></td><td>Månadens resultat, att betala och säkerhetskopia, ett diagram (månader eller veckodag), beräknad moms och de senaste registreringarna. Längst ner: när aktiveringen tar slut.</td></tr>
+        <tr><td><b>Översikt</b></td><td>Månadens resultat, beräknad moms, ett diagram (månader eller veckodag) och de senaste registreringarna. Uppe till höger: knappen Räkningar och en molnikon för säkerhetskopian (grön = på, röd = av; tryck för detaljer). Längst ner: när aktiveringen tar slut.</td></tr>
         <tr><td><b>Försäljning</b></td><td>Z-rapporter och onlineförsäljning, dag för dag.</td></tr>
         <tr><td><b>Skanna</b></td><td>Den gröna knappen i mitten. Här börjar allt nytt.</td></tr>
         <tr><td><b>Utgifter</b></td><td>Fakturor och kvitton med sökfält, och vad som återstår att betala.</td></tr>
         <tr><td><b>Rapporter</b></td><td>Månad, år, resultat och jämförelse – som PDF, Excel eller utskrift.</td></tr>
       </table>
-      <div class="tip"><b>Svep åt sidan</b> för att byta flik (utom Skanna). Första gången visar appen en rundtur; den kan visas igen under Inställningar → Mer. Kortet "Att betala" blir gult inom påminnelsetiden och rött när en faktura har förfallit.</div>
+      <div class="tip"><b>Svep åt sidan</b> för att byta flik (utom Skanna). Första gången visar appen en rundtur; den kan visas igen under Inställningar → Mer. Knappen Räkningar är gul och blir röd när en faktura har förfallit.</div>
     </div>
     <div class="shot">
-      <div class="phone small"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="gear"></div></div><div class="body">
+      <div class="phone small"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="hr"><span class="cl">&#9729;</span><div class="gear"></div></div></div><div class="body">
+  <div class="rkrow"><span class="rk">Räkningar <b>3</b></span></div>
   <div class="hero"><div>Resultat före skatt</div><div class="big2">−32 867 kr</div><div class="mu2">Exkl. moms</div>
     <div class="stats"><div>Försäljning<b>42 460</b></div><div>Utgifter<b>75 327</b></div></div></div>
-  <div class="card amb row2"><span class="vatic"></span><div><b class="am">Att betala</b><br><span class="mu">3 fakturor</span></div><b class="am">12 480 kr</b></div>
-  <div class="card row2"><span class="ok">✓</span><span>Säkerhetskopia · senast 14 nov</span></div>
+  <div class="card row2"><span class="vatic"></span><div><span class="mu">Moms att betala (beräknad)</span><br><b class="big">2 492 kr</b></div></div>
   <div class="card"><div class="sec"><span class="mu">Försäljning och utgifter</span><span class="seg"><i class="on">Månader</i><i>Veckodag</i></span></div><div class="bars"><div><s style="height:55%"></s><s style="height:35%"></s></div><div><s style="height:70%"></s><s style="height:40%"></s></div><div><s style="height:60%"></s><s style="height:45%"></s></div><div><s style="height:85%"></s><s style="height:38%"></s></div><div><s style="height:75%"></s><s style="height:50%"></s></div><div><s style="height:95%"></s><s style="height:42%"></s></div></div></div>
 </div><div class="pill-nav"><div class="on"><i class="ni"></i>Översikt</div><div class=""><i class="ni"></i>Försälj.</div><div class=" sc"><i class="ni"></i>Skanna</div><div class=""><i class="ni"></i>Utgifter</div><div class=""><i class="ni"></i>Rapporter</div></div></div></div>
-      <span class="num" style="left:-2mm;top:21mm">1</span>
-      <span class="num" style="left:-2mm;top:41mm">2</span>
+      <span class="num" style="left:-2mm;top:32mm">1</span>
+      <span class="num" style="left:40mm;top:15mm">2</span>
       <span class="num" style="left:20mm;top:84mm">3</span>
     </div>
   </div>
-  <p style="font-size:8.4pt;color:var(--muted)"><span class="num">1</span>Månadens resultat &nbsp; <span class="num">2</span>Att betala &nbsp; <span class="num">3</span>Skanna</p>
+  <p style="font-size:8.4pt;color:var(--muted)"><span class="num">1</span>Månadens resultat &nbsp; <span class="num">2</span>Räkningar &nbsp; <span class="num">3</span>Skanna</p>
   <div class="folio"><span>Appens flikar</span><span>5</span></div>
 </section>
 
@@ -480,7 +485,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
   <h2>Moms</h2>
   <p>Har fakturan flera momssatser (t.ex. 12 % och 25 %) tryck <span class="kbd">Lägg till momssats</span> så visas en rad per sats. Saknar dokumentet moms, slå på <span class="kbd">Ingen moms</span>; momsfälten blir då gråa. Appen gör det själv när dokumentet säger det.</p>
   <h2>Kostnadstyp</h2>
-  <p>Välj vad fakturan gäller, t.ex. Varuinköp, Lokalhyra, El eller Säkerhet (larm, kameror, bevakning; konto 5090, redovisaren bekräftar kontot). Används i resultatrapporten och SIE-filen.</p>
+  <p>Välj vad fakturan gäller, t.ex. Varuinköp, Lokalhyra, El eller Säkerhet (larm, kameror, bevakning; konto 5090, redovisaren bekräftar kontot). Används i resultatrapporten och SIE-filen. Finns Avgifter och medlemskap (t.ex. a-kassa, fack) och Musik och TV (licenser, abonnemang). Passar ingen typ: välj <b>+ Ny kostnadstyp …</b> och skriv ett namn, eller lägg till en under Inställningar → Utgifter och dokument → Kostnadstyper. Rutan är gul (Kontrollera) och på fakturan står <b>Ej vald</b> i rött tills du har valt en typ. Förslag från leverantörens förra faktura är också gula tills du godkänt dem.</p>
   <div class="folio"><span>Fakturor och kvitton</span><span>8</span></div>
 </section>
 
@@ -530,7 +535,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
     <li><b>Från e-posten:</b> öppna bilagan, tryck på dela-knappen och välj <b>Quee</b>. Appen läser filen direkt.</li>
   </ul>
   <h2>Lönebesked</h2>
-  <p>Skanna → <span class="kbd">Nytt lönebesked</span>. Kontrollera brutto, skatt, avgift och utbetalning. Ingen moms; visas som kostnad i resultatet och i SIE-filen (serie D, konton bekräftas av redovisaren).</p>
+  <p>Skanna → <span class="kbd">Nytt lönebesked</span>. Kontrollera brutto, skatt, avgift och utbetalning. Ett sparat lönebesked öppnas som en faktura: siffrorna först och en knapp <span class="kbd">Redigera</span>. Ingen moms; visas som kostnad i resultatet och i SIE-filen (serie D, konton bekräftas av redovisaren).</p>
   <h2>Fyll i manuellt</h2>
   <p>Tryck Skanna → <span class="kbd">Fyll i själv</span> när dokumentet saknas eller inte går att läsa.</p>
   <h2>Förbättrad analys online (valfri)</h2>
@@ -702,7 +707,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
   </ol>
   <h2>Varje vecka</h2>
   <ul>
-    <li>Titta på kortet <b>Att betala</b> på Översikt och betala före förfallodagen.</li>
+    <li>Titta på knappen <b>Räkningar</b> på Översikt (siffran är antal obetalda; gul, röd när en faktura har förfallit) och betala före förfallodagen.</li>
     <li>Betalat? Tryck <span class="kbd">Matcha betalningar från bankfil</span> på Utgifter, så markeras fakturorna som betalda.</li>
   </ul>
   <h2>Varje månad</h2>

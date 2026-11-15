@@ -15,12 +15,10 @@ import 'history_page.dart';
 import 'incomplete_page.dart';
 import 'record_details.dart';
 import 'settings/activation_page.dart';
-import 'settings/backup_page.dart';
 import 'theme.dart';
 import 'unpaid_page.dart';
 import 'widgets/charts.dart';
 import 'widgets/common.dart';
-import 'widgets/unpaid_level.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -74,10 +72,9 @@ class DashboardPage extends StatelessWidget {
                 ),
               ),
             const _UpdateCard(),
+            _RakningarPill(unpaid),
             _MonthHero(report: r, previous: previous, title: ym.title),
-            _TopCards(unpaid),
             const SizedBox(height: 8),
-            _TrendPanel(months: months, weekdays: extras.weekdayAverages),
             _Panel(
               child: Row(children: [
                 Icon(AppIcons.vat, color: AppTheme.seed),
@@ -92,6 +89,7 @@ class DashboardPage extends StatelessWidget {
                 Text('$count dokument', style: t.bodySmall),
               ]),
             ),
+            _TrendPanel(months: months, weekdays: extras.weekdayAverages),
             Text('Beräknad moms. Ersätter inte momsdeklarationen.', style: t.bodySmall),
             if (month.invoices.any((i) => i.isIncomplete)) ...[
               const SizedBox(height: 8),
@@ -235,112 +233,53 @@ class _UpdateCardState extends State<_UpdateCard> {
   }
 }
 
-/// Two half-width cards at the top: the backup and what is left to pay.
-class _TopCards extends StatefulWidget {
+/// "Räkningar": what is left to pay, as a pill under the settings icon with the
+/// number of unpaid invoices as a badge. Gone when nothing is unpaid; red when
+/// an invoice is overdue, yellow otherwise.
+class _RakningarPill extends StatelessWidget {
   final List<Invoice> unpaid;
-  const _TopCards(this.unpaid);
-
-  @override
-  State<_TopCards> createState() => _TopCardsState();
-}
-
-class _TopCardsState extends State<_TopCards> {
-  bool? _on;
-  DateTime? _last;
-  int? _reminderDays;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final c = AppScope.read(context);
-    final on = await c.autoBackup?.active() ?? false;
-    final last = await c.autoBackup?.last();
-    final days = await reminderWindow(c.repo);
-    if (mounted) {
-      setState(() {
-        _on = on;
-        _last = last;
-        _reminderDays = days;
-      });
-    }
-  }
-
-  Widget _card({required Color fill, required Color border, required VoidCallback onTap, required Widget child}) => Card(
-        margin: EdgeInsets.zero,
-        color: fill,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: border)),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), child: child)),
-      );
+  const _RakningarPill(this.unpaid);
 
   @override
   Widget build(BuildContext context) {
-    final on = _on;
-    if (on == null) return const SizedBox.shrink();
+    if (unpaid.isEmpty) return const SizedBox.shrink();
+    final late = unpaid.any((i) => (daysUntil(i.dueDate) ?? 0) < 0);
+    final fill = late ? AppTheme.dangerTint : AppTheme.warningTint;
+    final border = late ? AppTheme.dangerBorder : AppTheme.warningBorder;
+    final text = late ? AppTheme.danger : AppTheme.warning;
     final t = Theme.of(context).textTheme;
-    final info = UnpaidInfo.of(widget.unpaid, _reminderDays);
-    final colors = unpaidColors(info.level);
-    final upcoming = [
-      for (final i in widget.unpaid)
-        if (i.dueDate != null && (daysUntil(i.dueDate) ?? -1) >= 0) i
-    ]..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
-    final next = upcoming.firstOrNull;
-    final last = _last == null
-        ? 'Ingen'
-        : '${SwedishDates.iso(_last!)} ${_last!.hour.toString().padLeft(2, '0')}:${_last!.minute.toString().padLeft(2, '0')}';
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _card(
-          fill: colors.fill,
-          border: colors.border,
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UnpaidPage())),
-          child: Row(children: [
-            Icon(AppIcons.payments, color: colors.text),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Att betala · ${info.count} ${info.count == 1 ? 'faktura' : 'fakturor'}',
-                    style: t.titleSmall?.copyWith(color: colors.text)),
-                Text(
-                  [
-                    if (info.overdue > 0) '${info.overdue} förfallna',
-                    if (next != null) 'Nästa ${SwedishDates.shortDay(next.dueDate!)}, ${next.total.format(compact: true)}',
-                  ].join(' · '),
-                  style: t.bodySmall?.copyWith(color: AppTheme.ink),
-                ),
-              ]),
-            ),
-            const SizedBox(width: 8),
-            Text(info.total.format(compact: true), style: t.titleMedium?.merge(moneyStyle).copyWith(color: colors.text)),
-            Icon(AppIcons.chevronRight, size: 18, color: colors.text),
-          ]),
-        ),
-        const SizedBox(height: 8),
-        _card(
-          fill: on ? AppTheme.surface : AppTheme.warningTint,
-          border: on ? AppTheme.hairline : AppTheme.warningBorder,
-          onTap: () async {
-            await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupPage()));
-            _load();
-          },
-          child: Row(children: [
-            Icon(on ? AppIcons.checkCircle : AppIcons.crossCircle, size: 20, color: on ? AppTheme.seed : AppTheme.danger),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                on ? 'Säkerhetskopia · senast $last' : 'Säkerhetskopia är av · senast $last',
-                style: t.bodyMedium?.copyWith(color: on ? null : AppTheme.warning),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Semantics(
+          button: true,
+          label: 'Räkningar, ${unpaid.length} obetalda${late ? ', en eller flera har förfallit' : ''}',
+          child: Material(
+            color: fill,
+            shape: StadiumBorder(side: BorderSide(color: border)),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UnpaidPage())),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text('Räkningar', style: t.labelLarge?.copyWith(color: text, fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 8),
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: text, borderRadius: BorderRadius.circular(12)),
+                    child: Text('${unpaid.length}',
+                        style: t.labelMedium?.copyWith(color: AppTheme.background, fontWeight: FontWeight.w700)),
+                  ),
+                ]),
               ),
             ),
-            Icon(AppIcons.chevronRight, size: 18, color: AppTheme.muted),
-          ]),
+          ),
         ),
-      ]),
+      ),
     );
   }
 }
@@ -401,7 +340,7 @@ class _MonthHero extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: dark ? const [Color(0xFF2A8F6D), Color(0xFF1B6650)] : const [Color(0xFF0B6B4E), Color(0xFF084D38)],
+            colors: dark ? const [Color(0xFF3F55A8), Color(0xFF28387C)] : const [Color(0xFF2F4A9E), Color(0xFF1E3373)],
           ),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

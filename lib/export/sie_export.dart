@@ -148,7 +148,7 @@ class SieExport {
   static String _nameOf(_Trans t) =>
       t.name ??
       _accountNames[t.account] ??
-      CostType.all.firstWhere((c) => c.account == t.account, orElse: () => CostType.other).label;
+      CostType.every.firstWhere((c) => c.account == t.account, orElse: () => CostType.other).label;
 
   /// The file as text; [encode] turns it into the bytes to save.
   static String build({

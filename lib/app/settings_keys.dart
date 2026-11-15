@@ -15,6 +15,9 @@ class SettingsKeys {
   /// "Avrunda utgifter till hela kronor": reports and lists only.
   static const roundExpenses = 'round_expenses';
 
+  /// Cost types the owner added: JSON, see CostType.encodeCustom.
+  static const customCostTypes = 'custom_cost_types';
+
   /// Estimated tax to set aside (enskild firma): 'percent' or 'amount', the
   /// percent in tenths and the yearly amount in öre.
   static const taxMode = 'tax_mode';

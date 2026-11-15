@@ -23,9 +23,7 @@ Future<void> openRecord(BuildContext context, String kind, int id) async {
     return;
   }
   if (kind == 'payslip') {
-    final navigator = Navigator.of(context);
-    final payslip = await AppScope.read(context).repo.payslip(id);
-    if (payslip != null) navigator.push(MaterialPageRoute(builder: (_) => PayslipReviewPage(existing: payslip)));
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => PayslipDetailsPage(id: id)));
     return;
   }
   await Navigator.of(context).push(MaterialPageRoute(
@@ -36,7 +34,10 @@ class _Row extends StatelessWidget {
   final String label;
   final String value;
   final bool money;
-  const _Row(this.label, this.value, {this.money = false});
+
+  /// Red: something the owner still has to fill in (e.g. no cost type chosen).
+  final bool bad;
+  const _Row(this.label, this.value, {this.money = false, this.bad = false});
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -49,7 +50,11 @@ class _Row extends StatelessWidget {
             Flexible(
               child: Text(value,
                   textAlign: TextAlign.right,
-                  style: money ? moneyStyle.copyWith(fontWeight: FontWeight.w600) : null),
+                  style: bad
+                      ? TextStyle(color: AppTheme.danger, fontWeight: FontWeight.w600)
+                      : money
+                          ? moneyStyle.copyWith(fontWeight: FontWeight.w600)
+                          : null),
             ),
           ],
         ),
@@ -177,7 +182,7 @@ class InvoiceDetailsPage extends StatelessWidget {
                 _section(context, 'Uppgifter', [
                   _Row('Datum', inv.bookingDate),
                   if (inv.supplier.isNotEmpty) _Row('Leverantör', inv.supplier),
-                  _Row('Kostnadstyp', CostType.labelFor(inv.costType)),
+                  _Row('Kostnadstyp', CostType.labelFor(inv.costType), bad: CostType.byKey(inv.costType) == null),
                   if (inv.invoiceNumber.isNotEmpty) _Row('Fakturanummer', inv.invoiceNumber),
                   if (inv.dueDate != null) _Row('Förfallodatum', inv.dueDate!),
                   if (inv.ocrReference.isNotEmpty) _Row('OCR-nummer', inv.ocrReference),
@@ -298,6 +303,67 @@ class DailySalesDetailsPage extends StatelessWidget {
                         confirm: 'Ta bort');
                     if (!ok) return;
                     await controller.repo.deleteDailySales(id);
+                    controller.dataChanged();
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      );
+}
+
+/// A saved lönebesked, shown like a faktura: the figures first, and a button to
+/// edit it (never edited straight away).
+class PayslipDetailsPage extends StatelessWidget {
+  final int id;
+  const PayslipDetailsPage({super.key, required this.id});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Lönebesked')),
+        body: Reloading<Payslip?>(
+          loader: (c) => c.repo.payslip(id),
+          builder: (context, p) {
+            if (p == null) return const EmptyState(icon: AppIcons.searchOff, text: 'Lönebeskedet finns inte längre.');
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _section(context, 'Uppgifter', [
+                  _Row('Utbetalningsdag', p.payoutDate),
+                  if (p.periodFrom != null || p.periodTo != null) _Row('Period', '${p.periodFrom ?? ''} – ${p.periodTo ?? ''}'),
+                  if (p.employeeName.isNotEmpty) _Row('Anställd', p.employeeName),
+                  if (p.personnummer.isNotEmpty) _Row('Personnummer', p.personnummer),
+                ]),
+                _section(context, 'Belopp', [
+                  _Row('Bruttolön', p.gross.format(), money: true),
+                  _Row('Arbetsgivaravgift', p.employerFee.format(), money: true),
+                  _Row('Preliminär skatt', p.tax.format(), money: true),
+                  _Row('Utbetalas (brutto minus skatt)', p.net.format(), money: true),
+                  _Row('Kostnad för företaget', p.cost.format(), money: true),
+                ]),
+                _section(context, 'Spårbarhet', _metaRows(p.meta)),
+                _historyAndScan(context, 'payslip', id, p.meta.scanId),
+                const SizedBox(height: 16),
+                FilledButton.tonalIcon(
+                  icon: const Icon(AppIcons.edit),
+                  label: const Text('Redigera'),
+                  onPressed: () => Navigator.of(context)
+                      .push(MaterialPageRoute(builder: (_) => PayslipReviewPage(existing: p))),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(AppIcons.delete),
+                  label: const Text('Ta bort lönebeskedet'),
+                  onPressed: () async {
+                    final controller = AppScope.read(context);
+                    final ok = await confirmDialog(context,
+                        title: 'Ta bort lönebeskedet?',
+                        message: 'Lönebeskedet tas bort från rapporterna. Borttagningen sparas i ändringshistoriken.',
+                        confirm: 'Ta bort');
+                    if (!ok) return;
+                    await controller.repo.deletePayslip(id);
                     controller.dataChanged();
                     if (context.mounted) Navigator.pop(context);
                   },

@@ -314,12 +314,28 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
     return [topLeft, rest.first, bottomRight, rest.last];
   }
 
+  /// The frame found in the viewfinder sits on the bright part of the page, a
+  /// little inside it, and the print at the top edge (date, Z number) was left
+  /// out. The start frame is made a little larger, more at the top; the user
+  /// still drags the corners.
+  List<Offset>? _growFrame(List<Offset>? q) {
+    if (q == null || q.length != 4) return q;
+    final cx = q.fold<double>(0, (a, o) => a + o.dx) / 4, cy = q.fold<double>(0, (a, o) => a + o.dy) / 4;
+    return [
+      for (final o in q)
+        Offset(
+          (cx + (o.dx - cx) * 1.05).clamp(0.0, 1.0),
+          (cy + (o.dy - cy) * 1.05 - (o.dy < cy ? 0.025 : 0)).clamp(0.0, 1.0),
+        ),
+    ];
+  }
+
   Future<void> _capture() async {
     final c = _controller;
     if (c == null || _busy || !c.value.isInitialized) return;
     setState(() => _busy = true);
     try {
-      final seen = _quad;
+      final seen = _growFrame(_quad);
       await _stopStream();
       final file = await c.takePicture();
       if (!mounted) return;

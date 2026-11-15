@@ -49,6 +49,10 @@ CSS = """/* ---------- Skisser som i appen (skisser.py) ---------- */
 .pill-nav .on::before { content: ""; position: absolute; left: -1mm; right: -1mm; top: -1.5mm; height: 0.5mm; background: #E2600D; border-radius: 0.3mm; box-shadow: 0 1mm 1.6mm rgba(226,96,13,.5); }
 .screen .hero.coral { margin-bottom: 1.2mm; }
 .screen .hero { margin-bottom: 1.2mm; }
+.hero { background: linear-gradient(135deg, #2F4A9E, #1E3373) !important; }
+.hr { display: flex; align-items: center; gap: 1.6mm; } .cl { color: #0B6B4E; font-size: 6pt; }
+.rkrow { display: flex; justify-content: flex-end; margin-bottom: 1.2mm; }
+.rk { background: #FFF6E5; border: 0.25mm solid #F4E2BC; color: #8A5300; border-radius: 3mm; padding: 0.5mm 1.4mm; font-weight: 500; } .rk b { background: #8A5300; color: #fff; border-radius: 2mm; padding: 0 1mm; margin-left: 0.8mm; }
 .mu2 { font-size: 4.6pt; opacity: .8; margin-bottom: 1mm; }
 .seg { display: flex; } .seg i { font-style: normal; padding: 0 1mm; font-size: 4pt; border: 0.2mm solid #B4BFB9; } .seg i.on { background: #E4F2EC; color: #0B6B4E; }
 """
@@ -63,8 +67,7 @@ def _oversikt() -> str:
 
 
 BLOCKS = [  # (identifying text, new html)
-    ("DIN RESTAURANG November 2026 Säkerhetskopia", _oversikt),
-    ("DIN RESTAURANG November 2026 Resultat", _oversikt),
+    ("DIN RESTAURANG", _oversikt),
     ("Dokumenttyp: Faktura", k.kontrollera_faktura),
     ("Dokumenttyp: Z-rapport", k.kontrollera_z),
     ("Utgifter ‹", k.utgifter),

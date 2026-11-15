@@ -5,6 +5,7 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 import '../app/app_controller.dart';
 import '../app/settings_keys.dart';
+import '../domain/dates.dart';
 import '../domain/models.dart';
 import 'app_icons.dart';
 import 'dashboard_page.dart';
@@ -13,6 +14,7 @@ import 'reports/reports_page.dart';
 import 'sales_page.dart';
 import 'scan/scan_flow.dart';
 import 'scan_tab.dart';
+import 'settings/backup_page.dart';
 import 'settings/settings_page.dart';
 import 'theme.dart';
 import 'tour.dart';
@@ -141,6 +143,8 @@ class _ShellState extends State<Shell> {
         toolbarHeight: 64,
         title: _index == 0 ? const _CompanyTitle() : Text(_titles[_index]),
         actions: [
+          // The backup status, left of the gear on the overview only.
+          if (_index == 0) const _BackupAction(),
           IconButton(
             key: _gearKey,
             tooltip: 'Inställningar',
@@ -480,4 +484,87 @@ class _FlashPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FlashPainter old) => old.at != at || old.color != color || old.t != t;
+}
+
+/// The backup as an icon left of the settings icon: green when the automatic
+/// backup is on, red when it is off. A tap opens a small dialog with what the
+/// backup card used to show.
+class _BackupAction extends StatefulWidget {
+  const _BackupAction();
+
+  @override
+  State<_BackupAction> createState() => _BackupActionState();
+}
+
+class _BackupActionState extends State<_BackupAction> {
+  bool? _on;
+  DateTime? _last;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final c = AppScope.read(context);
+    final on = await c.autoBackup?.active() ?? false;
+    final last = await c.autoBackup?.last();
+    if (mounted) {
+      setState(() {
+        _on = on;
+        _last = last;
+      });
+    }
+  }
+
+  String get _lastText => _last == null
+      ? 'Ingen ännu'
+      : '${SwedishDates.iso(_last!)} ${_last!.hour.toString().padLeft(2, '0')}:${_last!.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _open() async {
+    await _load();
+    if (!mounted) return;
+    final on = _on ?? false;
+    final c = AppScope.read(context);
+    final folder = on ? await c.autoBackup?.folderName() : null;
+    if (!mounted) return;
+    final settings = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(on ? AppIcons.checkCircle : AppIcons.crossCircle, color: on ? AppTheme.seed : AppTheme.danger, size: 32),
+        title: const Text('Säkerhetskopia'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(on ? 'Automatisk säkerhetskopia är på.' : 'Automatisk säkerhetskopia är av. Utan kopia försvinner uppgifterna om telefonen går förlorad.'),
+          const SizedBox(height: 12),
+          Text('Senaste kopia', style: Theme.of(context).textTheme.bodySmall),
+          Text(_lastText),
+          if (folder != null && folder.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Mapp', style: Theme.of(context).textTheme.bodySmall),
+            Text(folder),
+          ],
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Stäng')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(on ? 'Inställningar' : 'Slå på')),
+        ],
+      ),
+    );
+    if (settings == true && mounted) {
+      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BackupPage()));
+      _load();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final on = _on;
+    if (on == null) return const SizedBox.shrink();
+    return IconButton(
+      tooltip: on ? 'Säkerhetskopia: på' : 'Säkerhetskopia: av',
+      icon: Icon(AppIcons.backup, color: on ? AppTheme.seed : AppTheme.danger),
+      onPressed: _open,
+    );
+  }
 }

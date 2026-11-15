@@ -41,13 +41,14 @@ def bars() -> str:
 
 def oversikt(small: bool = False) -> str:
     body = f"""<div class="body">
+  <div class="rkrow"><span class="rk">Räkningar <b>3</b></span></div>
   <div class="hero"><div>Resultat före skatt</div><div class="big2">−32 867 kr</div><div class="mu2">Exkl. moms</div>
     <div class="stats"><div>Försäljning<b>42 460</b></div><div>Utgifter<b>75 327</b></div></div></div>
-  <div class="card amb row2"><span class="vatic"></span><div><b class="am">Att betala</b><br><span class="mu">3 fakturor</span></div><b class="am">12 480 kr</b></div>
-  <div class="card row2"><span class="ok">✓</span><span>Säkerhetskopia · senast 14 nov</span></div>
+  <div class="card row2"><span class="vatic"></span><div><span class="mu">Moms att betala (beräknad)</span><br><b class="big">2 492 kr</b></div></div>
   <div class="card"><div class="sec"><span class="mu">Försäljning och utgifter</span><span class="seg"><i class="on">Månader</i><i>Veckodag</i></span></div>{bars()}</div>
 </div>"""
-    return phone(status() + head("DIN RESTAURANG", "November 2026") + body + nav(0), small)
+    header = '<div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="hr"><span class="cl">&#9729;</span><div class="gear"></div></div></div>'
+    return phone(status() + header + body + nav(0), small)
 
 
 def field(label: str, value: str, state: str = "ok", right: str = "") -> str:

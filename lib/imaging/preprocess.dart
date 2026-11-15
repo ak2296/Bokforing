@@ -167,7 +167,7 @@ PreprocessResult preprocessDocument(PreprocessRequest req) {
   if (paper != null) {
     final sx = image.width / small.width;
     final sy = image.height / small.height;
-    final pad = (0.01 * math.max(image.width, image.height)).round();
+    final pad = (0.02 * math.max(image.width, image.height)).round();
     final x0 = (paper[0] * sx).round() - pad;
     final y0 = (paper[1] * sy).round() - pad;
     final x1 = (paper[2] * sx).round() + pad;

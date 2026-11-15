@@ -1177,7 +1177,19 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
         inv = Extracted(chosen, Confidence.medium, source: inv.source, note: 'Datumet kan läsas på två sätt. Kontrollera.');
       }
     }
-    return (invoice: inv, due: pick('due'), payment: pick('payment'), options: options);
+    // The paper names a due date but no date came out next to its label (the
+    // value sits apart from the label): the latest loose date after the invoice
+    // date is taken, marked for checking. The due date decides the expense day.
+    var due = pick('due');
+    final namesDue = norm.any((n) => n.contains('förfall') || n.contains('forfall') || _fuzzyDueLabel(n) != null);
+    if (!due.hasValue && namesDue) {
+      final base = inv.value;
+      final later = {for (final u in unlabelled) u.$2}.where((d) => base == null || d.compareTo(base) > 0).toList()..sort();
+      if (later.isNotEmpty) {
+        due = Extracted(later.last, Confidence.medium, note: 'Förfallodatumet stod inte vid sin rubrik. Kontrollera.');
+      }
+    }
+    return (invoice: inv, due: due, payment: pick('payment'), options: options);
   }
 
   static int? _firstIndex(String n, Iterable<String> labels) {
@@ -1312,6 +1324,8 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
           .any(n.contains)) {
         continue;
       }
+      // A line with a date or a date label is never a company name.
+      if (TextPatterns.dates(t).isNotEmpty || const ['datum', 'date', 'förfall', 'forfall', 'sida', 'page'].any(n.contains)) continue;
       if (_closeToOwn(t) || [ownName, ...ownNames].any((o) => _squeeze(o).length >= 3 && _squeeze(t).contains(_squeeze(o)))) {
         continue;
       }

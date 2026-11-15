@@ -60,8 +60,8 @@ class ResultReport {
       byType[key] = (prev.$1 + (i.total - i.vatTotal), prev.$2 + 1);
     }
     int order(String key) {
-      final i = CostType.all.indexWhere((c) => c.key == key);
-      return i < 0 ? CostType.all.length : i;
+      final i = CostType.every.indexWhere((c) => c.key == key);
+      return i < 0 ? CostType.every.length : i;
     }
 
     final keys = byType.keys.toList()..sort((a, b) => order(a).compareTo(order(b)));

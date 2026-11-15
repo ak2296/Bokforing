@@ -302,7 +302,7 @@ Future<InvoiceFilter?> showFilterSheet(BuildContext context, InvoiceFilter curre
               items: [
                 const DropdownMenuItem(value: null, child: Text('Alla typer')),
                 const DropdownMenuItem(value: '', child: Text('Ej vald kostnadstyp')),
-                for (final t in CostType.all) DropdownMenuItem(value: t.key, child: Text(t.label)),
+                for (final t in CostType.selectable) DropdownMenuItem(value: t.key, child: Text(t.label)),
               ],
               onChanged: (v) => setSheet(() => f = v == null ? f.copyWith(clearCostType: true) : f.copyWith(costType: v)),
             ),

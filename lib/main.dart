@@ -9,6 +9,7 @@ import 'data/database.dart';
 import 'data/storage.dart';
 import 'export/auto_backup.dart';
 import 'data/repository.dart';
+import 'domain/cost_types.dart';
 import 'notify/reminders.dart';
 import 'app/biometric.dart';
 import 'app/pin_lock.dart';
@@ -34,6 +35,7 @@ Future<void> main() async {
   final pinLock = PinLock(SecureLockStore(), biometric: PhoneBiometric());
   await pinLock.load();
   final themeMode = AppController.parseThemeMode(await repo.setting(SettingsKeys.themeMode));
+  CostType.custom = CostType.decodeCustom(await repo.setting(SettingsKeys.customCostTypes));
   runApp(BokforingApp(
       controller: AppController(repo, reminders: reminders, autoBackup: autoBackup, pinLock: pinLock, themeMode: themeMode),
       setupDone: setupDone));

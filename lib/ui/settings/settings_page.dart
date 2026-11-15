@@ -20,6 +20,7 @@ import 'activation_page.dart';
 import 'ai_settings_page.dart';
 import 'backup_page.dart';
 import 'category_editor.dart';
+import 'cost_types_page.dart';
 import 'hints_page.dart';
 import 'storage_page.dart';
 import 'user_guide.dart';
@@ -204,6 +205,8 @@ class _SettingsPageState extends State<SettingsPage> {
             },
           ),
         ),
+        _Entry('kostnadstyp egna typer lägg till konto bas',
+            nav(AppIcons.rules, 'Kostnadstyper', 'Lägg till egna typer för kostnader som inte passar någon standardtyp', () => const CostTypesPage())),
         _Entry('inlärda fält leverantör summa moms nummer datum',
             nav(AppIcons.rules, 'Inlärda fält', 'Var varje leverantör skriver summa, moms, nummer och datum', () => const HintsPage())),
         _Entry('lagring plats frigör utrymme',
