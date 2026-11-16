@@ -52,6 +52,8 @@ class _SalesPageState extends State<SalesPage> {
                   subtitle: 'Moms ${d.outputVat.format(compact: true)}',
                   amount: d.detailedTotal,
                   chips: [if (d.hasDifference) StatusChip('Skillnad ${d.difference.format(compact: true)}')],
+                  badgeBackground: AppTheme.salesTint,
+                  badgeColor: AppTheme.sales,
                   onTap: () => openRecord(context, 'z', d.id!),
                 ),
               ),
@@ -145,6 +147,8 @@ List<Widget> _weeks(List<(String, Widget)> entries) {
           clipBehavior: Clip.antiAlias,
           child: ExpansionTile(
             initiallyExpanded: monday == open,
+            iconColor: AppTheme.sales,
+            collapsedIconColor: AppTheme.sales,
             shape: const Border(),
             collapsedShape: const Border(),
             title: Text(monday.year == 0 ? 'Utan datum' : 'Vecka ${SwedishDates.isoWeek(monday)}'),
