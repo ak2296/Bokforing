@@ -28,7 +28,7 @@ import 'cost_types_page.dart';
 import 'hints_page.dart';
 import 'notification_tile.dart';
 import 'storage_page.dart';
-import 'user_guide.dart';
+import 'guide_reader.dart';
 import 'whats_new_page.dart';
 import 'z_fields_page.dart';
 import '../widgets/blur_overlay.dart';
@@ -410,8 +410,8 @@ class _SettingsPageState extends State<SettingsPage> {
           ListTile(
             leading: const Icon(AppIcons.text),
             title: const Text('Användarguide'),
-            subtitle: const Text('Hela guiden som PDF, öppnas i telefonens PDF-läsare'),
-            onTap: () => openUserGuide(context),
+            subtitle: const Text('Hela guiden, med innehåll du kan trycka på'),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GuideReaderPage())),
           ),
         ),
         const _Entry(

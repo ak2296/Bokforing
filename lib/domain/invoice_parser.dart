@@ -220,7 +220,24 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     'att erhålla': 40,
   };
 
-  static const _creditWords = ['kreditnota', 'kreditfaktura', 'kredit faktura', 'credit note', 'credit memo', 'kreditering'];
+  /// What shops and suppliers call a document that gives money and VAT back:
+  /// a kreditnota, but also a return invoice or return receipt. Matched as whole
+  /// words, so "Rabatter & Krediteringar" or "Returadress" is no return.
+  static const creditWords = [
+    'kreditnota', 'kreditnotan', 'kredit nota', 'kreditfaktura', 'kreditfakturan', 'kredit faktura',
+    'kreditkvitto', 'kredit kvitto', 'kreditering',
+    'returfaktura', 'retur faktura', 'returnota', 'retur nota', 'returkvitto', 'retur kvitto', 'returbevis',
+    'varuretur', 'varu retur', 'återköpskvitto',
+    'rättelsefaktura', 'korrigeringsfaktura', 'avdragsnota', 'gutschrift',
+    'credit note', 'creditnota', 'credit memo', 'credit invoice', 'return invoice', 'return receipt', 'refund receipt',
+  ];
+
+  /// A row that is only the word "retur" (or "kredit") is the title of a return paper.
+  static final _creditTitle = RegExp(r'^(retur|kredit|returnerad|returnerade varor)\W*$');
+
+  /// True when the normalised rows of a paper say it is a return or credit.
+  static bool isCreditText(Iterable<String> norm) => norm.any((n) =>
+      _creditTitle.hasMatch(n.trim()) || creditWords.any((w) => RegExp('(?<![a-zåäö])$w(?![a-zåäö])').hasMatch(n)));
 
   /// Rows with these words are never the invoice total.
   static const _neverTotal = [
@@ -287,7 +304,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
     final notes = <String>[];
     // Whole words only: "Rabatter & Krediteringar" on a specification page
     // lists credits, it is no kreditnota.
-    final isCredit = norm.any((n) => _creditWords.any((w) => RegExp('(?<![a-zåäö])$w(?![a-zåäö])').hasMatch(n)));
+    final isCredit = isCreditText(norm);
 
     var vat = _vat(rows, norm);
     final payment = _payment(rows, norm);
@@ -384,7 +401,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
             calculated: l.calculated,
           ),
       ];
-      notes.insert(0, 'Kreditnota: beloppen registreras som minus och dras av från utgifterna.');
+      notes.insert(0, 'Retur/kredit: beloppen registreras som minus och dras av från utgifterna.');
     }
 
     // VAT that fits net + VAT = total is certain.
@@ -1320,7 +1337,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       final t = l.text.trim();
       if (!RegExp(r'[A-Za-zÅÄÖåäö]{3,}').hasMatch(t) || TextPatterns.amounts(t).isNotEmpty) continue;
       final n = TextPatterns.normalize(t);
-      if (const ['faktura', 'kvitto', 'invoice', 'receipt', 'kreditnota', 'specifikation', 'inbetalning', 'kopia']
+      if (const ['faktura', 'kvitto', 'invoice', 'receipt', 'kreditnota', 'returfaktura', 'returnota', 'retur', 'specifikation', 'inbetalning', 'kopia']
           .any(n.contains)) {
         continue;
       }

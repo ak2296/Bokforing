@@ -231,7 +231,7 @@ Widget _payslipRow(BuildContext context, Payslip p, {bool rounded = false}) => L
 /// what is missing on the invoice is always judged on the exact invoice.
 Widget _invoiceRow(BuildContext context, Invoice inv, {bool rounded = false}) => LedgerRow(
       isoDate: inv.bookingDate,
-      title: inv.supplier.isNotEmpty ? inv.supplier : (inv.total.isNegative ? 'Kreditnota' : 'Faktura'),
+      title: inv.supplier.isNotEmpty ? inv.supplier : (inv.total.isNegative ? 'Retur/kredit' : 'Faktura'),
       subtitle: [
         if (CostType.byKey(inv.costType) != null) CostType.labelFor(inv.costType),
         if (inv.invoiceNumber.isNotEmpty) 'Nr ${inv.invoiceNumber}',
@@ -244,7 +244,7 @@ Widget _invoiceRow(BuildContext context, Invoice inv, {bool rounded = false}) =>
           ? null
           : ((daysUntil(inv.dueDate) ?? 1) < 0 ? AppTheme.danger : AppTheme.warning),
       chips: [
-        if (inv.total.isNegative) StatusChip('Kreditnota', color: AppTheme.seed, background: AppTheme.tint),
+        if (inv.total.isNegative) StatusChip('Retur/kredit', color: AppTheme.seed, background: AppTheme.tint),
         if (!inv.paid) _dueChip(inv),
       ],
       amountNote: inv.isIncomplete

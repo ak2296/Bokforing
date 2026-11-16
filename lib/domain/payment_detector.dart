@@ -1,3 +1,4 @@
+import 'invoice_parser.dart';
 import 'text_patterns.dart';
 
 enum PaymentKind { kvitto, faktura, unknown }
@@ -118,7 +119,7 @@ class PaymentDetector {
 
     // A stamp "BETALD"/"BETALT" on its own line, or a credit note: nothing to pay.
     final stamped = norm.any((n) => RegExp(r'^(betald|betalt|paid)\b\W*$').hasMatch(n));
-    final credit = text.contains('kreditnota') || text.contains('kreditfaktura') || text.contains('credit note');
+    final credit = InvoiceParser.isCreditText(norm);
     // Stamps are often crooked and misread ("BEAD"), and payment terms
     // "Kontant" mean paid on delivery: both are only suggestions.
     final maybeStamp = !stamped && norm.any(isStampRow);

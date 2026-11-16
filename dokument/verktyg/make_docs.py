@@ -8,6 +8,7 @@ and the PDF. The guide is also copied to assets/ so the app carries it
 (a change there starts an app build).
 """
 import os
+import re
 import pathlib
 import shutil
 import subprocess
@@ -49,6 +50,11 @@ def main() -> int:
             check=True, capture_output=True,
         )
         print(f"{rel} -> {out.name}")
+    # The titles of the chapters, for the contents list in the app's guide reader.
+    html = (ROOT / "dokument/anvandarguide/anvandarguide.html").read_text(encoding="utf-8")
+    titles = re.findall(r'<li><span>\d+</span><span><a href="#s\d+">(.*?)</a></span>', html)
+    (ROOT / "assets/anvandarguide_innehall.txt").write_text("\n".join(titles) + "\n", encoding="utf-8")
+    print(f"assets/anvandarguide_innehall.txt: {len(titles)} kapitel")
     # The app carries the phone version of the guide (set for a phone's width),
     # opened from Inställningar → Användarguide.
     guide = ROOT / "dokument/anvandarguide/anvandarguide-telefon.pdf"

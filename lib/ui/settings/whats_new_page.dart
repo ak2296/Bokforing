@@ -17,9 +17,11 @@ Future<void> markNotesSeen(Repository repo) => repo.setSetting(SettingsKeys.note
 Future<void> showWhatsNewIfNew(BuildContext context, Repository repo) async {
   final seen = await notesSeen(repo);
   if (seen >= latestNoteId || !context.mounted) return;
-  // Mark first, so a crash or a quick restart never shows it twice.
-  await markNotesSeen(repo);
+  // Let the app settle first: right after an install Android may restart the
+  // app once more, and a sheet shown in that moment is gone before it is read.
+  await Future<void>.delayed(const Duration(milliseconds: 900));
   if (!context.mounted) return;
+  final shown = Stopwatch()..start();
   final note = releaseNotes.first;
   final all = await showBlurSheet<bool>(
     context: context,
@@ -50,6 +52,9 @@ Future<void> showWhatsNewIfNew(BuildContext context, Repository repo) async {
       ]),
     ),
   );
+  // Only a sheet that stayed long enough to be read counts as seen; one that
+  // vanished at once comes back next time.
+  if (all != null || shown.elapsedMilliseconds > 2000) await markNotesSeen(repo);
   if (all == true && context.mounted) {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WhatsNewPage()));
   }

@@ -176,7 +176,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   }
 
   String _reasonFor(PaymentDetection p) {
-    if (widget.draft?.isCredit ?? false) return 'Kreditnota: det finns inget att betala';
+    if (widget.draft?.isCredit ?? false) return 'Retur/kredit: det finns inget att betala';
     if (p.reasons.contains(PaymentDetector.possibleStamp)) return 'Verkar ha en stämpel BETALD. Kontrollera.';
     if (p.reasons.contains(PaymentDetector.cashPayment)) return 'Betalningsvillkor: Kontant. Kontrollera.';
     if (p.kind == PaymentKind.kvitto) return 'Ser ut som ett kvitto (redan betalt)';
@@ -396,7 +396,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
           children: [
             DocTypeHeader(
                 label: _isCredit
-                    ? 'Kreditnota'
+                    ? 'Retur/kredit'
                     : _effectiveKind == PaymentKind.kvitto && _paid == true
                         ? 'Kvitto'
                         : 'Faktura'),
@@ -426,8 +426,8 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
               ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Kreditnota'),
-              subtitle: const Text('Beloppen blir minus och dras av från utgifterna'),
+              title: const Text('Retur/kredit'),
+              subtitle: const Text('Retur eller kreditnota: beloppen blir minus och dras av från utgifterna'),
               value: _isCredit,
               onChanged: !_editing ? null : _setCredit,
             ),

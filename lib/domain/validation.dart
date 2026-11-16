@@ -57,7 +57,7 @@ class AccountingValidationEngine {
       results.add(const ValidationResult(ValidationStatus.error, 'total', 'Summan saknas.'));
     } else if (inv.total.isNegative) {
       results.add(const ValidationResult(
-          ValidationStatus.ok, 'total', 'Kreditnota: beloppet är minus och dras av från utgifterna.'));
+          ValidationStatus.ok, 'total', 'Retur/kredit: beloppet är minus och dras av från utgifterna.'));
     }
     if (inv.vatLines.isNotEmpty) {
       results.add(checkVatBreakdown(inv.vatLines, inv.vatTotal));
@@ -126,7 +126,7 @@ class AccountingValidationEngine {
   ValidationResult? checkVatPlausible(Money vat, Money total) {
     if (!vat.isZero && vat.isNegative != total.isNegative) {
       return ValidationResult(ValidationStatus.warning, 'vat',
-          total.isNegative ? 'Kreditnota: momsen ska också vara minus.' : 'Momsen är negativ men summan är positiv.');
+          total.isNegative ? 'Retur/kredit: momsen ska också vara minus.' : 'Momsen är negativ men summan är positiv.');
     }
     final max = VatCalculator.vatFromGross(total.abs(), VatRate.twentyFive);
     if (vat.abs() - max >= ignoredDifference) {

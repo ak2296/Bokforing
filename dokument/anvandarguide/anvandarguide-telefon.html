@@ -147,6 +147,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 
 
 
+
 /* ---------- Skisser som i appen (skisser.py) ---------- */
 .screen .body { padding: 0 2.2mm; }
 .two-c { display: flex; gap: 1.2mm; margin-bottom: 1.2mm; }
@@ -270,7 +271,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 @page c4 { size: 70mm 372mm; margin: 0; } section.page:nth-of-type(5) { page: c4; }
 @page c5 { size: 70mm 439mm; margin: 0; } section.page:nth-of-type(6) { page: c5; }
 @page c6 { size: 70mm 359mm; margin: 0; } section.page:nth-of-type(7) { page: c6; }
-@page c7 { size: 70mm 384mm; margin: 0; } section.page:nth-of-type(8) { page: c7; }
+@page c7 { size: 70mm 429mm; margin: 0; } section.page:nth-of-type(8) { page: c7; }
 @page c8 { size: 70mm 346mm; margin: 0; } section.page:nth-of-type(9) { page: c8; }
 @page c9 { size: 70mm 394mm; margin: 0; } section.page:nth-of-type(10) { page: c9; }
 @page c10 { size: 70mm 384mm; margin: 0; } section.page:nth-of-type(11) { page: c10; }
@@ -279,7 +280,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 @page c13 { size: 70mm 512mm; margin: 0; } section.page:nth-of-type(14) { page: c13; }
 @page c14 { size: 70mm 354mm; margin: 0; } section.page:nth-of-type(15) { page: c14; }
 @page c15 { size: 70mm 259mm; margin: 0; } section.page:nth-of-type(16) { page: c15; }
-@page c16 { size: 70mm 296mm; margin: 0; } section.page:nth-of-type(17) { page: c16; }
+@page c16 { size: 70mm 302mm; margin: 0; } section.page:nth-of-type(17) { page: c16; }
 </style></head>
 <body>
 
@@ -305,7 +306,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
     <li><span>3</span><span><a href="#s5">Appens fem flikar och svepning</a></span><span>5</span></li>
     <li><span>4</span><span><a href="#s6">Skanna ett dokument</a></span><span>6</span></li>
     <li><span>5</span><span><a href="#s7">Kontrollera uppgifterna</a></span><span>7</span></li>
-    <li><span>6</span><span><a href="#s8">Fakturor, kvitton och kreditnotor</a></span><span>8</span></li>
+    <li><span>6</span><span><a href="#s8">Fakturor, kvitton och retur/kredit</a></span><span>8</span></li>
     <li><span>7</span><span><a href="#s9">Z-rapporten – dagens försäljning</a></span><span>9</span></li>
     <li><span>8</span><span><a href="#s10">Onlineförsäljning och filer från e-post</a></span><span>10</span></li>
     <li><span>9</span><span><a href="#s11">Försäljning, utgifter och att betala</a></span><span>11</span></li>
@@ -482,7 +483,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 <!-- ============ 8. Fakturor ============ -->
 <section class="page" id="s8">
   <div class="kicker">6 · Utgifter</div>
-  <h1>Fakturor, kvitton och kreditnotor</h1>
+  <h1>Fakturor, kvitton och retur/kredit</h1>
   <h2>Betald eller inte?</h2>
   <p>Under <b>Betalning</b> föreslår appen om dokumentet är betalt (kvitto, BETALD) eller ska betalas. Du bekräftar själv.</p>
   <ul>
@@ -491,8 +492,8 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
   </ul>
   <h2>Vilken dag räknas utgiften?</h2>
   <p>På <b>förfallodatum</b>. Saknas det (kvitto) räknas den på datumet. Det styr månad i rapporter, moms och SIE-fil.</p>
-  <h2>Kreditnota</h2>
-  <p>Slå på <span class="kbd">Kreditnota</span> när leverantören krediterar. Beloppen blir minus och dras av från utgifterna och den ingående momsen.</p>
+  <h2>Retur/kredit</h2>
+  <p>När du lämnar tillbaka varor och får pengar och moms tillbaka kallas pappret olika saker: kreditnota, kreditfaktura, returfaktura, returnota, returkvitto, korrigeringsfaktura. Appen känner igen de orden och slår på <span class="kbd">Retur/kredit</span> själv. Gör den inte det, slå på knappen själv. Beloppen blir minus och dras av från utgifterna och den ingående momsen, precis som en vanlig utgift fast åt andra hållet.</p>
   <h2>Moms</h2>
   <p>Har fakturan flera momssatser (t.ex. 12 % och 25 %) tryck <span class="kbd">Lägg till momssats</span> så visas en rad per sats. Saknar dokumentet moms, slå på <span class="kbd">Ingen moms</span>; momsfälten blir då gråa. Appen gör det själv när dokumentet säger det.</p>
   <h2>Kostnadstyp</h2>
@@ -747,7 +748,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
   <table class="t">
     <tr><td><b>Faktura</b></td><td>En räkning du ska betala. Har förfallodatum, ofta bankgiro och OCR-nummer.</td></tr>
     <tr><td><b>Kvitto</b></td><td>Beviset på något du redan har betalat.</td></tr>
-    <tr><td><b>Kreditnota</b></td><td>En faktura åt andra hållet: leverantören betalar tillbaka. Beloppen blir minus.</td></tr>
+    <tr><td><b>Retur/kredit</b></td><td>Kreditnota, returfaktura eller returkvitto: en faktura åt andra hållet där du får tillbaka pengar och moms. Beloppen blir minus.</td></tr>
     <tr><td><b>Z-rapport</b></td><td>Kassans dagsavslut: dagens försäljning per varugrupp och totalt.</td></tr>
     <tr><td><b>Förfallodatum</b></td><td>Sista dagen att betala. I appen räknas utgiften på den dagen.</td></tr>
     <tr><td><b>Moms</b></td><td>Utgående moms är den du tar in på försäljningen, ingående den du betalar på inköp. Skillnaden är beräknad moms att betala eller få tillbaka.</td></tr>

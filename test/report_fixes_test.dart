@@ -25,6 +25,22 @@ void main() {
     });
   });
 
+  group('Retur/kredit under other names', () {
+    for (final title in ['Returfaktura', 'RETURNOTA', 'Returkvitto', 'Retur', 'Credit note', 'Korrigeringsfaktura', 'Återköpskvitto']) {
+      test('"$title" is read as a credit', () {
+        final d = _inv('$title\nMoms 25% 50,00\nAtt betala 250,00');
+        expect(d.isCredit, isTrue);
+        expect(d.total.value, Money.kr(-250));
+      });
+    }
+
+    test('"Returadress" and "Rabatter & Krediteringar" are no returns', () {
+      final d = _inv('Faktura\nReturadress Box 1\nMoms 25% 50,00\nAtt betala 250,00');
+      expect(d.isCredit, isFalse);
+      expect(d.total.value, Money.kr(250));
+    });
+  });
+
   group('Kreditnota', () {
     test('amounts become negative even when printed without minus', () {
       final d = _inv('KREDITNOTA\nKreditfaktura nr 55\nMoms 25% 50,00\nAtt betala 250,00');

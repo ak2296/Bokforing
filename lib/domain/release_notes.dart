@@ -14,6 +14,11 @@ class ReleaseNote {
 }
 
 const releaseNotes = <ReleaseNote>[
+  ReleaseNote(4, '17 november 2026', 'Guide i appen och retur/kredit', [
+    ('Användarguiden:', 'öppnas nu i appen med ett innehåll du kan trycka på för att hoppa till kapitlet.'),
+    ('Retur/kredit:', 'kreditnota, returfaktura, returnota och returkvitto känns igen och dras av från utgifterna och momsen.'),
+    ('Nyheter:', 'visningen efter en uppdatering väntar nu tills appen är redo, så den inte försvinner.'),
+  ]),
   ReleaseNote(3, '16 november 2026', 'Redovisarpaket, balanser och perioder', [
     ('Redovisarpaket:', 'en knapp på Rapporter samlar månadsrapport, momsunderlag, verifikationslista, huvudbok, saldobalans, resultaträkning och SIE-fil. Spara som mapp, skicka med e-post eller välj papper att skriva ut.'),
     ('Perioder:', 'välj månad, kvartal, halvår eller år i Resultat och Redovisarpaket. Förvalet ställer du in under Företag → Redovisning.'),
