@@ -26,6 +26,7 @@ import 'hints_page.dart';
 import 'storage_page.dart';
 import 'user_guide.dart';
 import 'z_fields_page.dart';
+import '../widgets/blur_overlay.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -392,7 +393,6 @@ class _SettingsPageState extends State<SettingsPage> {
     const trygghet = ['Säkerhet', 'Data'];
     const ovrigt = ['Mer'];
     List<_Group> pick(List<String> titles) => [for (final g in groups) if (titles.contains(g.title)) g];
-    final appearance = groups.firstWhere((g) => g.title == 'Utseende');
 
     Widget section(String title, List<_Group> gs) => gs.isEmpty
         ? const SizedBox.shrink()
@@ -459,22 +459,33 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ),
-      // Light, dark or follow the phone: three choices, so shown right here.
+      // Light, dark or follow the phone: one slim row, the choice is on it.
       Padding(
-        padding: const EdgeInsets.only(top: 20),
+        padding: const EdgeInsets.only(top: 12),
         child: Card(
           margin: EdgeInsets.zero,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Row(children: [
-                Icon(AppIcons.settings, size: 20, color: AppTheme.seed),
-                const SizedBox(width: 10),
-                Text('Utseende', style: t.titleSmall),
-              ]),
-            ),
-            for (final e in appearance.entries) e.child,
-          ]),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+            child: Row(children: [
+              Icon(AppIcons.settings, size: 20, color: AppTheme.seed),
+              const SizedBox(width: 12),
+              Expanded(child: Text('Utseende', style: t.titleSmall)),
+              ValueListenableBuilder<ThemeMode>(
+                valueListenable: controller.themeMode,
+                builder: (context, mode, _) => SegmentedButton<ThemeMode>(
+                  showSelectedIcon: false,
+                  style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                  segments: const [
+                    ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto, size: 18), tooltip: 'Som telefonen'),
+                    ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_outlined, size: 18), tooltip: 'Ljust'),
+                    ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_outlined, size: 18), tooltip: 'Mörkt'),
+                  ],
+                  selected: {mode},
+                  onSelectionChanged: (v) => controller.setThemeMode(v.first),
+                ),
+              ),
+            ]),
+          ),
         ),
       ),
       section('Verksamheten', pick(verksamheten)),
@@ -842,7 +853,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
       canPop: !_dirty,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final leave = await showDialog<bool>(
+        final leave = await showBlurDialog<bool>(
           context: context,
           builder: (c) => AlertDialog(
             title: const Text('Osparade ändringar'),

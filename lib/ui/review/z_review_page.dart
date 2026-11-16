@@ -18,6 +18,7 @@ import '../widgets/fields.dart';
 import 'ai_assist.dart';
 import '../settings/activation_page.dart';
 import 'review_common.dart';
+import '../widgets/blur_overlay.dart';
 
 /// One editable row: a line from the report (or a category for manual entry)
 /// and the category it counts towards. A null category means "not counted".
@@ -217,7 +218,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
     // The category rows are what gets recorded; the printed daily total is
     // only a check. A difference is shown, never corrected by the app.
     if (day.hasDifference) {
-      final choice = await showDialog<String>(
+      final choice = await showBlurDialog<String>(
         context: context,
         builder: (c) => AlertDialog(
           title: const Text('Summan av raderna stämmer inte'),

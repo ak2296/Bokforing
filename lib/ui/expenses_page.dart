@@ -15,6 +15,7 @@ import 'unpaid_page.dart';
 import 'widgets/common.dart';
 import 'widgets/ledger_parts.dart';
 import 'widgets/unpaid_level.dart';
+import 'widgets/blur_overlay.dart';
 
 /// Colours for expenses, matching the expenses bars on Översikt.
 const _expense = AppTheme.pumpkin;
@@ -271,7 +272,7 @@ Future<InvoiceFilter?> showFilterSheet(BuildContext context, InvoiceFilter curre
     ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
   if (!context.mounted) return null;
   var f = current;
-  return showModalBottomSheet<InvoiceFilter>(
+  return showBlurSheet<InvoiceFilter>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,

@@ -10,6 +10,7 @@ import 'scan/scan_flow.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
 import 'widgets/ledger_parts.dart';
+import 'widgets/blur_overlay.dart';
 
 class SalesPage extends StatefulWidget {
   const SalesPage({super.key});
@@ -205,7 +206,7 @@ Future<void> showMissingZ(BuildContext context, List<String> missing) async {
     final day = days.first;
     final d = SwedishDates.parseIso(day);
     const names = ['måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag', 'söndag'];
-    final choice = await showDialog<String>(
+    final choice = await showBlurDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         titlePadding: const EdgeInsets.fromLTRB(24, 8, 8, 0),

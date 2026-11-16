@@ -21,6 +21,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/result_charts.dart';
 import 'sie_preview_page.dart';
+import '../widgets/blur_overlay.dart';
 
 /// The period of a resultatrapport: one month or one financial year.
 class _Period {
@@ -168,7 +169,7 @@ class _ResultBody extends StatelessWidget {
       final bytes = SieExport.encode(text);
       final fileName = 'quee_${p.fileTag}.se';
       if (!context.mounted) return;
-      final email = await showModalBottomSheet<bool>(
+      final email = await showBlurSheet<bool>(
         context: context,
         showDragHandle: true,
         builder: (c) => Column(mainAxisSize: MainAxisSize.min, children: [

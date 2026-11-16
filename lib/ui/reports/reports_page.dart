@@ -18,6 +18,7 @@ import '../widgets/report_charts.dart';
 import '../widgets/common.dart';
 import 'result_card.dart';
 import 'result_view.dart';
+import '../widgets/blur_overlay.dart';
 
 class ReportsPage extends StatefulWidget {
   const ReportsPage({super.key});
@@ -270,7 +271,7 @@ class MonthlyTable extends StatelessWidget {
   void _showDay(BuildContext context, MonthlyRow row) {
     final sales = data.sales.where((s) => s.businessDate == row.date).toList();
     final invoices = data.invoices.where((i) => i.bookingDate == row.date).toList();
-    showModalBottomSheet<void>(
+    showBlurSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (c) => SafeArea(

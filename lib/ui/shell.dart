@@ -19,6 +19,7 @@ import 'settings/settings_page.dart';
 import 'theme.dart';
 import 'tour.dart';
 import 'widgets/common.dart';
+import 'widgets/blur_overlay.dart';
 
 class Shell extends StatefulWidget {
   const Shell({super.key});
@@ -529,7 +530,7 @@ class _BackupActionState extends State<_BackupAction> {
     final c = AppScope.read(context);
     final folder = on ? await c.autoBackup?.folderName() : null;
     if (!mounted) return;
-    final settings = await showDialog<bool>(
+    final settings = await showBlurDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         icon: Icon(on ? AppIcons.checkCircle : AppIcons.crossCircle, color: on ? AppTheme.seed : AppTheme.danger, size: 32),

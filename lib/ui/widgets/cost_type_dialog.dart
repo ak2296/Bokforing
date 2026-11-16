@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_controller.dart';
 import '../../app/settings_keys.dart';
 import '../../domain/cost_types.dart';
+import 'blur_overlay.dart';
 
 /// "Ny kostnadstyp": the owner adds a type of their own for a cost that none of
 /// the standard types fits. Returns the new type, saved, or null when cancelled.
@@ -10,7 +11,7 @@ Future<CostType?> addCostTypeDialog(BuildContext context) async {
   final controller = AppScope.read(context);
   final name = TextEditingController();
   final account = TextEditingController(text: '6990');
-  final label = await showDialog<CostType>(
+  final label = await showBlurDialog<CostType>(
     context: context,
     builder: (context) => AlertDialog(
       title: const Text('Ny kostnadstyp'),

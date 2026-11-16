@@ -10,6 +10,7 @@ import '../domain/money.dart';
 import 'record_details.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
+import 'widgets/blur_overlay.dart';
 
 /// Unpaid invoices, earliest due date first, with "Betala" details and
 /// "Markera som betald".
@@ -91,7 +92,7 @@ class UnpaidTile extends StatelessWidget {
 }
 
 /// "Betala": everything needed in the bank app, with copy buttons.
-Future<void> showPaySheet(BuildContext context, Invoice inv) => showModalBottomSheet<void>(
+Future<void> showPaySheet(BuildContext context, Invoice inv) => showBlurSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,

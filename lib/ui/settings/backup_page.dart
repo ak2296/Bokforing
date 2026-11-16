@@ -9,6 +9,7 @@ import '../../export/auto_backup.dart';
 import '../../export/backup.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/blur_overlay.dart';
 
 /// Automatic backup to a folder the user picked, a copy through the share
 /// menu, and manual export and import. Every file is encrypted with the
@@ -282,7 +283,7 @@ Future<String?> askBackupPassword(BuildContext context, {required bool confirm})
   final p1 = TextEditingController();
   final p2 = TextEditingController();
   String? error;
-  return showDialog<String>(
+  return showBlurDialog<String>(
     context: context,
     builder: (c) => StatefulBuilder(
       builder: (c, setState) => AlertDialog(

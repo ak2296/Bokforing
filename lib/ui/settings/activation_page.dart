@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_controller.dart';
 import '../../domain/license.dart';
 import '../theme.dart';
+import '../widgets/blur_overlay.dart';
 
 String licenseStatusText(LicenseState s) => switch (s.status) {
       LicenseStatus.active => s.license?.until == null
@@ -18,7 +19,7 @@ String licenseStatusText(LicenseState s) => switch (s.status) {
 Future<bool> requireLicense(BuildContext context) async {
   final state = await AppScope.read(context).repo.licenseState();
   if (state.status == LicenseStatus.active || !context.mounted) return state.status == LicenseStatus.active;
-  final activate = await showDialog<bool>(
+  final activate = await showBlurDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
       title: const Text('Appen behöver aktiveras'),

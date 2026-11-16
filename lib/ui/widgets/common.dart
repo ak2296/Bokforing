@@ -7,6 +7,7 @@ import '../../app/settings_keys.dart';
 import '../../domain/dates.dart';
 import '../../domain/models.dart';
 import '../../domain/reports.dart';
+import 'blur_overlay.dart';
 
 /// Year + month, with navigation helpers.
 class YearMonth {
@@ -150,7 +151,7 @@ class EmptyState extends StatelessWidget {
 
 Future<bool> confirmDialog(BuildContext context,
     {required String title, required String message, required String confirm}) async {
-  final ok = await showDialog<bool>(
+  final ok = await showBlurDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
       title: Text(title),

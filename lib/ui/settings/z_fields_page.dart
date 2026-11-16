@@ -4,6 +4,7 @@ import '../app_icons.dart';
 
 import '../../app/app_controller.dart';
 import '../../domain/models.dart';
+import '../widgets/blur_overlay.dart';
 
 /// "Fält på Z-rapport": what each printed line on the Z-report is recorded
 /// as. Different cash registers and shops print different lines, so the
@@ -47,7 +48,7 @@ class _ZFieldsPageState extends State<ZFieldsPage> {
     final cats = _cats!;
     final text = TextEditingController(text: label);
     var selected = categoryId ?? (label.isEmpty && cats.isNotEmpty ? cats.first.id! : _notCounted);
-    final result = await showDialog<(String, int)>(
+    final result = await showBlurDialog<(String, int)>(
       context: context,
       builder: (c) => StatefulBuilder(
         builder: (c, setState) => AlertDialog(

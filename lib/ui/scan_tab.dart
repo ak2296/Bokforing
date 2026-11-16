@@ -11,6 +11,7 @@ import 'review/z_review_page.dart';
 import 'scan/scan_flow.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
+import 'widgets/blur_overlay.dart';
 
 /// Scanning and manual entry. The main button sits at the bottom, within
 /// reach of the thumb; the other ways in are small tiles above it. Nothing
@@ -22,7 +23,7 @@ class ScanTab extends StatelessWidget {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 
   void _manual(BuildContext context) {
-    showModalBottomSheet<void>(
+    showBlurSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (sheet) => SafeArea(

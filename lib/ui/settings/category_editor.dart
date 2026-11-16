@@ -4,6 +4,7 @@ import '../app_icons.dart';
 
 import '../../domain/models.dart';
 import '../../domain/vat.dart';
+import '../widgets/blur_overlay.dart';
 
 /// Editable category while the user sets up the list. [vat] stays null until
 /// the user picks a rate: the app never assigns one from the name.
@@ -95,7 +96,7 @@ class CategoryListEditor extends StatelessWidget {
                         tooltip: 'Ta bort kategori',
                         icon: const Icon(AppIcons.delete),
                         onPressed: () async {
-                          final ok = await showDialog<bool>(
+                          final ok = await showBlurDialog<bool>(
                             context: context,
                             builder: (c) => AlertDialog(
                               title: const Text('Ta bort kategori?'),
@@ -178,7 +179,7 @@ class _RatePicker extends StatelessWidget {
   Future<VatRate?> _askRate(BuildContext context) async {
     final ctrl = TextEditingController();
     String? error;
-    return showDialog<VatRate>(
+    return showBlurDialog<VatRate>(
       context: context,
       builder: (c) => StatefulBuilder(
         builder: (c, setState) => AlertDialog(
@@ -211,7 +212,7 @@ class _RatePicker extends StatelessWidget {
 
 Future<String?> askCategoryName(BuildContext context, {String initial = ''}) {
   final ctrl = TextEditingController(text: initial);
-  return showDialog<String>(
+  return showBlurDialog<String>(
     context: context,
     builder: (c) => AlertDialog(
       title: Text(initial.isEmpty ? 'Lägg till kategori' : 'Redigera kategori'),

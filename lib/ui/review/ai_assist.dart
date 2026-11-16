@@ -12,11 +12,12 @@ import '../../domain/classifier.dart';
 import '../scan/scan_context.dart';
 import 'invoice_review_page.dart';
 import 'z_review_page.dart';
+import '../widgets/blur_overlay.dart';
 
 /// Shown every time before anything is sent. Returns true only when the
 /// user taps "Skicka till Google".
 Future<bool> aiConsent(BuildContext context, {required int imageCount}) async {
-  final ok = await showDialog<bool>(
+  final ok = await showBlurDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
       icon: const Icon(AppIcons.cloudUpload),
@@ -55,7 +56,7 @@ Future<bool> runAiAnalysis(BuildContext context, ScanContext scan) async {
   if (!await aiConsent(context, imageCount: scan.imagePaths.length) || !context.mounted) return false;
 
   final navigator = Navigator.of(context);
-  showDialog<void>(
+  showBlurDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (_) => const PopScope(
@@ -121,7 +122,7 @@ Future<bool> runAiAnalysis(BuildContext context, ScanContext scan) async {
   return true;
 }
 
-Future<void> _message(BuildContext context, String title, String text) => showDialog<void>(
+Future<void> _message(BuildContext context, String title, String text) => showBlurDialog<void>(
       context: context,
       builder: (c) => AlertDialog(
         title: Text(title),

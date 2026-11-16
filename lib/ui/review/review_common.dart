@@ -8,12 +8,13 @@ import 'package:flutter/services.dart';
 import '../../domain/dates.dart';
 import '../scan/scan_context.dart';
 import '../theme.dart';
+import '../widgets/blur_overlay.dart';
 
 enum DuplicateChoice { showExisting, saveAnyway, cancel }
 
 Future<DuplicateChoice> duplicateDialog(BuildContext context,
     {required String title, required List<String> lines, bool showExistingAvailable = true}) async {
-  final choice = await showDialog<DuplicateChoice>(
+  final choice = await showBlurDialog<DuplicateChoice>(
     context: context,
     builder: (c) => AlertDialog(
       title: Text(title),
@@ -113,7 +114,7 @@ class ReviewScaffold extends StatelessWidget {
   });
 
   Future<void> _cancel(BuildContext context) async {
-    final leave = await showDialog<bool>(
+    final leave = await showBlurDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('Avbryt?'),

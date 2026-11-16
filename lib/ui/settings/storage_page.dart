@@ -4,6 +4,7 @@ import '../../app/app_controller.dart';
 import '../../data/storage.dart';
 import '../app_icons.dart';
 import '../theme.dart';
+import '../widgets/blur_overlay.dart';
 
 /// "Lagring": how much space the app takes and a button to free some. The
 /// bookkeeping figures are never touched.
@@ -59,7 +60,7 @@ class _StoragePageState extends State<StoragePage> {
   Future<void> _deleteImages() async {
     final db = AppScope.read(context).repo.db;
     final messenger = ScaffoldMessenger.of(context);
-    final ok = await showDialog<bool>(
+    final ok = await showBlurDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('Ta bort sparade bilder?'),
