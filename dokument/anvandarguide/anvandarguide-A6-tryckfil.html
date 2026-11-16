@@ -141,6 +141,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 
 
 
+
 /* ---------- Skisser som i appen (skisser.py) ---------- */
 .screen .body { padding: 0 2.2mm; }
 .two-c { display: flex; gap: 1.2mm; margin-bottom: 1.2mm; }
@@ -235,7 +236,7 @@ table.t td:first-child, table.t th:first-child { width: 27mm; }
 .cover .inner { padding: 14mm 9mm; } .cover h1 { font-size: 30pt; margin-top: 8mm; }
 .cover .logo { width: 18mm; height: 18mm; } .cover .logo img { width: 18mm; height: 18mm; }
 .cover .sub { font-size: 12pt; } .cover .tag { left: 9mm; bottom: 12mm; }
-.cover .deco { right: -13mm; top: 52mm; transform: rotate(-12deg) scale(.71); transform-origin: top right; }
+.cover .deco { right: 5mm; top: 48mm; transform: rotate(-12deg); transform-origin: top right; } .cover .deco img { width: 43mm !important; height: 86mm !important; }
 .trow { display: grid; grid-template-columns: 24mm 1fr; gap: 2mm; padding: 1.3mm 0; border-bottom: 0.3mm solid var(--line); font-size: 8.4pt; line-height: 1.35; }
 .trow > div:first-child { font-weight: 500; }
 .fl .trow { grid-template-columns: 19mm 1fr; }
@@ -247,6 +248,7 @@ table.t td:first-child, table.t th:first-child { width: 27mm; }
 .bl:last-child { page-break-after: auto; }
 .bl .in { position: absolute; left: 3mm; top: 3mm; }
 .bl .page { page-break-after: auto; }
+.bl:first-child .page { overflow: visible; }  /* the cover's phone runs on into the bleed */
 .backcover .mark { position: absolute; left: 0; right: 0; bottom: 16mm; display: flex; flex-direction: column; align-items: center; gap: 2mm; }
 .backcover .mark img { width: 11mm; height: 11mm; border-radius: 2.6mm; }
 .backcover .mark span { font-family: Poppins, Inter, sans-serif; font-size: 10pt; font-weight: 600; color: #0B6B4E; letter-spacing: 0.3pt; }
@@ -259,15 +261,7 @@ table.t td:first-child, table.t th:first-child { width: 27mm; }
     <h1>Quee</h1>
     <div class="sub">Användarguide</div>
     <p style="margin-top:6mm; max-width:80mm; opacity:.9">Enklare bokföring i mobilen.</p>
-    <div class="deco">
-      <div class="phone"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="hr"><span class="cl">●</span><span class="cl">☁</span><div class="gear"></div></div></div><div class="body">
-  <div class="rkrow"><span class="rk">Räkningar <b>3</b></span></div>
-  <div class="hero"><div>Resultat före skatt</div><div class="big2">−32 867 kr</div><div class="mu2">Exkl. moms</div>
-    <div class="stats"><div>Försäljning<b>42 460</b></div><div>Utgifter<b>75 327</b></div></div></div>
-  <div class="card row2"><span class="vatic"></span><div><span class="mu">Moms att betala i november (beräknad)</span><br><b class="big">2 492 kr</b></div></div>
-  <div class="card"><div class="sec"><span class="mu">Försäljning och utgifter</span><span class="seg"><i class="on">Månader</i><i>Veckodag</i></span></div><div class="bars"><div><s style="height:55%"></s><s style="height:35%"></s></div><div><s style="height:70%"></s><s style="height:40%"></s></div><div><s style="height:60%"></s><s style="height:45%"></s></div><div><s style="height:85%"></s><s style="height:38%"></s></div><div><s style="height:75%"></s><s style="height:50%"></s></div><div><s style="height:95%"></s><s style="height:42%"></s></div></div></div>
-</div><div class="pill-nav"><div class="on"><i class="ni"></i>Översikt</div><div class=""><i class="ni"></i>Försälj.</div><div class=" sc"><i class="ni"></i>Skanna</div><div class=""><i class="ni"></i>Utgifter</div><div class=""><i class="ni"></i>Rapporter</div></div></div></div>
-    </div>
+    <div class="deco"><img src="../bilder/cover-phone.png" alt="" loading="eager" decoding="sync" style="display:block;width:50mm;height:100mm"></div>
     <div class="tag">Version 1.3 · november 2026</div>
   </div>
 </section></div></div>

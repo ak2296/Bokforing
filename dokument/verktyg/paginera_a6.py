@@ -46,7 +46,7 @@ table.t td:first-child, table.t th:first-child { width: 27mm; }
 .cover .inner { padding: 14mm 9mm; } .cover h1 { font-size: 30pt; margin-top: 8mm; }
 .cover .logo { width: 18mm; height: 18mm; } .cover .logo img { width: 18mm; height: 18mm; }
 .cover .sub { font-size: 12pt; } .cover .tag { left: 9mm; bottom: 12mm; }
-.cover .deco { right: -13mm; top: 52mm; transform: rotate(-12deg) scale(.71); transform-origin: top right; }
+.cover .deco { right: 5mm; top: 48mm; transform: rotate(-12deg); transform-origin: top right; } .cover .deco img { width: 43mm !important; height: 86mm !important; }
 .trow { display: grid; grid-template-columns: 24mm 1fr; gap: 2mm; padding: 1.3mm 0; border-bottom: 0.3mm solid var(--line); font-size: 8.4pt; line-height: 1.35; }
 .trow > div:first-child { font-weight: 500; }
 .fl .trow { grid-template-columns: 19mm 1fr; }

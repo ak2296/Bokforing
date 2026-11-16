@@ -49,6 +49,7 @@ STYLE = """
 .bl:last-child { page-break-after: auto; }
 .bl .in { position: absolute; left: 3mm; top: 3mm; }
 .bl .page { page-break-after: auto; }
+.bl:first-child .page { overflow: visible; }  /* the cover's phone runs on into the bleed */
 .backcover .mark { position: absolute; left: 0; right: 0; bottom: 16mm; display: flex; flex-direction: column; align-items: center; gap: 2mm; }
 .backcover .mark img { width: 11mm; height: 11mm; border-radius: 2.6mm; }
 .backcover .mark span { font-family: Poppins, Inter, sans-serif; font-size: 10pt; font-weight: 600; color: #0B6B4E; letter-spacing: 0.3pt; }

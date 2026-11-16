@@ -70,7 +70,7 @@ table.t td:first-child {{ color: var(--green); font-size: 9.4pt; margin-bottom: 
 .cover .logo {{ width: 18mm; height: 18mm; }} .cover .logo img {{ width: 18mm; height: 18mm; }}
 .cover h1 {{ font-size: 30pt; margin-top: 7mm; }}
 .cover .sub {{ font-size: 13pt; }}
-.cover .deco {{ right: -3mm; top: 74mm; transform: rotate(-12deg) scale(.78); transform-origin: top right; }}
+.cover .deco {{ right: -3mm; top: 74mm; transform: rotate(-12deg); transform-origin: top right; }} .cover .deco img {{ width: 39mm !important; height: 78mm !important; }}
 .cover .tag {{ position: static; margin-top: 3mm; font-size: 8.5pt; }}
 </style>
 """
