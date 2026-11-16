@@ -21,7 +21,7 @@ TMP = ROOT / "dokument/anvandarguide/_telefon-matt.html"
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 
 W = 70  # mm
-COVER_H = 124
+COVER_H = 165
 
 STYLE = f"""
 <style>
@@ -41,6 +41,9 @@ ul, ol {{ padding-left: 5mm; }}
 .steps li::before {{ width: 5.6mm; height: 5.6mm; font-size: 8.5pt; }}
 .toc li {{ font-size: 10.5pt; }}
 .toc li span:last-child {{ display: none; }}
+.toc li {{ padding: 3mm 0; }}
+.toc a {{ color: var(--green); text-decoration: none; display: block; }}
+.toc li span:nth-child(2) a::after {{ content: ' ›'; color: var(--muted); }}
 
 /* tables become stacked rows: label above, text below */
 table.t, table.t tbody, table.t tr, table.t td, table.t th {{ display: block; width: auto !important; }}
@@ -67,8 +70,8 @@ table.t td:first-child {{ color: var(--green); font-size: 9.4pt; margin-bottom: 
 .cover .logo {{ width: 18mm; height: 18mm; }} .cover .logo img {{ width: 18mm; height: 18mm; }}
 .cover h1 {{ font-size: 30pt; margin-top: 7mm; }}
 .cover .sub {{ font-size: 13pt; }}
-.cover .deco {{ right: -10mm; top: 62mm; transform: rotate(-12deg) scale(.62); transform-origin: top right; }}
-.cover .tag {{ left: 6mm; bottom: 8mm; font-size: 8.5pt; }}
+.cover .deco {{ right: -3mm; top: 74mm; transform: rotate(-12deg) scale(.78); transform-origin: top right; }}
+.cover .tag {{ position: static; margin-top: 3mm; font-size: 8.5pt; }}
 </style>
 """
 

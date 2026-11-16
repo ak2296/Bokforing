@@ -31,6 +31,9 @@ class CameraPage extends StatefulWidget {
 
 class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
   CameraController? _controller;
+
+  /// The flash choice (Av, Auto, På) is kept between scans while the app runs.
+  static FlashMode _flash = FlashMode.off;
   bool _permissionDenied = false;
   String? _error;
   bool _busy = false;
@@ -115,7 +118,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
           enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
       await c.initialize();
       try {
-        await c.setFlashMode(FlashMode.off);
+        await c.setFlashMode(_flash);
       } on CameraException {
         // Not all devices support flash control.
       }
@@ -330,6 +333,41 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
     ];
   }
 
+  /// Av -> Auto -> På (the lamp stays lit while framing) -> Av.
+  Future<void> _nextFlash() async {
+    final c = _controller;
+    if (c == null) return;
+    final next = switch (_flash) {
+      FlashMode.off => FlashMode.auto,
+      FlashMode.auto => FlashMode.torch,
+      _ => FlashMode.off,
+    };
+    try {
+      await c.setFlashMode(next);
+      if (mounted) setState(() => _flash = next);
+    } on CameraException {
+      // No flash on this device: the choice stays as it was.
+    }
+  }
+
+  Widget _flashButton() {
+    final (icon, label) = switch (_flash) {
+      FlashMode.auto => (AppIcons.flash, 'Auto'),
+      FlashMode.torch || FlashMode.always => (AppIcons.flash, 'På'),
+      _ => (AppIcons.flashOff, 'Av'),
+    };
+    final lit = _flash != FlashMode.off;
+    return Semantics(
+      button: true,
+      label: 'Blixt: $label. Tryck för att byta.',
+      child: TextButton.icon(
+        onPressed: _nextFlash,
+        icon: Icon(icon, size: 20, color: lit ? _accent : Colors.white70),
+        label: Text('Blixt $label', style: TextStyle(color: lit ? _accent : Colors.white70, fontSize: 13)),
+      ),
+    );
+  }
+
   Future<void> _capture() async {
     final c = _controller;
     if (c == null || _busy || !c.value.isInitialized) return;
@@ -502,6 +540,7 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
         toolbarHeight: 44,
         titleTextStyle: const TextStyle(fontFamily: 'Inter', color: Colors.white, fontSize: 14),
         title: Text(widget.online ? 'Skanna onlineförsäljning' : 'Skanna dokument'),
+        actions: [if (_controller != null) _flashButton()],
       ),
       body: SafeArea(child: body),
     );

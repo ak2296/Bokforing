@@ -310,6 +310,7 @@ class _PayslipReviewPageState extends State<PayslipReviewPage> {
     final navigator = Navigator.of(context);
     await widget.scan?.discardImages();
     navigator.pop();
+    if (!navigator.mounted) return;
     await startScan(navigator.context);
   }
 }

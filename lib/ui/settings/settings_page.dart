@@ -47,6 +47,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _updateCheck = true;
   bool _bioAvailable = false;
   bool _reminders = true;
+  bool _notifAllowed = true;
   int _reminderDays = Reminders.defaultDays;
   BusinessProfile _profile = const BusinessProfile();
   CompanyForm? _form;
@@ -66,6 +67,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _load() async {
     final repo = AppScope.read(context).repo;
+    final pinLock = AppScope.read(context).pinLock;
     final p = await repo.profile();
     final form = await repo.companyForm();
     final license = await repo.licenseState();
@@ -74,7 +76,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final updateCheck = await repo.boolSetting(SettingsKeys.updateCheck, fallback: true);
     final reminders = await Reminders.enabled(repo);
     final days = await Reminders.days(repo);
-    final bio = await AppScope.read(context).pinLock?.biometricAvailable ?? false;
+    final bio = await pinLock?.biometricAvailable ?? false;
     if (!mounted) return;
     setState(() {
       _profile = p;
@@ -222,12 +224,17 @@ class _SettingsPageState extends State<SettingsPage> {
       ]),
       _Group(AppIcons.notifications, 'Påminnelser', _reminders ? 'På, $_reminderDays dagar före' : 'Av', [
         const _Entry('aviseringar tillstånd notis telefon blockerad', NotificationPermissionTile()),
+        _Entry('aviseringar tillstånd notis telefon blockerad', NotificationPermissionTile(onChanged: (ok) {
+          if (mounted && ok != _notifAllowed) setState(() => _notifAllowed = ok);
+        })),
         _Entry(
           'påminnelser notis avisering förfallodag fakturor',
           SwitchListTile(
             secondary: const Icon(AppIcons.notifications),
             title: const Text('Påminn om fakturor som ska betalas'),
-            subtitle: const Text('En avisering i telefonen före förfallodagen och på förfallodagen.'),
+            subtitle: Text(_reminders && !_notifAllowed
+                ? 'Telefonen blockerar aviseringar från Quee. Tillåt dem ovan, annars kommer ingen påminnelse.'
+                : 'En avisering i telefonen före förfallodagen och på förfallodagen.'),
             value: _reminders,
             onChanged: (v) async {
               await controller.repo.setBoolSetting(Reminders.enabledKey, v);
@@ -241,7 +248,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _Entry(
             'påminn dagar före förfallodagen',
             ListTile(
-              leading: const SizedBox(width: 24),
+              leading: const Icon(AppIcons.notifications, color: Colors.transparent),
               title: const Text('Påminn dagar före förfallodagen'),
               trailing: DropdownButton<int>(
                 value: _reminderDays,
@@ -943,20 +950,24 @@ class _ThemeSwitch extends StatelessWidget {
       toggled: dark,
       label: 'Mörkt utseende',
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () => onChanged(!dark),
-        child: AnimatedContainer(
+        child: SizedBox(
+          height: 48,
+          child: Center(
+            child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
           width: w,
           height: h,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(h / 2),
-            color: dark ? const Color(0xFF26364F) : const Color(0xFFFFE6A8),
+            color: AppTheme.switchTrack(dark),
             border: Border.all(color: AppTheme.hairline),
           ),
           child: Stack(alignment: Alignment.center, children: [
-            Positioned(left: 10, child: Icon(Icons.light_mode, size: 17, color: dark ? Colors.white38 : const Color(0xFFB36B00))),
-            Positioned(right: 10, child: Icon(Icons.dark_mode, size: 17, color: dark ? const Color(0xFFBFD0F2) : Colors.black26)),
+            Positioned(left: 10, child: Icon(Icons.light_mode, size: 17, color: dark ? AppTheme.switchIdle : AppTheme.switchSun)),
+            Positioned(right: 10, child: Icon(Icons.dark_mode, size: 17, color: dark ? AppTheme.switchMoon : AppTheme.switchIdle)),
             AnimatedPositioned(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
@@ -966,13 +977,15 @@ class _ThemeSwitch extends StatelessWidget {
                 height: knob,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: dark ? const Color(0xFF5B7FD1) : Colors.white,
+                  color: dark ? AppTheme.switchKnobDark : Colors.white,
                   boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 1))],
                 ),
-                child: Icon(dark ? Icons.dark_mode : Icons.light_mode, size: 18, color: dark ? Colors.white : const Color(0xFFE08A00)),
+                child: Icon(dark ? Icons.dark_mode : Icons.light_mode, size: 18, color: dark ? Colors.white : AppTheme.switchSun),
               ),
             ),
           ]),
+            ),
+          ),
         ),
       ),
     );

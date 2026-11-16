@@ -210,6 +210,7 @@ Future<void> showMissingZ(BuildContext context, List<String> missing) async {
     final day = days.first;
     final d = SwedishDates.parseIso(day);
     const names = ['måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag', 'söndag'];
+    if (!context.mounted) return;
     final choice = await showBlurDialog<String>(
       context: context,
       builder: (context) => AlertDialog(

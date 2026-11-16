@@ -248,6 +248,7 @@ class _OnlineReviewPageState extends State<OnlineReviewPage> {
     final navigator = Navigator.of(context);
     await widget.scan?.discardImages();
     navigator.pop();
+    if (!navigator.mounted) return;
     await startScan(navigator.context, online: true);
   }
 }

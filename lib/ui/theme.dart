@@ -13,6 +13,13 @@ class AppTheme {
   /// saturation like the green, so white text keeps its contrast in both themes.
   static Color get sales => dark ? const Color(0xFF4A6FA8) : const Color(0xFF3A5A8C);
 
+  /// The Utseende switch: track, idle icon, sun, moon and the dark knob.
+  static Color switchTrack(bool darkMode) => darkMode ? const Color(0xFF26364F) : const Color(0xFFFFE6A8);
+  static const Color switchSun = Color(0xFFB36B00);
+  static const Color switchMoon = Color(0xFFBFD0F2);
+  static const Color switchKnobDark = Color(0xFF5B7FD1);
+  static const Color switchIdle = Color(0x61808080);
+
   /// The light fill for the Försäljning page's small badges (the day on each Z-report).
   static Color get salesTint => dark ? const Color(0xFF1F2F48) : const Color(0xFFE2EAF4);
   static Color get ink => dark ? const Color(0xFFE6EEEA) : const Color(0xFF10201B);

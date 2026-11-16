@@ -564,6 +564,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
     final navigator = Navigator.of(context);
     await widget.scan?.discardImages();
     navigator.pop();
+    if (!navigator.mounted) return;
     await startScan(navigator.context);
   }
 }

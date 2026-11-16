@@ -40,21 +40,28 @@ body { font-family: Inter, Arial, sans-serif; color: #10201B; -webkit-print-colo
 .back .code label { display: block; font-size: 5pt; color: #C4540A; font-weight: 500; letter-spacing: 0.3pt; }
 .back .code .note { font-size: 5.4pt; line-height: 1.35; margin-top: 0.6mm; }
 </style>
-</head>
+<style>
+/* Rounded card corners (3.5 mm radius at the trim line, bleed kept outside). */
+.corner { position: absolute; width: 3.5mm; height: 3.5mm; z-index: 9; }
+.corner.tl { left: 3mm; top: 3mm; background: radial-gradient(circle at 3.5mm 3.5mm, transparent 3.5mm, #fff 3.5mm); }
+.corner.tr { right: 3mm; top: 3mm; background: radial-gradient(circle at 0 3.5mm, transparent 3.5mm, #fff 3.5mm); }
+.corner.bl { left: 3mm; bottom: 3mm; background: radial-gradient(circle at 3.5mm 0, transparent 3.5mm, #fff 3.5mm); }
+.corner.br { right: 3mm; bottom: 3mm; background: radial-gradient(circle at 0 0, transparent 3.5mm, #fff 3.5mm); }
+</style></head>
 <body>
 
 <section class="side front">
   <div class="ring"></div><div class="ring2"></div>
-  <div class="safe">
+  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><div class="safe">
     <div class="logo"><img src="../bilder/app-ikon.png" alt=""></div>
     <div class="name">Quee</div>
-    <div class="tag">Fakturor, kvitton och Z-rapporter – skannade, kontrollerade och klara för moms och rapporter.</div>
+    <div class="tag">Enklare bokföring i mobilen.</div>
     <div class="foot">MOBIL OCH SURFPLATTA · ANDROID</div>
   </div>
 </section>
 
 <section class="side back">
-  <div class="safe">
+  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><div class="safe">
     <h2>Ladda ner appen</h2>
     <div class="qr"><img src="../bilder/qr-ladda-ner.svg" alt="QR-kod för nedladdning"><small>Skanna med kameran</small></div>
     <ol>

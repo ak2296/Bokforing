@@ -32,9 +32,9 @@ Quee turns paper and PDF bookkeeping documents into checked records, monthly and
 
 - Scanning with automatic type detection (faktura/kvitto, Z-report, online sales, payslip), crop, OCR, manual entry, file import and share-in from other apps.
 - Reports: monthly, yearly, result with cost types, comparison; PDF, Excel, print; SIE file; estimated tax to set aside (aktiebolag 20,6 %, enskild firma by the owner's own percentage or yearly amount).
-- Overview, unpaid invoices with reminders, bank-file payment matching, learning of where a supplier prints each field (from the user's corrections), automatic encrypted backup, PIN and fingerprint lock, light and dark theme, first-run tour, user guide (phone-width PDF in the app, A6 print booklet).
+- Overview, unpaid invoices with reminders, bank-file payment matching, learning of where a supplier prints each field (from the user's corrections), automatic encrypted backup, PIN and fingerprint lock, closed days and Z-report coverage, own cost types, notification permission switch, light and dark theme, first-run tour, user guide (phone-width PDF in the app, A6 print booklet).
 - No company exists yet. Features that only make sense with a company (closing a month, filing a moms return, and similar) are parked in `FUTURE_FUNCTIONS.md`.
-- Android now, iOS later: keep code portable but build and test on Android only for now. The app is built with Flutter; there is no local Flutter install, so builds are verified on GitHub CI.
+- Android now, iOS later: keep code portable but build and test on Android only for now. The app is built with Flutter; Flutter 3.47.9 is installed locally (analyze and tests run there); release builds run on GitHub CI.
 - The owner's own bank CSV and data are private: learn layouts only, never copy real data into the repository.
 - Undecided: pricing, the accountant-side workflow, and which company-only features come first.
 

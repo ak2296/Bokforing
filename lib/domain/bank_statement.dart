@@ -63,7 +63,7 @@ class BankStatement {
     }
     final textCols = [
       for (final c in [col(const ['beskrivning', 'text', 'transaktion', 'specifikation']), col(const ['referens', 'meddelande'])])
-        if (c != null) c,
+        ?c,
     ];
     final balanceCol = col(const ['bokfört saldo', 'saldo']);
 

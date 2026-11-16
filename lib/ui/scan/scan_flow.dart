@@ -446,6 +446,11 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
         body = _Panel(
           icon: AppIcons.imageOff,
           title: 'Bildkvaliteten är för låg',
+          primary: FilledButton(onPressed: _rescan, child: const Text('Skanna igen')),
+          secondary: OutlinedButton(
+            onPressed: _recognize,
+            child: const Text('Använd ändå'),
+          ),
           children: [
             for (final i in issues)
               ListTile(
@@ -454,47 +459,37 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
                 subtitle: Text(i.advice),
               ),
           ],
-          primary: FilledButton(onPressed: _rescan, child: const Text('Skanna igen')),
-          secondary: OutlinedButton(
-            onPressed: _recognize,
-            child: const Text('Använd ändå'),
-          ),
         );
       case ScanState.ocrFailed:
         body = _Panel(
           icon: AppIcons.text,
           title: 'Ingen text kunde läsas',
+          primary: FilledButton(onPressed: _rescan, child: const Text('Skanna igen')),
+          secondary: _manualChoice(),
           children: [
             const Text('Prova att ta bilden närmare och med bättre ljus. För långa kvitton: använd "Långt dokument".'),
             _aiButton(),
           ],
-          primary: FilledButton(onPressed: _rescan, child: const Text('Skanna igen')),
-          secondary: _manualChoice(),
         );
       case ScanState.documentUnknown:
         body = _Panel(
           icon: AppIcons.help,
           title: 'Dokumentet känns inte igen',
-          children: [
-            const Text('Det ser inte ut som en faktura, ett kvitto eller en Z-rapport.'),
-            _aiButton(),
-          ],
           primary: FilledButton(onPressed: _rescan, child: const Text('Skanna igen')),
           secondary: Column(children: [
             OutlinedButton(onPressed: () => _openReview(DocumentType.invoice), child: const Text('Det är en faktura')),
             OutlinedButton(onPressed: () => _openReview(DocumentType.zReport), child: const Text('Det är en Z-rapport')),
           ]),
+          children: [
+            const Text('Det ser inte ut som en faktura, ett kvitto eller en Z-rapport.'),
+            _aiButton(),
+          ],
         );
       case ScanState.mismatch:
         final toOnline = _mismatchType == DocumentType.onlineSale;
         body = _Panel(
           icon: AppIcons.help,
           title: toOnline ? 'Det här ser ut som onlineförsäljning' : 'Det här ser ut som en Z-rapport',
-          children: [
-            Text(toOnline
-                ? 'Utbetalningar från en partner är försäljning, inte en utgift. Vill du registrera den som onlineförsäljning?'
-                : 'Du tryckte på Skanna onlineförsäljning. Vill du byta till Z-rapport?'),
-          ],
           primary: FilledButton(
             onPressed: () => _openReview(_mismatchType!),
             child: Text(toOnline ? 'Ja, onlineförsäljning' : 'Ja, Z-rapport'),
@@ -510,16 +505,17 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
             },
             child: Text(toOnline ? 'Nej, fortsätt som vanligt' : 'Nej, onlineförsäljning'),
           ),
+          children: [
+            Text(toOnline
+                ? 'Utbetalningar från en partner är försäljning, inte en utgift. Vill du registrera den som onlineförsäljning?'
+                : 'Du tryckte på Skanna onlineförsäljning. Vill du byta till Z-rapport?'),
+          ],
         );
       case ScanState.lowConfidence:
         final c = _classification!;
         body = _Panel(
           icon: AppIcons.help,
           title: 'Vi är osäkra på dokumenttypen.',
-          children: [
-            Text('Bästa gissning: ${c.type.label} (${(c.confidence * 100).round()} % säkerhet). Välj vad det är:'),
-            _aiButton(),
-          ],
           primary: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -534,14 +530,18 @@ class _ScanFlowPageState extends State<ScanFlowPage> {
             onPressed: () => setState(() => _state = ScanState.documentUnknown),
             child: const Text('Annat'),
           ),
+          children: [
+            Text('Bästa gissning: ${c.type.label} (${(c.confidence * 100).round()} % säkerhet). Välj vad det är:'),
+            _aiButton(),
+          ],
         );
       case ScanState.failed:
         body = _Panel(
           icon: AppIcons.error,
           title: 'Något gick fel',
-          children: [Text('Inget har sparats. ${_error ?? ''}')],
           primary: FilledButton(onPressed: _rescan, child: const Text('Skanna igen')),
           secondary: _manualChoice(),
+          children: [Text('Inget har sparats. ${_error ?? ''}')],
         );
     }
     return Scaffold(

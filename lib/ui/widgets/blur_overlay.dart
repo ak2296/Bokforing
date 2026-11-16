@@ -39,7 +39,7 @@ Future<T?> showBlurSheet<T>({
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: Colors.black38,
       transitionDuration: const Duration(milliseconds: 240),
-      pageBuilder: (context, _, __) => _SheetFrame(showDragHandle: showDragHandle, child: builder(context)),
+      pageBuilder: (context, _, _) => _SheetFrame(showDragHandle: showDragHandle, child: builder(context)),
       transitionBuilder: (context, animation, _, child) => SlideTransition(
         position: Tween(begin: const Offset(0, 1), end: Offset.zero)
             .animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),

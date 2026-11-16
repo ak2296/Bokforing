@@ -1609,7 +1609,7 @@ class InvoiceParser implements DocumentParser<InvoiceDraft> {
       {RegExp? below, String? fuzzy}) {
     for (var i = 0; i < rows.length; i++) {
       final n = norm[i];
-      for (final l in [...labels, if (fuzzy != null) fuzzy]) {
+      for (final l in [...labels, ?fuzzy]) {
         if (l == 'ocr' && (n.contains('ocr-nummer') || n.contains('ocr nr'))) continue;
         final at = _findLabel(rows[i].text, l, fuzzy: l == fuzzy ? fuzzy : null);
         if (at == null) continue;

@@ -136,6 +136,11 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 
 
 
+
+
+
+
+
 /* ---------- Skisser som i appen (skisser.py) ---------- */
 .screen .body { padding: 0 2.2mm; }
 .two-c { display: flex; gap: 1.2mm; margin-bottom: 1.2mm; }
@@ -194,6 +199,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 .toc li span:first-child { color: var(--green); font-weight: 500; width: 7mm; }
 .toc li span:nth-child(2) { flex: 1; }
 .toc li span:last-child { color: var(--muted); }
+.toc a { color: inherit; text-decoration: none; }
 .legend-tbl td:first-child { width: 27mm; white-space: nowrap; }
 .icon-ok, .icon-q, .icon-x { display: inline-block; width: 3.4mm; height: 3.4mm; border-radius: 50%; vertical-align: -0.6mm; margin-right: 1mm; }
 .icon-ok { border: 0.5mm solid var(--green); }
@@ -218,6 +224,9 @@ ul, ol { padding-left: 5mm; }
 .steps li::before { width: 5.6mm; height: 5.6mm; font-size: 8.5pt; }
 .toc li { font-size: 10.5pt; }
 .toc li span:last-child { display: none; }
+.toc li { padding: 3mm 0; }
+.toc a { color: var(--green); text-decoration: none; display: block; }
+.toc li span:nth-child(2) a::after { content: ' ›'; color: var(--muted); }
 
 /* tables become stacked rows: label above, text below */
 table.t, table.t tbody, table.t tr, table.t td, table.t th { display: block; width: auto !important; }
@@ -239,21 +248,21 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 .flow .arr { transform: rotate(90deg); }
 .num { width: 5mm; height: 5mm; font-size: 8pt; }
 .pill { font-size: 7.6pt; }
-.cover { height: 124mm; overflow: hidden; }
+.cover { height: 165mm; overflow: hidden; }
 .cover .inner { padding: 10mm 6mm; }
 .cover .logo { width: 18mm; height: 18mm; } .cover .logo img { width: 18mm; height: 18mm; }
 .cover h1 { font-size: 30pt; margin-top: 7mm; }
 .cover .sub { font-size: 13pt; }
-.cover .deco { right: -10mm; top: 62mm; transform: rotate(-12deg) scale(.62); transform-origin: top right; }
-.cover .tag { left: 6mm; bottom: 8mm; font-size: 8.5pt; }
+.cover .deco { right: -3mm; top: 74mm; transform: rotate(-12deg) scale(.78); transform-origin: top right; }
+.cover .tag { position: static; margin-top: 3mm; font-size: 8.5pt; }
 </style>
 <style>@page { margin: 0; }
-@page c0 { size: 70mm 124mm; margin: 0; } section.page:nth-of-type(1) { page: c0; }
-@page c1 { size: 70mm 248mm; margin: 0; } section.page:nth-of-type(2) { page: c1; }
+@page c0 { size: 70mm 165mm; margin: 0; } section.page:nth-of-type(1) { page: c0; }
+@page c1 { size: 70mm 284mm; margin: 0; } section.page:nth-of-type(2) { page: c1; }
 @page c2 { size: 70mm 406mm; margin: 0; } section.page:nth-of-type(3) { page: c2; }
 @page c3 { size: 70mm 373mm; margin: 0; } section.page:nth-of-type(4) { page: c3; }
 @page c4 { size: 70mm 372mm; margin: 0; } section.page:nth-of-type(5) { page: c4; }
-@page c5 { size: 70mm 403mm; margin: 0; } section.page:nth-of-type(6) { page: c5; }
+@page c5 { size: 70mm 439mm; margin: 0; } section.page:nth-of-type(6) { page: c5; }
 @page c6 { size: 70mm 359mm; margin: 0; } section.page:nth-of-type(7) { page: c6; }
 @page c7 { size: 70mm 384mm; margin: 0; } section.page:nth-of-type(8) { page: c7; }
 @page c8 { size: 70mm 346mm; margin: 0; } section.page:nth-of-type(9) { page: c8; }
@@ -261,7 +270,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 @page c10 { size: 70mm 384mm; margin: 0; } section.page:nth-of-type(11) { page: c10; }
 @page c11 { size: 70mm 380mm; margin: 0; } section.page:nth-of-type(12) { page: c11; }
 @page c12 { size: 70mm 340mm; margin: 0; } section.page:nth-of-type(13) { page: c12; }
-@page c13 { size: 70mm 485mm; margin: 0; } section.page:nth-of-type(14) { page: c13; }
+@page c13 { size: 70mm 490mm; margin: 0; } section.page:nth-of-type(14) { page: c13; }
 @page c14 { size: 70mm 354mm; margin: 0; } section.page:nth-of-type(15) { page: c14; }
 @page c15 { size: 70mm 259mm; margin: 0; } section.page:nth-of-type(16) { page: c15; }
 @page c16 { size: 70mm 296mm; margin: 0; } section.page:nth-of-type(17) { page: c16; }
@@ -269,12 +278,12 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 <body>
 
 <!-- ============ 1. Omslag ============ -->
-<section class="page cover">
+<section class="page cover" id="s1">
   <div class="inner">
     <div class="logo"><img src="../bilder/app-ikon.png" alt=""></div>
     <h1>Quee</h1>
     <div class="sub">Användarguide</div>
-    <p style="margin-top:6mm; max-width:80mm; opacity:.9">Skanna fakturor, kvitton och Z-rapporter. Kontrollera. Klart – med moms och rapporter för varje månad.</p>
+    <p style="margin-top:6mm; max-width:80mm; opacity:.9">Enklare bokföring i mobilen.</p>
     <div class="deco">
       <div class="phone"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>DIN RESTAURANG<small>November 2026</small></div><div class="hr"><span class="cl">&#9679;</span><span class="cl">&#9729;</span><div class="gear"></div></div></div><div class="body">
   <div class="rkrow"><span class="rk">Räkningar <b>3</b></span></div>
@@ -289,31 +298,31 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 2. Innehåll ============ -->
-<section class="page">
+<section class="page" id="s2">
   <div class="kicker">Innehåll</div>
   <h1>Det här finns i guiden</h1>
   <ul class="toc">
-    <li><span>1</span><span>Installera och aktivera appen</span><span>3</span></li>
-    <li><span>2</span><span>Kom igång: företag, kategorier och moms</span><span>4</span></li>
-    <li><span>3</span><span>Appens fem flikar och svepning</span><span>5</span></li>
-    <li><span>4</span><span>Skanna ett dokument</span><span>6</span></li>
-    <li><span>5</span><span>Kontrollera uppgifterna</span><span>7</span></li>
-    <li><span>6</span><span>Fakturor, kvitton och kreditnotor</span><span>8</span></li>
-    <li><span>7</span><span>Z-rapporten – dagens försäljning</span><span>9</span></li>
-    <li><span>8</span><span>Onlineförsäljning och filer från e-post</span><span>10</span></li>
-    <li><span>9</span><span>Försäljning, utgifter och att betala</span><span>11</span></li>
-    <li><span>10</span><span>Rapporter, resultat och SIE-fil</span><span>12</span></li>
-    <li><span>11</span><span>Säkerhetskopia och lagring</span><span>13</span></li>
-    <li><span>12</span><span>Inställningar</span><span>14</span></li>
-    <li><span>13</span><span>Vanliga frågor</span><span>15</span></li>
-    <li><span>14</span><span>Snabbguide: dag, vecka, månad</span><span>16</span></li>
-    <li><span>15</span><span>Ordlista</span><span>17</span></li>
+    <li><span>1</span><span><a href="#s3">Installera och aktivera appen</a></span><span>3</span></li>
+    <li><span>2</span><span><a href="#s4">Kom igång: företag, kategorier och moms</a></span><span>4</span></li>
+    <li><span>3</span><span><a href="#s5">Appens fem flikar och svepning</a></span><span>5</span></li>
+    <li><span>4</span><span><a href="#s6">Skanna ett dokument</a></span><span>6</span></li>
+    <li><span>5</span><span><a href="#s7">Kontrollera uppgifterna</a></span><span>7</span></li>
+    <li><span>6</span><span><a href="#s8">Fakturor, kvitton och kreditnotor</a></span><span>8</span></li>
+    <li><span>7</span><span><a href="#s9">Z-rapporten – dagens försäljning</a></span><span>9</span></li>
+    <li><span>8</span><span><a href="#s10">Onlineförsäljning och filer från e-post</a></span><span>10</span></li>
+    <li><span>9</span><span><a href="#s11">Försäljning, utgifter och att betala</a></span><span>11</span></li>
+    <li><span>10</span><span><a href="#s12">Rapporter, resultat och SIE-fil</a></span><span>12</span></li>
+    <li><span>11</span><span><a href="#s13">Säkerhetskopia och lagring</a></span><span>13</span></li>
+    <li><span>12</span><span><a href="#s14">Inställningar</a></span><span>14</span></li>
+    <li><span>13</span><span><a href="#s15">Vanliga frågor</a></span><span>15</span></li>
+    <li><span>14</span><span><a href="#s16">Snabbguide: dag, vecka, månad</a></span><span>16</span></li>
+    <li><span>15</span><span><a href="#s17">Ordlista</a></span><span>17</span></li>
   </ul>
   <div class="folio"><span>Quee · Användarguide</span><span>2</span></div>
 </section>
 
 <!-- ============ 3. Installera ============ -->
-<section class="page">
+<section class="page" id="s3">
   <div class="kicker">1 · Installera</div>
   <h1>Installera och aktivera</h1>
   <p class="lead">Appen finns för Android-mobiler och surfplattor med Android 7.0 eller senare och kamera. Installationen tar ett par minuter.</p>
@@ -341,7 +350,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 4. Kom igång ============ -->
-<section class="page">
+<section class="page" id="s4">
   <div class="kicker">2 · Kom igång</div>
   <h1>Företag, kategorier och moms</h1>
   <p class="lead">Första gången appen startar går den igenom fem korta steg. Allt kan ändras senare under Inställningar. Har du använt appen förut? Tryck <span class="kbd">Återställ från säkerhetskopia</span> på första sidan, så kommer allt tillbaka utan stegen.</p>
@@ -371,7 +380,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 5. Flikar ============ -->
-<section class="page">
+<section class="page" id="s5">
   <div class="kicker">3 · Översikt</div>
   <h1>Appens fem flikar</h1>
   <div class="two">
@@ -404,7 +413,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 6. Skanna ============ -->
-<section class="page">
+<section class="page" id="s6">
   <div class="kicker">4 · Skanna</div>
   <h1>Skanna ett dokument</h1>
   <div class="two left">
@@ -433,12 +442,12 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
   </div>
   <h2>Justera hörnen</h2>
   <p>Efter varje bild visas den med fyra gula hörn. Dra hörnen till dokumentsets hörn – ett förstoringsglas visar var du sätter dem. Det som ligger utanför ramen, t.ex. dokument under, tas inte med, och dokumentet rätas upp. Tryck <span class="kbd">Klar</span>, eller <span class="kbd">Ta om</span> för en ny bild.</p>
-  <div class="tip"><b>Bästa bilden:</b> lägg dokumentet på en mörk, slät yta i bra ljus och släta ut vikta kvitton. Upp och ner eller på sidan gör inget – appen vrider bilden själv. Smala, långa papper som kvitton och Z-rapporter: ta dem <b>I delar</b>.</div>
+  <div class="tip"><b>Bästa bilden:</b> lägg dokumentet på en mörk, slät yta i bra ljus och släta ut vikta kvitton. Upp och ner eller på sidan gör inget – appen vrider bilden själv. Smala, långa papper som kvitton och Z-rapporter: ta dem <b>I delar</b>.<br><b>Blixt:</b> knappen uppe till höger växlar mellan <b>Av</b>, <b>Auto</b> (blixt när det behövs) och <b>På</b> (lampan lyser medan du riktar kameran). Blixt kan ge blänk på blankt papper; välj då Av och mer ljus i rummet.</div>
   <div class="folio"><span>Skanna</span><span>6</span></div>
 </section>
 
 <!-- ============ 7. Kontrollera ============ -->
-<section class="page">
+<section class="page" id="s7">
   <div class="kicker">5 · Kontrollera</div>
   <h1>Kontrollera uppgifterna</h1>
   <div class="two">
@@ -473,7 +482,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 8. Fakturor ============ -->
-<section class="page">
+<section class="page" id="s8">
   <div class="kicker">6 · Utgifter</div>
   <h1>Fakturor, kvitton och kreditnotor</h1>
   <h2>Betald eller inte?</h2>
@@ -494,7 +503,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 9. Z-rapport ============ -->
-<section class="page">
+<section class="page" id="s9">
   <div class="kicker">7 · Försäljning</div>
   <h1>Z-rapporten – dagens försäljning</h1>
   <div class="two">
@@ -528,7 +537,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 10. Online och filer ============ -->
-<section class="page">
+<section class="page" id="s10">
   <div class="kicker">8 · Mer att skanna</div>
   <h1>Onlineförsäljning och filer</h1>
   <h2>Onlineförsäljning (leveransappar)</h2>
@@ -564,7 +573,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 11. Försäljning/Utgifter/Att betala ============ -->
-<section class="page">
+<section class="page" id="s11">
   <div class="kicker">9 · Varje månad</div>
   <h1>Försäljning, utgifter och att betala</h1>
   <div class="two left">
@@ -598,7 +607,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 12. Rapporter ============ -->
-<section class="page">
+<section class="page" id="s12">
   <div class="kicker">10 · Rapporter</div>
   <h1>Rapporter, resultat och SIE-fil</h1>
   <div class="two">
@@ -629,7 +638,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 13. Säkerhetskopia ============ -->
-<section class="page">
+<section class="page" id="s13">
   <div class="kicker">11 · Trygghet</div>
   <h1>Säkerhetskopia och lagring</h1>
   <p class="lead">Allt sparas i telefonen. Försvinner telefonen, eller rensas appens data, är uppgifterna borta – om du inte har en säkerhetskopia.</p>
@@ -653,7 +662,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 14. Inställningar ============ -->
-<section class="page">
+<section class="page" id="s14">
   <div class="kicker">12 · Inställningar</div>
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:4mm">
     <h1>Inställningar</h1>
@@ -667,7 +676,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
     <tr><td><b>Företag</b></td><td>Namn, företagsform, organisationsnummer, adress, räkenskapsårets startmånad, uppskattad skatt (egen procent eller preliminär skatt per år för enskild firma), andra namn på dokument och aktivering.</td></tr>
     <tr><td><b>Försäljning</b></td><td>Kategorier med momssats (dra för ordning), vad varje rad på Z-rapporten registreras som och <b>Stängda dagar</b>: veckodagar som alltid är stängda och enstaka dagar.</td></tr>
     <tr><td><b>Utgifter och dokument</b></td><td>Kostnadstyper (lägg till egna), avrunda utgifter (hela kronor i listor och rapporter), behåll originalbilder, inlärda fält och lagring.</td></tr>
-    <tr><td><b>Påminnelser</b></td><td>Avisering före förfallodagen. Överst står om telefonen tillåter aviseringar från Quee. Är de blockerade slår du på omkopplaren: Android frågar, eller öppnar telefonens inställningar. Du stänger av dem på samma sätt, i telefonens inställningar.</td></tr>
+    <tr><td><b>Påminnelser</b></td><td>Avisering före förfallodagen. Överst står om telefonen tillåter aviseringar från Quee. Är de blockerade trycker du på <b>Tillåt</b>: Android frågar, eller öppnar telefonens inställningar. Vill du stänga av dem trycker du på <b>Inställningar</b>; Android låter bara dig göra det där.</td></tr>
     <tr><td><b>Säkerhet</b></td><td>PIN-kod med 4–6 siffror, och <b>fingeravtryck</b> för att låsa upp snabbare (PIN-koden finns kvar). Appen låser sig när den varit borta i mer än 2 minuter.</td></tr>
     <tr><td><b>Data</b></td><td>Automatisk säkerhetskopia, kopia till molnet, export, import och historik. Är kopian av visar Översikt en varning med senaste kopian.</td></tr>
     <tr><td><b>Mer</b></td><td>Förbättrad analys online (av som standard), sök efter uppdateringar (en gång om dagen; du bestämmer när den installeras), Integritet, Visa rundtur, Användarguide och Om appen.</td></tr>
@@ -677,7 +686,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 15. Frågor ============ -->
-<section class="page">
+<section class="page" id="s15">
   <div class="kicker">13 · Hjälp</div>
   <h1>Vanliga frågor</h1>
   <h3>Appen läste fel belopp eller datum.</h3>
@@ -700,7 +709,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 
 
 <!-- ============ 16. Snabbguide ============ -->
-<section class="page">
+<section class="page" id="s16">
   <div class="kicker">14 · Snabbguide</div>
   <h1>Snabbguide: dag, vecka, månad</h1>
   <h2>Varje dag</h2>
@@ -725,7 +734,7 @@ table.t td:first-child { color: var(--green); font-size: 9.4pt; margin-bottom: 0
 </section>
 
 <!-- ============ 17. Ordlista ============ -->
-<section class="page">
+<section class="page" id="s17">
   <div class="kicker">15 · Ordlista</div>
   <h1>Ordlista</h1>
   <p class="lead">Orden som används i appen och i guiden.</p>

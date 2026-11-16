@@ -820,6 +820,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     final navigator = Navigator.of(context);
     await widget.scan?.discardImages();
     navigator.pop();
+    if (!navigator.mounted) return;
     await startScan(navigator.context);
   }
 }

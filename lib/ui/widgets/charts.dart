@@ -40,7 +40,7 @@ class _BarsPainter extends CustomPainter {
     final chartH = size.height - labelSpace;
     final top = [...first, ...second].fold<double>(0, math.max);
     final slot = size.width / labels.length;
-    final barW = math.min(14.0, slot / 3);
+    final barW = math.min(20.0, slot / 2.6);
     void bar(double x, double v, Color c) {
       if (top <= 0 || v <= 0) return;
       final h = math.max(2.0, chartH * v / top);

@@ -395,7 +395,7 @@ class _TrendPanelState extends State<_TrendPanel> {
     final t = Theme.of(context).textTheme;
     var months = widget.months;
     final firstUsed = months.indexWhere((m) => m.$2.sales.ore != 0 || m.$2.expenses.ore != 0);
-    if (firstUsed > 0) months = months.sublist(firstUsed.clamp(0, months.length - 3));
+    if (firstUsed > 0) months = months.sublist(firstUsed.clamp(0, months.length - 5));
     return _Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
