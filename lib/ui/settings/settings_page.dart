@@ -6,6 +6,7 @@ import '../../app/app_controller.dart';
 import '../../app/pin_lock.dart';
 import '../../app/settings_keys.dart';
 import '../../domain/license.dart';
+import '../../domain/release_notes.dart';
 import '../../app/app_update.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
@@ -16,9 +17,11 @@ import '../history_page.dart';
 import '../lock/pin_screens.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'accounting_page.dart';
 import 'activation_page.dart';
 import 'ai_settings_page.dart';
 import 'backup_page.dart';
+import 'balances_page.dart';
 import 'category_editor.dart';
 import 'closed_days_page.dart';
 import 'cost_types_page.dart';
@@ -26,6 +29,7 @@ import 'hints_page.dart';
 import 'notification_tile.dart';
 import 'storage_page.dart';
 import 'user_guide.dart';
+import 'whats_new_page.dart';
 import 'z_fields_page.dart';
 import '../widgets/blur_overlay.dart';
 
@@ -48,6 +52,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _bioAvailable = false;
   bool _reminders = true;
   bool _notifAllowed = true;
+  bool _notesNew = false;
   int _reminderDays = Reminders.defaultDays;
   BusinessProfile _profile = const BusinessProfile();
   CompanyForm? _form;
@@ -77,6 +82,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final reminders = await Reminders.enabled(repo);
     final days = await Reminders.days(repo);
     final bio = await pinLock?.biometricAvailable ?? false;
+    final notesNew = await notesSeen(repo) < latestNoteId;
     if (!mounted) return;
     setState(() {
       _profile = p;
@@ -88,6 +94,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _reminders = reminders;
       _reminderDays = days;
       _bioAvailable = bio;
+      _notesNew = notesNew;
       _loading = false;
     });
   }
@@ -149,6 +156,26 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ]),
       _Group(AppIcons.store, 'Företag', _profile.name.isEmpty ? 'Företagsnamn saknas' : _profile.name, [
+        _Entry(
+          'redovisning redovisare revisor e-post sms period kvartal halvår år månad',
+          ListTile(
+            leading: const Icon(AppIcons.mail),
+            title: const Text('Redovisning'),
+            subtitle: const Text('Hur ofta du lämnar underlag och vem din redovisare är'),
+            trailing: const Icon(AppIcons.chevronRight),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountingPage())),
+          ),
+        ),
+        _Entry(
+          'ingående balanser bank tillgångar lån skulder balansräkning eget kapital',
+          ListTile(
+            leading: const Icon(AppIcons.report),
+            title: const Text('Ingående balanser'),
+            subtitle: const Text('Bank, tillgångar och lån. Behövs för balansräkningen.'),
+            trailing: const Icon(AppIcons.chevronRight),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BalancesPage())),
+          ),
+        ),
         _Entry(
           'företag namn organisationsnummer adress bolagsform',
           ListTile(
@@ -360,6 +387,21 @@ class _SettingsPageState extends State<SettingsPage> {
               final controller = AppScope.read(context);
               Navigator.of(context).pop();
               controller.tourRequests.value++;
+            },
+          ),
+        ),
+        _Entry(
+          'nyheter nytt vad är nytt ändringar version uppdatering',
+          ListTile(
+            leading: const Icon(AppIcons.news),
+            title: const Text('Nyheter'),
+            subtitle: const Text('Vad som är nytt i varje version'),
+            trailing: _notesNew ? Icon(Icons.circle, size: 10, color: AppTheme.pumpkin) : const Icon(AppIcons.chevronRight),
+            onTap: () async {
+              await markNotesSeen(controller.repo);
+              if (mounted) setState(() => _notesNew = false);
+              if (!context.mounted) return;
+              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WhatsNewPage()));
             },
           ),
         ),

@@ -44,6 +44,8 @@ class AppIcons {
   static const IconData cameraOff = TablerIcons.camera_off;
   static const IconData notifications = TablerIcons.bell;
   static const IconData flash = TablerIcons.bolt;
+  static const IconData news = TablerIcons.speakerphone;
+  static const IconData swap = TablerIcons.arrows_exchange;
   static const IconData flashOff = TablerIcons.bolt_off;
   static const IconData payments = TablerIcons.cash;
   static const IconData pdf = TablerIcons.file_type_pdf;

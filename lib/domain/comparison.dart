@@ -42,6 +42,31 @@ class Comparison {
   Money get totalA => Money.sum(rows.map((r) => r.a));
   Money get totalB => Money.sum(rows.map((r) => r.b));
   CompareRow get total => CompareRow(0, totalA, totalB);
+
+  /// The first [months] months only: a fair "so far" comparison while the
+  /// current year is not over.
+  CompareRow totalUpTo(int months) => CompareRow(
+      0, Money.sum(rows.take(months).map((r) => r.a)), Money.sum(rows.take(months).map((r) => r.b)));
+
+  /// The month with the biggest rise in percent among the first [months], or null.
+  CompareRow? biggestRise(int months) {
+    CompareRow? best;
+    for (final r in rows.take(months)) {
+      final p = r.changePercent;
+      if (p != null && p > 0 && (best == null || p > best.changePercent!)) best = r;
+    }
+    return best;
+  }
+
+  /// The month with the biggest fall in percent among the first [months], or null.
+  CompareRow? biggestFall(int months) {
+    CompareRow? worst;
+    for (final r in rows.take(months)) {
+      final p = r.changePercent;
+      if (p != null && p < 0 && (worst == null || p < worst.changePercent!)) worst = r;
+    }
+    return worst;
+  }
 }
 
 /// "+8 %", "−2 %" or "–" when there is nothing to compare with.

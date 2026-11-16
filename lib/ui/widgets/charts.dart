@@ -71,7 +71,10 @@ class CompareLineChart extends StatelessWidget {
   final List<double> current;
   final List<double> previous;
   final String semanticLabel;
-  const CompareLineChart({super.key, required this.current, required this.previous, required this.semanticLabel});
+
+  /// The colour of this year's line; the overview green when null.
+  final Color? color;
+  const CompareLineChart({super.key, required this.current, required this.previous, required this.semanticLabel, this.color});
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -79,7 +82,7 @@ class CompareLineChart extends StatelessWidget {
         child: SizedBox(
           height: 160,
           width: double.infinity,
-          child: CustomPaint(painter: _LinesPainter(current, previous)),
+          child: CustomPaint(painter: _LinesPainter(current, previous, color ?? AppTheme.seed)),
         ),
       );
 }
@@ -87,7 +90,8 @@ class CompareLineChart extends StatelessWidget {
 class _LinesPainter extends CustomPainter {
   final List<double> current;
   final List<double> previous;
-  _LinesPainter(this.current, this.previous);
+  final Color color;
+  _LinesPainter(this.current, this.previous, this.color);
   final bool _dark = AppTheme.dark;
 
   static const _ticks = {0: 'jan', 3: 'apr', 6: 'jul', 9: 'okt'};
@@ -123,7 +127,7 @@ class _LinesPainter extends CustomPainter {
     }
 
     final solid = Paint()
-      ..color = AppTheme.seed
+      ..color = color
       ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke
       ..strokeJoin = StrokeJoin.round
@@ -144,7 +148,7 @@ class _LinesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _LinesPainter old) => old.current != current || old.previous != previous || old._dark != _dark;
+  bool shouldRepaint(covariant _LinesPainter old) => old.current != current || old.previous != previous || old.color != color || old._dark != _dark;
 }
 
 /// A small coloured square and a label, for chart legends.

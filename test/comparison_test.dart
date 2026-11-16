@@ -24,6 +24,17 @@ void main() {
     expect(c.totalA, Money.kr(172300 + 11 * 1000));
   });
 
+  test('so far totals and the biggest rise and fall use only the months so far', () {
+    final a = _year(2026, (m) => m == 2 ? 1500 : (m == 3 ? 500 : (m == 12 ? 9999 : 1000)));
+    final b = _year(2025, (m) => 1000);
+    final c = Comparison.of(a, b, CompareMetric.sales);
+    expect(c.totalUpTo(3).a, Money.kr(3000));
+    expect(c.totalUpTo(3).b, Money.kr(3000));
+    expect(c.biggestRise(3)!.month, 2);
+    expect(c.biggestFall(3)!.month, 3);
+    expect(c.biggestRise(1), isNull);
+  });
+
   test('a fall shows a minus sign, nothing to compare with shows a dash', () {
     expect(formatChange(const CompareRow(11, Money(18643000), Money(19120000)).changePercent), '−2 %');
     expect(formatChange(CompareRow(1, Money.kr(500), Money.zero).changePercent), '–');

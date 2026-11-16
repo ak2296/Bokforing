@@ -16,6 +16,8 @@ import '../theme.dart';
 import '../widgets/charts.dart';
 import '../widgets/report_charts.dart';
 import '../widgets/common.dart';
+import 'package_page.dart';
+import 'report_hero.dart';
 import 'result_card.dart';
 import 'result_view.dart';
 import '../widgets/blur_overlay.dart';
@@ -41,6 +43,15 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) => Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44)),
+              icon: const Icon(AppIcons.report, size: 18),
+              label: const Text('Redovisarpaket'),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PackagePage(ym: _ym))),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
@@ -160,8 +171,16 @@ class MonthlyTable extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
       children: [
-        Text(data.profile.name.toUpperCase(), style: t.titleMedium),
-        Text(r.title.toUpperCase(), style: t.titleSmall),
+        ReportHero(
+          color: AppTheme.seed,
+          label: 'Total försäljning, ${r.title}',
+          value: r.totalAllSales.format(),
+          chips: [
+            ('Utgifter', r.totalExpenses.format(compact: true)),
+            ('Utg. moms', r.totalOutputVat.format(compact: true)),
+            (r.vatDifference.isNegative ? 'Moms tillbaka' : 'Moms att betala', r.vatDifference.abs().format(compact: true)),
+          ],
+        ),
         const SizedBox(height: 12),
         ExportButtons(
           onPdf: () => exportMonthlyPdf(context, data),
@@ -398,6 +417,17 @@ class _YearView extends StatelessWidget {
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
                   children: [
+                    ReportHero(
+                      color: AppTheme.sales,
+                      label: 'Försäljning $year',
+                      value: y.sales.format(),
+                      chips: [
+                        ('Utgifter', y.expenses.format(compact: true)),
+                        ('Moms netto', y.vatDifference.format(compact: true)),
+                        ('Bästa månad', y.sales.isZero ? '–' : SwedishDates.capitalize(y.rows.reduce((a, b) => b.sales > a.sales ? b : a).monthName)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     ExportButtons(
                       onPdf: () => exportTablePdf(context, yearTable(y), profile),
                       onExcel: () => exportTableCsv(context, yearTable(y)),
@@ -490,9 +520,25 @@ class _CompareViewState extends State<_CompareView> {
         online: await c.repo.onlineSalesBetween('$y-01-01', '$y-12-31'),
       );
 
+  /// Sales in the slate blue of Försäljning, costs in pumpkin, moms in the overview green.
+  Color get _accent => switch (_metric) {
+        CompareMetric.sales => AppTheme.sales,
+        CompareMetric.expenses => AppTheme.pumpkin,
+        CompareMetric.vat => AppTheme.seed,
+      };
+
+  /// For expenses a rise is a warning, for sales and moms it is normal.
+  bool _worse(double? change) =>
+      change != null && change.round() != 0 && ((change > 0) == (_metric == CompareMetric.expenses));
+
+  String get _subject => switch (_metric) {
+        CompareMetric.sales => 'Försäljningen',
+        CompareMetric.expenses => 'Utgifterna',
+        CompareMetric.vat => 'Momsen att betala',
+      };
+
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     return Reloading<(YearReport, YearReport, BusinessProfile)>(
       deps: '$_year $_other',
       loader: (c) async => (await _load(c, _year), await _load(c, _other), await c.repo.profile()),
@@ -500,78 +546,22 @@ class _CompareViewState extends State<_CompareView> {
         final (a, b, profile) = data;
         final cmp = Comparison.of(a, b, _metric);
         final table = comparisonTable(cmp);
+        final now = DateTime.now();
+        // While the year is not over, both years are compared over the same months.
+        final upTo = _year == now.year ? now.month : 12;
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
           children: [
-            Row(children: [
-              IconButton(
-                  tooltip: 'Föregående år',
-                  icon: const Icon(AppIcons.chevronLeft),
-                  onPressed: () => setState(() {
-                        _year--;
-                        _other = _year - 1;
-                      })),
-              Text('$_year', style: t.titleMedium),
-              IconButton(
-                  tooltip: 'Nästa år',
-                  icon: const Icon(AppIcons.chevronRight),
-                  onPressed: () => setState(() {
-                        _year++;
-                        _other = _year - 1;
-                      })),
-              const Spacer(),
-              const Text('mot '),
-              DropdownButton<int>(
-                value: _other,
-                underline: const SizedBox.shrink(),
-                items: [
-                  for (var y = _year - 1; y >= _year - 5; y--) DropdownMenuItem(value: y, child: Text('$y')),
-                ],
-                onChanged: (v) => setState(() => _other = v ?? _other),
-              ),
-            ]),
-            Wrap(spacing: 8, children: [
-              for (final m in CompareMetric.values)
-                ChoiceChip(label: Text(m.label), selected: m == _metric, onSelected: (_) => setState(() => _metric = m)),
-            ]),
+            _yearPicker(context, now),
+            const SizedBox(height: 10),
+            _metricSwitch(),
             const SizedBox(height: 12),
-            Card(
-              margin: EdgeInsets.zero,
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${_metric.label} per månad', style: t.bodySmall),
-                  const SizedBox(height: 10),
-                  CompareLineChart(
-                    current: [for (final r in cmp.rows) r.a.ore / 100],
-                    previous: [for (final r in cmp.rows) r.b.ore / 100],
-                    semanticLabel: '${_metric.label} per månad $_year jämfört med $_other',
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(spacing: 14, children: [
-                    LegendDot(AppTheme.seed, '$_year'),
-                    LegendDot(chartPrevious, '$_other', dashed: true),
-                  ]),
-                ]),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Card(
-              margin: EdgeInsets.zero,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                child: Column(children: [
-                  _compareRow(context, 'Månad', '$_year', '$_other', 'Skillnad', header: true),
-                  for (final r in cmp.rows)
-                    _compareRow(context, SwedishDates.capitalize(SwedishDates.months[r.month - 1]), r.a.format(unit: false),
-                        r.b.format(unit: false), formatChange(r.changePercent), change: r.changePercent),
-                  const Divider(),
-                  _compareRow(context, 'Totalt', cmp.totalA.format(unit: false), cmp.totalB.format(unit: false),
-                      formatChange(cmp.total.changePercent),
-                      change: cmp.total.changePercent, strong: true),
-                ]),
-              ),
-            ),
+            _hero(context, cmp, upTo),
+            ..._insights(context, cmp, upTo),
+            const SizedBox(height: 10),
+            _chartCard(context, cmp),
+            const SizedBox(height: 10),
+            _monthList(context, cmp, upTo),
             const SizedBox(height: 12),
             ExportButtons(
               onPdf: () => exportTablePdf(context, table, profile),
@@ -584,27 +574,269 @@ class _CompareViewState extends State<_CompareView> {
     );
   }
 
-  /// For expenses a rise is shown as a warning, for sales and moms as normal.
-  Widget _compareRow(BuildContext context, String month, String a, String b, String diff,
-      {double? change, bool header = false, bool strong = false}) {
+  Widget _yearPicker(BuildContext context, DateTime now) {
     final t = Theme.of(context).textTheme;
-    final base = header ? t.bodySmall : (strong ? moneyStyle.copyWith(fontWeight: FontWeight.w600) : moneyStyle);
-    final worse = change != null &&
-        change.round() != 0 &&
-        ((change > 0) == (_metric == CompareMetric.expenses));
-    final diffColor = header || change == null || change.round() == 0
-        ? null
-        : worse
-            ? AppTheme.warning
-            : AppTheme.seed;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(children: [
-        Expanded(flex: 3, child: Text(month, style: header ? t.bodySmall : t.bodyMedium)),
-        Expanded(flex: 3, child: Text(a, textAlign: TextAlign.right, style: base)),
-        Expanded(flex: 3, child: Text(b, textAlign: TextAlign.right, style: base)),
-        Expanded(flex: 2, child: Text(diff, textAlign: TextAlign.right, style: base?.copyWith(color: diffColor))),
+    final years = {for (var y = now.year; y >= now.year - 6; y--) y, _other}.where((y) => y != _year).toList()
+      ..sort((x, y) => y.compareTo(x));
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 8, 8, 8),
+        child: Row(children: [
+          IconButton(
+              tooltip: 'Föregående år',
+              icon: const Icon(AppIcons.chevronLeft),
+              onPressed: () => setState(() {
+                    _year--;
+                    _other = _year - 1;
+                  })),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Period', style: t.bodySmall),
+            Text('$_year', style: t.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+          ]),
+          IconButton(
+              tooltip: 'Nästa år',
+              icon: const Icon(AppIcons.chevronRight),
+              onPressed: () => setState(() {
+                    _year++;
+                    _other = _year - 1;
+                  })),
+          Text('mot', style: t.bodySmall),
+          const SizedBox(width: 10),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Jämförår', style: t.bodySmall),
+            DropdownButton<int>(
+              value: _other,
+              isDense: true,
+              underline: const SizedBox.shrink(),
+              style: t.titleLarge?.copyWith(fontWeight: FontWeight.w600, color: AppTheme.ink),
+              items: [for (final y in years) DropdownMenuItem(value: y, child: Text('$y'))],
+              onChanged: (v) => setState(() => _other = v ?? _other),
+            ),
+          ]),
+          const Spacer(),
+          IconButton.filledTonal(
+            tooltip: 'Byt plats på åren',
+            icon: const Icon(AppIcons.swap),
+            onPressed: () => setState(() {
+              final y = _year;
+              _year = _other;
+              _other = y;
+            }),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _metricSwitch() => SegmentedButton<CompareMetric>(
+        expandedInsets: EdgeInsets.zero,
+        showSelectedIcon: false,
+        style: ButtonStyle(
+          visualDensity: VisualDensity.compact,
+          backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? _accent : null),
+          foregroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? Colors.white : null),
+        ),
+        segments: [
+          for (final m in CompareMetric.values)
+            ButtonSegment(value: m, label: Text(m == CompareMetric.vat ? 'Moms' : m.label)),
+        ],
+        selected: {_metric},
+        onSelectionChanged: (v) => setState(() => _metric = v.first),
+      );
+
+  /// The answer first: how much more or less, over the same months in both years.
+  Widget _hero(BuildContext context, Comparison cmp, int upTo) {
+    final t = Theme.of(context).textTheme;
+    final period = cmp.totalUpTo(upTo);
+    final diff = period.a - period.b;
+    final change = period.changePercent;
+    final String sentence;
+    if (change == null) {
+      sentence = 'Inget att jämföra med $_other.';
+    } else if (diff.isZero) {
+      sentence = '$_subject är lika stor som $_other.';
+    } else {
+      final more = !diff.isNegative;
+      sentence = '$_subject är ${more ? 'högre' : 'lägre'} än $_other: ${Money(diff.ore.abs()).format()} ${more ? 'mer' : 'mindre'}.';
+    }
+    final label = upTo < 12 ? 'Jan–${SwedishDates.shortMonths[upTo - 1]}, samma period båda åren' : 'Hela året';
+    const on = Colors.white;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_accent, Color.lerp(_accent, Colors.black, 0.28)!],
+        ),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+          decoration: BoxDecoration(color: on.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(20)),
+          child: Text(label, style: t.labelSmall?.copyWith(color: on)),
+        ),
+        const SizedBox(height: 8),
+        Text(formatChange(change), style: t.displaySmall?.copyWith(color: on, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 2),
+        Text(sentence, style: t.bodyMedium?.copyWith(color: on.withValues(alpha: 0.92))),
+        const SizedBox(height: 14),
+        Container(height: 1, color: on.withValues(alpha: 0.25)),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: _heroFigure(t, '$_year', period.a)),
+          Expanded(child: _heroFigure(t, '$_other', period.b)),
+        ]),
       ]),
+    );
+  }
+
+  Widget _heroFigure(TextTheme t, String year, Money value) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(year, style: t.labelMedium?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
+        Text(value.format(),
+            style: t.titleMedium?.merge(moneyStyle).copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
+      ]);
+
+  List<Widget> _insights(BuildContext context, Comparison cmp, int upTo) {
+    final rise = cmp.biggestRise(upTo);
+    final fall = cmp.biggestFall(upTo);
+    if (rise == null && fall == null) return const [];
+    final t = Theme.of(context).textTheme;
+    Widget tile(String title, CompareRow? r) => Expanded(
+          child: Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: t.bodySmall),
+                const SizedBox(height: 2),
+                if (r == null)
+                  Text('–', style: t.titleSmall)
+                else
+                  Text.rich(
+                    TextSpan(children: [
+                      TextSpan(text: '${SwedishDates.capitalize(SwedishDates.months[r.month - 1])} '),
+                      TextSpan(
+                          text: formatChange(r.changePercent),
+                          style: TextStyle(color: _worse(r.changePercent) ? AppTheme.warning : AppTheme.seed)),
+                    ]),
+                    style: t.titleSmall,
+                  ),
+              ]),
+            ),
+          ),
+        );
+    return [
+      const SizedBox(height: 10),
+      Row(children: [tile('Störst ökning', rise), const SizedBox(width: 10), tile('Största minskning', fall)]),
+    ];
+  }
+
+  Widget _chartCard(BuildContext context, Comparison cmp) {
+    final t = Theme.of(context).textTheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${_metric.label} per månad', style: t.bodySmall),
+          const SizedBox(height: 10),
+          CompareLineChart(
+            color: _accent,
+            current: [for (final r in cmp.rows) r.a.ore / 100],
+            previous: [for (final r in cmp.rows) r.b.ore / 100],
+            semanticLabel: '${_metric.label} per månad $_year jämfört med $_other',
+          ),
+          const SizedBox(height: 6),
+          Wrap(spacing: 14, children: [
+            LegendDot(_accent, '$_year'),
+            LegendDot(chartPrevious, '$_other', dashed: true),
+          ]),
+        ]),
+      ),
+    );
+  }
+
+  /// Twelve months, each with two bars (this year, the other year), both
+  /// figures and the change; months still to come are dimmed.
+  Widget _monthList(BuildContext context, Comparison cmp, int upTo) {
+    final t = Theme.of(context).textTheme;
+    var top = 0;
+    for (final r in cmp.rows) {
+      if (r.a.ore.abs() > top) top = r.a.ore.abs();
+      if (r.b.ore.abs() > top) top = r.b.ore.abs();
+    }
+    final period = cmp.totalUpTo(upTo);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Månad för månad', style: t.bodySmall),
+          const SizedBox(height: 4),
+          for (final r in cmp.rows)
+            _monthRow(context, SwedishDates.capitalize(SwedishDates.shortMonths[r.month - 1]), r, top, dim: r.month > upTo),
+          const Divider(height: 14),
+          _monthRow(context, upTo < 12 ? 'Jan–${SwedishDates.shortMonths[upTo - 1]}' : 'Totalt', period, 0, strong: true),
+        ]),
+      ),
+    );
+  }
+
+  Widget _monthRow(BuildContext context, String label, CompareRow r, int top, {bool dim = false, bool strong = false}) {
+    final t = Theme.of(context).textTheme;
+    final empty = r.a.isZero && r.b.isZero;
+    final change = r.changePercent;
+    final flat = change == null || change.round() == 0;
+    final worse = _worse(change);
+    final pillColor = flat ? AppTheme.muted : (worse ? AppTheme.warning : AppTheme.seed);
+    final pillTint = flat ? Colors.transparent : (worse ? AppTheme.warningTint : AppTheme.tint);
+    Widget bar(Money m, Color c) => ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: LayoutBuilder(
+            builder: (context, box) => Align(
+              alignment: Alignment.centerLeft,
+              child: Container(width: box.maxWidth * (m.ore.abs() / top).clamp(0.0, 1.0), height: 6, color: c),
+            ),
+          ),
+        );
+    final money = moneyStyle.copyWith(fontSize: 12);
+    return Opacity(
+      opacity: dim ? 0.45 : 1,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(children: [
+          SizedBox(
+              width: 50,
+              child: Text(label, style: strong ? t.bodyMedium?.copyWith(fontWeight: FontWeight.w600) : t.bodyMedium)),
+          Expanded(
+            child: top == 0
+                ? const SizedBox.shrink()
+                : Column(children: [bar(r.a, _accent), const SizedBox(height: 3), bar(r.b, chartPrevious)]),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 66,
+            child: empty
+                ? Text('–', textAlign: TextAlign.right, style: money)
+                : Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    Text(r.a.format(unit: false), style: strong ? money.copyWith(fontWeight: FontWeight.w600) : money),
+                    Text(r.b.format(unit: false), style: money.copyWith(color: AppTheme.muted)),
+                  ]),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 54,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(color: pillTint, borderRadius: BorderRadius.circular(10)),
+            child: Text(dim ? '' : formatChange(change),
+                textAlign: TextAlign.center, style: t.labelMedium?.copyWith(color: pillColor, fontWeight: FontWeight.w600)),
+          ),
+        ]),
+      ),
     );
   }
 }

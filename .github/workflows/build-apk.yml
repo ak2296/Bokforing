@@ -57,6 +57,15 @@ jobs:
           grep -q 'RECEIVE_BOOT_COMPLETED' $m || sed -i 's|<application|<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <application|' $m
           # Android 13+ shows notifications only when this permission is declared and granted.
           grep -q 'POST_NOTIFICATIONS' $m || sed -i 's|<application|<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <application|' $m
+          # The mail and SMS apps the package hands over to (Android 11+ package visibility).
+          if ! grep -q 'android.intent.action.SENDTO' $m; then
+            q='<intent><action android:name="android.intent.action.SENDTO"/><data android:scheme="mailto"/></intent><intent><action android:name="android.intent.action.SENDTO"/><data android:scheme="smsto"/></intent><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="sms"/></intent>'
+            if grep -q '</queries>' $m; then
+              perl -0pi -e "s#</queries>#$q</queries>#" $m
+            else
+              perl -0pi -e "s#<application#<queries>$q</queries>\n    <application#" $m
+            fi
+          fi
           if ! grep -q 'ScheduledNotificationReceiver' $m; then
             perl -0pi -e 's#</application>#    <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />\n        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">\n            <intent-filter>\n                <action android:name="android.intent.action.BOOT_COMPLETED"/>\n                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>\n                <action android:name="android.intent.action.QUICKBOOT_POWERON" />\n                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>\n            </intent-filter>\n        </receiver>\n    </application>#' $m
           fi

@@ -10,6 +10,20 @@ class SettingsKeys {
 
   /// Set when the setup is finished: the first start shows the tour once.
   static const tourPending = 'tour_pending';
+
+  /// The highest release note the owner has seen (Inställningar → Mer → Nyheter).
+  static const notesSeen = 'notes_seen';
+
+  /// The opening balances the owner entered: JSON, see OpeningBalances.encode.
+  static const openingBalances = 'opening_balances';
+
+  /// How often underlag goes to the accountant ('month', 'quarter', 'half', 'year'),
+  /// and who the accountant is. Kept on the phone only.
+  static const reportPeriodKind = 'report_period_kind';
+  static const accountantName = 'accountant_name';
+  static const accountantEmail = 'accountant_email';
+  static const accountantPhone = 'accountant_phone';
+  static const ownerEmail = 'owner_email';
   static const keepImages = 'keep_images';
 
   /// "Avrunda utgifter till hela kronor": reports and lists only.

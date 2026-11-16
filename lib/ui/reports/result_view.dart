@@ -8,8 +8,15 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../app/app_controller.dart';
 import '../../domain/cost_types.dart';
-import '../../domain/dates.dart';
 import '../../domain/models.dart';
+import '../../data/balances_store.dart';
+import '../../domain/balances.dart';
+import '../../data/accounting_settings.dart';
+import '../../domain/ledger.dart';
+import '../../domain/report_period.dart';
+import '../settings/balances_page.dart';
+import 'period_picker.dart';
+import 'report_hero.dart';
 import '../../domain/money.dart';
 import '../../domain/result_report.dart';
 import '../../export/sie_export.dart';
@@ -33,27 +40,7 @@ class _Period {
   final String fileTag;
   const _Period(this.title, this.from, this.to, this.yearFrom, this.yearTo, this.fileTag);
 
-  /// The financial year that starts in [startMonth] of [year].
-  static (String, String) financialYear(int year, int startMonth) {
-    final start = DateTime(year, startMonth, 1);
-    final end = DateTime(year + 1, startMonth, 1).subtract(const Duration(days: 1));
-    return (SwedishDates.iso(start), SwedishDates.iso(end));
-  }
-
-  factory _Period.month(YearMonth ym, int startMonth) {
-    final from = DateTime(ym.year, ym.month, 1);
-    final to = DateTime(ym.year, ym.month + 1, 1).subtract(const Duration(days: 1));
-    final fyStartYear = ym.month >= startMonth ? ym.year : ym.year - 1;
-    final (yf, yt) = financialYear(fyStartYear, startMonth);
-    return _Period(ym.title, SwedishDates.iso(from), SwedishDates.iso(to), yf, yt,
-        '${ym.year}-${ym.month.toString().padLeft(2, '0')}');
-  }
-
-  factory _Period.year(int year, int startMonth) {
-    final (yf, yt) = financialYear(year, startMonth);
-    final title = startMonth == 1 ? 'Året $year' : 'Räkenskapsåret $yf – $yt';
-    return _Period(title, yf, yt, yf, yt, startMonth == 1 ? '$year' : '$year-${year + 1}');
-  }
+  factory _Period.of(ReportPeriod p) => _Period(p.title, p.from, p.to, p.yearFrom, p.yearTo, p.fileTag);
 }
 
 /// "Resultat": a simple resultatrapport and the SIE file for the accountant.
@@ -65,43 +52,38 @@ class ResultView extends StatefulWidget {
 }
 
 class _ResultViewState extends State<ResultView> {
-  bool _year = false;
-  YearMonth _ym = YearMonth.now();
-  int _y = DateTime.now().year;
+  ReportPeriod? _period;
 
   @override
-  Widget build(BuildContext context) => Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(value: false, label: Text('Månad')),
-                ButtonSegment(value: true, label: Text('År')),
-              ],
-              selected: {_year},
-              onSelectionChanged: (s) => setState(() => _year = s.first),
-            ),
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_period == null) _init();
+  }
+
+  Future<void> _init() async {
+    final repo = AppScope.read(context).repo;
+    final acc = await loadAccounting(repo);
+    final start = await repo.fiscalStartMonth();
+    if (mounted) setState(() => _period = ReportPeriod.containing(acc.kind, DateTime.now(), start));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final period = _period;
+    if (period == null) return const Center(child: CircularProgressIndicator());
+    return Column(
+      children: [
+        PeriodPicker(value: period, onChanged: (v) => setState(() => _period = v)),
+        Expanded(
+          child: Reloading<_Data>(
+            deps: '${period.kind.name} ${period.fileTag}',
+            loader: (c) => _Data.load(c, period),
+            builder: (context, data) => _ResultBody(data: data),
           ),
-          if (_year)
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              IconButton(
-                  tooltip: 'Föregående år', icon: const Icon(AppIcons.chevronLeft), onPressed: () => setState(() => _y--)),
-              Text('$_y', style: Theme.of(context).textTheme.titleMedium),
-              IconButton(
-                  tooltip: 'Nästa år', icon: const Icon(AppIcons.chevronRight), onPressed: () => setState(() => _y++)),
-            ])
-          else
-            MonthSwitcher(value: _ym, onChanged: (v) => setState(() => _ym = v)),
-          Expanded(
-            child: Reloading<_Data>(
-              deps: '$_year $_y ${_ym.title}',
-              loader: (c) => _Data.load(c, _year, _y, _ym),
-              builder: (context, data) => _ResultBody(data: data),
-            ),
-          ),
-        ],
-      );
+        ),
+      ],
+    );
+  }
 }
 
 class _Data {
@@ -112,11 +94,28 @@ class _Data {
   final List<Invoice> invoices;
   final List<OnlineSale> online;
   final List<Payslip> payslips;
-  const _Data(this.period, this.report, this.profile, this.sales, this.invoices, this.online, this.payslips);
+  final OpeningBalances balances;
+  const _Data(this.period, this.report, this.profile, this.sales, this.invoices, this.online, this.payslips, this.balances);
 
-  static Future<_Data> load(AppController c, bool year, int y, YearMonth ym) async {
-    final start = await c.repo.fiscalStartMonth();
-    final p = year ? _Period.year(y, start) : _Period.month(ym, start);
+  /// The balance sheet on the last day of the period: the opening balances plus
+  /// every verification from the balance date. Null when there is no opening balance
+  /// or it is dated after the period.
+  Future<BalanceSheet?> balanceSheet(AppController c) async {
+    if (balances.isEmpty || balances.date.compareTo(period.to) > 0) return null;
+    final from = balances.date;
+    final ledger = Ledger.of(SieExport.vouchers(
+      fromIso: from,
+      toIso: period.to,
+      sales: await c.repo.dailySalesBetween(from, period.to),
+      invoices: await c.repo.invoicesBetween('2000-01-01', period.to),
+      online: await c.repo.onlineSalesBetween(from, period.to),
+      payslips: await c.repo.payslipsBetween(from, period.to),
+    ));
+    return BalanceSheet.build(balances, ledger, period.to);
+  }
+
+  static Future<_Data> load(AppController c, ReportPeriod rp) async {
+    final p = _Period.of(rp);
     final sales = await c.repo.dailySalesBetween(p.from, p.to);
     final invoices = await c.repo.invoicesForReports(p.from, p.to);
     final online = await c.repo.onlineSalesBetween(p.from, p.to);
@@ -125,8 +124,18 @@ class _Data {
     final report = ResultReport.build(
         title: p.title, fromIso: p.from, toIso: p.to, sales: sales, invoices: invoices, online: online);
     final payslips = await c.repo.payslipsBetween(p.from, p.to);
-    return _Data(p, report, await c.repo.profile(), sales, upToEnd, online, payslips);
+    return _Data(p, report, await c.repo.profile(), sales, upToEnd, online, payslips, await loadBalances(c.repo));
   }
+
+  /// The verifications of the period, as the SIE file gets them.
+  Ledger ledger() => Ledger.of(SieExport.vouchers(
+        fromIso: period.from,
+        toIso: period.to,
+        sales: sales,
+        invoices: invoices,
+        online: online,
+        payslips: payslips,
+      ));
 
   ReportTable table() {
     final r = report;
@@ -234,6 +243,16 @@ class _ResultBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
       children: [
+        ReportHero(
+          color: AppTheme.pumpkin,
+          label: 'Resultat ${p.title}',
+          value: r.result.format(),
+          chips: [
+            ('Intäkter', r.sales.format(compact: true)),
+            ('Kostnader', r.totalCosts.format(compact: true)),
+          ],
+        ),
+        const SizedBox(height: 12),
         if (incomplete > 0) ...[
           IncompleteNotice(count: incomplete, from: p.from, to: p.to, period: p.title),
           const SizedBox(height: 12),
@@ -249,7 +268,78 @@ class _ResultBody extends StatelessWidget {
           label: const Text('SIE-fil till redovisaren'),
           onPressed: () => _exportSie(context),
         ),
+        const SizedBox(height: 16),
+        Text('Bokföringsrapporter', style: t.titleMedium),
+        Text('Byggda på samma verifikationer som SIE-filen: bara det som finns registrerat i appen, utan ingående balanser.',
+            style: t.bodySmall),
         const SizedBox(height: 8),
+        if (data.ledger().vouchers.isEmpty)
+          const _NeedsCard(
+            icon: AppIcons.scan,
+            text: 'Det finns inga verifikationer för perioden. Skanna Z-rapporter, fakturor och kvitton för perioden, så fylls rapporterna i.',
+          ),
+        for (final (label, build) in data.ledger().vouchers.isEmpty
+            ? const <(String, ReportTable Function(Ledger, String))>[]
+            : <(String, ReportTable Function(Ledger, String))>[
+          ('Momsunderlag', vatBasisTable),
+          ('Verifikationslista', voucherListTable),
+          ('Huvudbok', generalLedgerTable),
+          ('Saldobalans', trialBalanceTable),
+          ('Resultaträkning (BAS)', incomeStatementTable),
+        ]) ...[
+          Padding(padding: const EdgeInsets.only(top: 8, bottom: 4), child: Text(label, style: t.labelLarge)),
+          ExportButtons(
+            onPdf: () => exportTablePdf(context, build(data.ledger(), p.title), data.profile),
+            onExcel: () => exportTableCsv(context, build(data.ledger(), p.title)),
+            onPrint: () => printTable(context, build(data.ledger(), p.title), data.profile),
+          ),
+        ],
+        const SizedBox(height: 16),
+        Text('Balansräkning', style: t.titleMedium),
+        if (data.balances.isEmpty || data.balances.date.compareTo(p.to) > 0)
+          _NeedsCard(
+            icon: AppIcons.report,
+            text: data.balances.isEmpty
+                ? 'Balansräkningen behöver dina ingående balanser: bank, tillgångar och lån den första dagen på räkenskapsåret.'
+                : 'Dina ingående balanser gäller från ${data.balances.date}, efter den här perioden. Välj en period från det datumet.',
+            button: 'Fyll i ingående balanser',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BalancesPage())),
+          )
+        else ...[
+          Padding(padding: const EdgeInsets.only(top: 8, bottom: 4), child: Text('Balansräkning (utkast)', style: t.labelLarge)),
+          ExportButtons(
+            onPdf: () async {
+              final s = await data.balanceSheet(AppScope.read(context));
+              if (s != null && context.mounted) await exportTablePdf(context, balanceSheetTable(s), data.profile);
+            },
+            onExcel: () async {
+              final s = await data.balanceSheet(AppScope.read(context));
+              if (s != null && context.mounted) await exportTableCsv(context, balanceSheetTable(s));
+            },
+            onPrint: () async {
+              final s = await data.balanceSheet(AppScope.read(context));
+              if (s != null && context.mounted) await printTable(context, balanceSheetTable(s), data.profile);
+            },
+          ),
+          if (data.balances.entries.any((e) => depreciationPlan(e, 2000).isNotEmpty)) ...[
+            Padding(padding: const EdgeInsets.only(top: 8, bottom: 4), child: Text('Avskrivningsplan', style: t.labelLarge)),
+            ExportButtons(
+              onPdf: () => exportTablePdf(context, depreciationTable(data.balances), data.profile),
+              onExcel: () => exportTableCsv(context, depreciationTable(data.balances)),
+              onPrint: () => printTable(context, depreciationTable(data.balances), data.profile),
+            ),
+          ],
+          if (data.balances.entries.any((e) => loanFirstMonth(e) != null)) ...[
+            Padding(padding: const EdgeInsets.only(top: 8, bottom: 4), child: Text('Lånplan', style: t.labelLarge)),
+            ExportButtons(
+              onPdf: () => exportTablePdf(context, loanTable(data.balances), data.profile),
+              onExcel: () => exportTableCsv(context, loanTable(data.balances)),
+              onPrint: () => printTable(context, loanTable(data.balances), data.profile),
+            ),
+          ],
+          Text('Utkast, baserat på uppgifter du lagt in. Inte en officiell balansräkning.', style: t.bodySmall),
+        ],
+        const SizedBox(height: 16),
         OutlinedButton.icon(
           icon: const Icon(AppIcons.search, size: 18),
           label: const Text('Förhandsvisa SIE'),
@@ -328,3 +418,34 @@ class _ResultBody extends StatelessWidget {
 String _countText(ResultCost c) => c.costType == CostType.salaries.key || c.costType == CostType.socialFees.key
     ? '${c.count} lönebesked, utan moms'
     : '${c.count} ${c.count == 1 ? 'faktura' : 'fakturor'}, exkl. moms';
+
+/// A report that needs something from the owner: says what, and where to fill it in.
+class _NeedsCard extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final String? button;
+  final VoidCallback? onPressed;
+  const _NeedsCard({required this.icon, required this.text, this.button, this.onPressed});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppTheme.warningTint,
+          border: Border.all(color: AppTheme.warningBorder),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(icon, size: 20, color: AppTheme.warning),
+            const SizedBox(width: 10),
+            Expanded(child: Text(text, style: TextStyle(color: AppTheme.warning, fontSize: 13.5, height: 1.35))),
+          ]),
+          if (button != null && onPressed != null) ...[
+            const SizedBox(height: 10),
+            FilledButton(onPressed: onPressed, child: Text(button!)),
+          ],
+        ]),
+      );
+}

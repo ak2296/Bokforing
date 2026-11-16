@@ -17,6 +17,7 @@ import 'scan/scan_flow.dart';
 import 'scan_tab.dart';
 import 'settings/activation_page.dart';
 import 'settings/backup_page.dart';
+import 'settings/whats_new_page.dart';
 import 'settings/settings_page.dart';
 import 'theme.dart';
 import 'tour.dart';
@@ -85,7 +86,12 @@ class _ShellState extends State<Shell> {
       final repo = app.repo;
       if (await repo.boolSetting(SettingsKeys.tourPending) && mounted) {
         await repo.setBoolSetting(SettingsKeys.tourPending, false);
+        // A new install has nothing "new" to tell.
+        await markNotesSeen(repo);
         _startTour();
+      } else if (mounted) {
+        // After an update: what is new, once.
+        await showWhatsNewIfNew(context, repo);
       }
     });
   }
