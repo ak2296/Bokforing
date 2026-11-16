@@ -6,6 +6,7 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../app/app_controller.dart';
 import '../app/settings_keys.dart';
 import '../domain/dates.dart';
+import '../domain/license.dart';
 import '../domain/models.dart';
 import 'app_icons.dart';
 import 'dashboard_page.dart';
@@ -14,6 +15,7 @@ import 'reports/reports_page.dart';
 import 'sales_page.dart';
 import 'scan/scan_flow.dart';
 import 'scan_tab.dart';
+import 'settings/activation_page.dart';
 import 'settings/backup_page.dart';
 import 'settings/settings_page.dart';
 import 'theme.dart';
@@ -145,7 +147,7 @@ class _ShellState extends State<Shell> {
         title: _index == 0 ? const _CompanyTitle() : Text(_titles[_index]),
         actions: [
           // The backup status, left of the gear on the overview only.
-          if (_index == 0) const _BackupAction(),
+          if (_index == 0) ...const [_ActivationAction(), _BackupAction()],
           IconButton(
             key: _gearKey,
             tooltip: 'Inställningar',
@@ -565,6 +567,90 @@ class _BackupActionState extends State<_BackupAction> {
     return IconButton(
       tooltip: on ? 'Säkerhetskopia: på' : 'Säkerhetskopia: av',
       icon: Icon(AppIcons.backup, color: on ? AppTheme.seed : AppTheme.danger),
+      onPressed: _open,
+    );
+  }
+}
+
+/// The activation as an icon on the overview, like the backup: green while the
+/// activation is valid, red when it has ended, was ended, is missing or ends
+/// within 10 days. A tap opens a small dialog with the date and a button to the
+/// activation page.
+class _ActivationAction extends StatefulWidget {
+  const _ActivationAction();
+
+  @override
+  State<_ActivationAction> createState() => _ActivationActionState();
+}
+
+class _ActivationActionState extends State<_ActivationAction> {
+  LicenseState? _state;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final s = await AppScope.read(context).repo.licenseState();
+    if (mounted) setState(() => _state = s);
+  }
+
+  int? get _daysLeft {
+    final until = _state?.license?.until;
+    if (until == null) return null;
+    final d = SwedishDates.parseIso(until);
+    if (d == null) return null;
+    final today = DateTime.now();
+    return d.difference(DateTime(today.year, today.month, today.day)).inDays;
+  }
+
+  bool get _good => _state?.status == LicenseStatus.active && (_daysLeft == null || _daysLeft! > 10);
+
+  Future<void> _open() async {
+    await _load();
+    final s = _state;
+    if (s == null || !mounted) return;
+    final days = _daysLeft;
+    final active = s.status == LicenseStatus.active;
+    final go = await showBlurDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(_good ? AppIcons.checkCircle : AppIcons.crossCircle, color: _good ? AppTheme.seed : AppTheme.danger, size: 32),
+        title: const Text('Aktivering'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(licenseStatusText(s)),
+          if (active && days != null) ...[
+            const SizedBox(height: 8),
+            Text(days < 0 ? 'Koden har gått ut.' : days == 0 ? 'Koden går ut idag.' : 'Det är $days dagar kvar.'),
+          ],
+          if (!active) ...[
+            const SizedBox(height: 8),
+            const Text('Utan aktivering kan du titta på allt, se rapporter och göra säkerhetskopior, men inte skanna eller spara nya dokument.'),
+          ],
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Stäng')),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(!active || (days != null && days <= 10) ? 'Ange ny kod' : 'Aktivering'),
+          ),
+        ],
+      ),
+    );
+    if (go == true && mounted) {
+      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ActivationPage()));
+      _load();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_state == null) return const SizedBox.shrink();
+    return IconButton(
+      tooltip: _good ? 'Aktivering: giltig' : 'Aktivering: kontrollera',
+      icon: Icon(AppIcons.lock, color: _good ? AppTheme.seed : AppTheme.danger),
       onPressed: _open,
     );
   }

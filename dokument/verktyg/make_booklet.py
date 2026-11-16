@@ -26,6 +26,18 @@ OLD = ["anvandarguide-tryck", "anvandarguide-tryck-omslag", "anvandarguide-tryck
 
 BLANK = '<section class="page"></section>'
 
+# The page inside the front cover: the paper guide stays as printed, the guide
+# in the app follows the app.
+NOTE_PAGE = """<section class="page note">
+  <div class="kicker">Läs det här först</div>
+  <h1>Om den här guiden</h1>
+  <p class="lead">Den här pappersguiden hör till version 1.3 av Quee (november 2026).</p>
+  <p>Appen uppdateras då och då med nya funktioner och förbättringar. När den gör det uppdateras också <b>användarguiden i appen</b>. Pappersguiden ändras inte.</p>
+  <p>Ser något i appen annorlunda ut än här, eller letar du efter något som inte står i den här guiden? Öppna guiden i appen. Den följer alltid den version av appen du har.</p>
+  <div class="tip"><b>Så öppnar du guiden i appen:</b> tryck på kugghjulet uppe till höger, välj <b>Mer</b> och sedan <b>Användarguide</b>.</div>
+  <p style="font-size:7.6pt;color:var(--muted);margin-top:6mm">Nya versioner av appen hämtar du på Översikt, eller under Inställningar → Mer → Sök efter uppdatering nu. Dina uppgifter finns kvar.</p>
+</section>"""
+
 BACK_COVER = """<section class="page backcover">
   <div class="mark"><img src="../bilder/app-ikon.png" alt=""><span>Quee</span></div>
 </section>"""
@@ -49,7 +61,7 @@ def main() -> None:
     head = html[: html.index("<body>")]
     pages = paginera_a6.build()
     cover, inner = pages[0], pages[1:]
-    book = [cover, BLANK, *inner, BLANK, BACK_COVER]
+    book = [cover, NOTE_PAGE, *inner, BLANK, BACK_COVER]
     while len(book) % 4:  # blanks before the back cover
         book.insert(-2, BLANK)
 

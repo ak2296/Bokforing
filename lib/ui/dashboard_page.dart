@@ -81,7 +81,7 @@ class DashboardPage extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(diff.isNegative ? 'Moms att få tillbaka (beräknad)' : 'Moms att betala (beräknad)',
+                    Text(diff.isNegative ? 'Moms att få tillbaka i ${SwedishDates.months[ym.month - 1]} (beräknad)' : 'Moms att betala i ${SwedishDates.months[ym.month - 1]} (beräknad)',
                         style: t.bodySmall),
                     Text(diff.abs().format(), style: t.titleMedium?.merge(moneyStyle)),
                   ]),
@@ -119,7 +119,6 @@ class DashboardPage extends StatelessWidget {
                   ],
                 ]),
               ),
-            if (license.license?.until != null) _ActivationLine(license.license!.until!),
           ],
         );
       },
@@ -284,37 +283,6 @@ class _RakningarPill extends StatelessWidget {
   }
 }
 
-/// When the activation ends. Red the last 10 days.
-class _ActivationLine extends StatelessWidget {
-  final String until;
-  const _ActivationLine(this.until);
-
-  @override
-  Widget build(BuildContext context) {
-    final days = daysUntil(until);
-    final soon = days != null && days <= 10;
-    final text = days == null
-        ? 'Aktiverad till $until'
-        : days < 0
-            ? 'Aktiveringen tog slut $until'
-            : soon
-                ? 'Aktiverad till $until (om $days d)'
-                : 'Aktiverad till $until';
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Column(children: [
-        const Divider(),
-        const SizedBox(height: 10),
-        Text(text,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: soon ? AppTheme.danger : AppTheme.seed, fontWeight: FontWeight.w500)),
-      ]),
-    );
-  }
-}
-
 /// The month at a glance: the result before tax (without moms, as in the
 /// report) and, under it, sales and expenses with the change since last month.
 class _MonthHero extends StatelessWidget {
@@ -431,7 +399,7 @@ class _TrendPanelState extends State<_TrendPanel> {
     return _Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
-          Expanded(child: Text(_weekdays ? 'Veckodagar, snitt senaste 12 veckorna' : 'Försäljning och utgifter', style: t.bodySmall)),
+          Expanded(child: Text(_weekdays ? 'Snitt försäljning per veckodag (kr), senaste 12 veckorna' : 'Försäljning och utgifter', style: t.bodySmall)),
           SegmentedButton<bool>(
             showSelectedIcon: false,
             style: const ButtonStyle(visualDensity: VisualDensity.compact),

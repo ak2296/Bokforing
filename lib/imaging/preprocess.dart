@@ -147,8 +147,11 @@ PreprocessResult preprocessDocument(PreprocessRequest req) {
     image = img.copyCrop(image, x: x, y: y, width: w, height: h);
   }
 
-  // Resolution: keep small print readable without huge files.
-  const maxSide = 2800;
+  // Resolution: keep small print readable without huge files. A narrow strip
+  // (thermal paper such as a Z-report) has its letters on few pixels across, so
+  // it may keep a longer side than a page.
+  final narrow = math.max(image.width, image.height) / math.max(1, math.min(image.width, image.height)) >= 2.2;
+  final maxSide = narrow ? 4600 : 2800;
   if (math.max(image.width, image.height) > maxSide) {
     image = image.width >= image.height
         ? img.copyResize(image, width: maxSide, interpolation: img.Interpolation.average)
@@ -190,6 +193,18 @@ PreprocessResult preprocessDocument(PreprocessRequest req) {
   if (skew.abs() >= 0.3 && skew.abs() <= maxCorrectableSkew) {
     image = img.copyRotate(image, angle: -skew, interpolation: img.Interpolation.linear);
     gray = _luminance(image);
+  }
+
+  // A narrow strip with too few pixels across for small print is enlarged, so
+  // the letters are big enough for the reader (it misread "Drycka avhämtning"
+  // and "Försäljning per varugrupp" on thermal paper).
+  if (image.height / image.width >= 2.2 && image.width < 1100) {
+    final f = math.min(2.5, math.min(1100 / image.width, 5000 / image.height));
+    if (f > 1.15) {
+      image = img.copyResize(image,
+          width: (image.width * f).round(), height: (image.height * f).round(), interpolation: img.Interpolation.cubic);
+      gray = _luminance(image);
+    }
   }
 
   final issues = <QualityIssue>[

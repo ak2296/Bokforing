@@ -28,6 +28,21 @@ void main() {
       expect(r.quality.skewDegrees.abs(), lessThan(1));
     });
 
+    test('a narrow strip (thermal paper) is enlarged so its small print has pixels to read', () {
+      final im = img.Image(width: 700, height: 2600);
+      img.fill(im, color: img.ColorRgb8(40, 40, 40));
+      img.fillRect(im, x1: 250, y1: 100, x2: 450, y2: 2500, color: img.ColorRgb8(255, 255, 255));
+      for (var y = 160; y < 2440; y += 40) {
+        for (var x = 270; x < 430; x += 10) {
+          img.fillRect(im, x1: x, y1: y, x2: x + 5, y2: y + 12, color: img.ColorRgb8(20, 20, 20));
+        }
+      }
+      // The user's frame cuts the strip out of the photo.
+      final r = preprocessDocument(PreprocessRequest(img.encodeJpg(im), frame: [250 / 700, 100 / 2600, 450 / 700, 2500 / 2600]));
+      expect(r.width, greaterThan(330)); // the strip itself is about 200 px wide
+      expect(r.height, greaterThan(r.width * 5));
+    });
+
     test('dark photo is reported', () {
       final dark = img.adjustColor(_photo(), brightness: 0.25);
       final r = preprocessDocument(PreprocessRequest(img.encodeJpg(dark)));

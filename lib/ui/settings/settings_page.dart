@@ -459,32 +459,36 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ),
-      // Light, dark or follow the phone: one slim row, the choice is on it.
+      // Bright or dark: one row with a sliding switch (sun / moon).
       Padding(
         padding: const EdgeInsets.only(top: 12),
         child: Card(
           margin: EdgeInsets.zero,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
-            child: Row(children: [
-              Icon(AppIcons.settings, size: 20, color: AppTheme.seed),
-              const SizedBox(width: 12),
-              Expanded(child: Text('Utseende', style: t.titleSmall)),
-              ValueListenableBuilder<ThemeMode>(
-                valueListenable: controller.themeMode,
-                builder: (context, mode, _) => SegmentedButton<ThemeMode>(
-                  showSelectedIcon: false,
-                  style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                  segments: const [
-                    ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto, size: 18), tooltip: 'Som telefonen'),
-                    ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_outlined, size: 18), tooltip: 'Ljust'),
-                    ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_outlined, size: 18), tooltip: 'Mörkt'),
-                  ],
-                  selected: {mode},
-                  onSelectionChanged: (v) => controller.setThemeMode(v.first),
-                ),
-              ),
-            ]),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+            child: ValueListenableBuilder<ThemeMode>(
+              valueListenable: controller.themeMode,
+              builder: (context, mode, _) {
+                final dark = mode == ThemeMode.dark || (mode == ThemeMode.system && AppTheme.dark);
+                return Row(children: [
+                  Icon(dark ? Icons.dark_mode_outlined : Icons.light_mode_outlined, size: 22, color: AppTheme.seed),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Utseende', style: t.titleSmall),
+                      if (mode == ThemeMode.system)
+                        Text('Följer telefonen', style: t.bodySmall)
+                      else
+                        GestureDetector(
+                          onTap: () => controller.setThemeMode(ThemeMode.system),
+                          child: Text('Följ telefonen', style: t.bodySmall?.copyWith(color: AppTheme.seed, fontWeight: FontWeight.w500)),
+                        ),
+                    ]),
+                  ),
+                  _ThemeSwitch(dark: dark, onChanged: (d) => controller.setThemeMode(d ? ThemeMode.dark : ThemeMode.light)),
+                ]);
+              },
+            ),
           ),
         ),
       ),
@@ -921,4 +925,54 @@ class PrivacyPage extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// A sliding switch with a sun on the left and a moon on the right: tap to flip
+/// between bright and dark.
+class _ThemeSwitch extends StatelessWidget {
+  final bool dark;
+  final ValueChanged<bool> onChanged;
+  const _ThemeSwitch({required this.dark, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    const w = 84.0, h = 40.0, knob = 32.0;
+    return Semantics(
+      toggled: dark,
+      label: 'Mörkt utseende',
+      child: GestureDetector(
+        onTap: () => onChanged(!dark),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          width: w,
+          height: h,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(h / 2),
+            color: dark ? const Color(0xFF26364F) : const Color(0xFFFFE6A8),
+            border: Border.all(color: AppTheme.hairline),
+          ),
+          child: Stack(alignment: Alignment.center, children: [
+            Positioned(left: 10, child: Icon(Icons.light_mode, size: 17, color: dark ? Colors.white38 : const Color(0xFFB36B00))),
+            Positioned(right: 10, child: Icon(Icons.dark_mode, size: 17, color: dark ? const Color(0xFFBFD0F2) : Colors.black26)),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              left: dark ? w - knob - 4 : 4,
+              child: Container(
+                width: knob,
+                height: knob,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: dark ? const Color(0xFF5B7FD1) : Colors.white,
+                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 1))],
+                ),
+                child: Icon(dark ? Icons.dark_mode : Icons.light_mode, size: 18, color: dark ? Colors.white : const Color(0xFFE08A00)),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
 }

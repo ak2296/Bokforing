@@ -49,7 +49,7 @@ CSS = """/* ---------- Skisser som i appen (skisser.py) ---------- */
 .pill-nav .on::before { content: ""; position: absolute; left: -1mm; right: -1mm; top: -1.5mm; height: 0.5mm; background: #E2600D; border-radius: 0.3mm; box-shadow: 0 1mm 1.6mm rgba(226,96,13,.5); }
 .screen .hero.coral { margin-bottom: 1.2mm; }
 .screen .hero { margin-bottom: 1.2mm; }
-.hero { background: linear-gradient(135deg, #2F4A9E, #1E3373) !important; }
+.hero { background: linear-gradient(135deg, #0B6B4E, #084D38) !important; }
 .hr { display: flex; align-items: center; gap: 1.6mm; } .cl { color: #0B6B4E; font-size: 6pt; }
 .rkrow { display: flex; justify-content: flex-end; margin-bottom: 1.2mm; }
 .rk { background: #FFF6E5; border: 0.25mm solid #F4E2BC; color: #8A5300; border-radius: 3mm; padding: 0.5mm 1.4mm; font-weight: 500; } .rk b { background: #8A5300; color: #fff; border-radius: 2mm; padding: 0 1mm; margin-left: 0.8mm; }
