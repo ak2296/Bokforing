@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 
 import '../app/settings_keys.dart';
+import '../domain/company_pair.dart';
 import '../domain/dates.dart';
 import '../domain/license.dart';
 import '../domain/closed_days.dart';
@@ -58,10 +59,60 @@ class Repository {
     return today;
   }
 
+  /// The activation code, or else the one-week trial. Both belong to the company
+  /// name and org number in Företag: if either was changed since, they are
+  /// [LicenseStatus.mismatch] until put back.
   Future<LicenseState> licenseState({LicenseChecker checker = const LicenseChecker()}) async {
+    final today = await _licenseToday();
+    final p = await profile();
     final code = await setting(SettingsKeys.licenseCode);
     final license = code == null ? null : await checker.read(code);
-    return LicenseState(license, checker.statusOf(license, await _licenseToday()));
+    var state = LicenseState(license, checker.statusOf(license, today));
+    if (license != null && license.locksCompany && state.status == LicenseStatus.active &&
+        !CompanyPair.same(p.name, p.orgNumber, license.companyName, license.orgNumber)) {
+      state = LicenseState(license, LicenseStatus.mismatch);
+    }
+    if (state.status == LicenseStatus.active) return state;
+    final trial = await _trial();
+    if (trial == null) return state;
+    var trialState = LicenseState(trial, checker.statusOf(trial, today));
+    if (trialState.status == LicenseStatus.active && !CompanyPair.same(p.name, p.orgNumber, trial.companyName, trial.orgNumber)) {
+      trialState = LicenseState(trial, LicenseStatus.mismatch);
+    }
+    // A code that was left behind never hides a trial that still runs, and a
+    // trial that ended or was broken only shows when there is no code at all.
+    return trialState.status == LicenseStatus.active || license == null ? trialState : state;
+  }
+
+  Future<License?> _trial() async {
+    final until = await setting(SettingsKeys.trialUntil);
+    if (until == null) return null;
+    return License(
+      id: License.trialId,
+      companyName: await setting(SettingsKeys.trialName) ?? '',
+      orgNumber: await setting(SettingsKeys.trialOrg) ?? '',
+      until: until,
+    );
+  }
+
+  /// Starts the trial for the company in Företag; [until] is the last day.
+  Future<void> startTrial(String until, String name, String org) async {
+    await setSetting(SettingsKeys.trialUntil, until);
+    await setSetting(SettingsKeys.trialName, name);
+    await setSetting(SettingsKeys.trialOrg, org);
+  }
+
+  /// The activation order that was sent: id, company name and org number.
+  Future<({String id, String name, String org})?> order() async {
+    final id = await setting(SettingsKeys.orderId);
+    if (id == null || id.isEmpty) return null;
+    return (id: id, name: await setting(SettingsKeys.orderName) ?? '', org: await setting(SettingsKeys.orderOrg) ?? '');
+  }
+
+  Future<void> saveOrder(String id, String name, String org) async {
+    await setSetting(SettingsKeys.orderId, id);
+    await setSetting(SettingsKeys.orderName, name);
+    await setSetting(SettingsKeys.orderOrg, org);
   }
 
   /// Stores a valid code and returns null, or returns why it was refused. A
@@ -76,6 +127,7 @@ class Repository {
         return 'Koden gick ut ${license.until}.';
       case LicenseStatus.active:
       case LicenseStatus.missing:
+      case LicenseStatus.mismatch:
         break;
     }
     await setSetting(SettingsKeys.licenseCode, code.replaceAll(RegExp(r'\s'), ''));

@@ -49,4 +49,13 @@ class SettingsKeys {
   static const ownNames = 'own_names';
   static const licenseCode = 'license_code';
   static const licenseLastSeen = 'license_last_seen';
+
+  /// The one-week trial (last day, and the company it was given to) and the
+  /// activation order sent to the owner.
+  static const trialUntil = 'trial_until';
+  static const trialName = 'trial_name';
+  static const trialOrg = 'trial_org';
+  static const orderId = 'order_id';
+  static const orderName = 'order_name';
+  static const orderOrg = 'order_org';
 }

@@ -4,13 +4,12 @@ Edge (headless), which is already on Windows. Nothing is installed.
     python dokument/verktyg/make_docs.py
 
 Run it after changing a design or the user guide, then commit both the HTML
-and the PDF. The guide is also copied to assets/ so the app carries it
+and the PDF. The guide is also cut into picture slices in assets/guide/ so the app carries it
 (a change there starts an app build).
 """
 import os
 import re
 import pathlib
-import shutil
 import subprocess
 import sys
 
@@ -55,12 +54,9 @@ def main() -> int:
     titles = re.findall(r'<li><span>\d+</span><span><a href="#s\d+">(.*?)</a></span>', html)
     (ROOT / "assets/anvandarguide_innehall.txt").write_text("\n".join(titles) + "\n", encoding="utf-8")
     print(f"assets/anvandarguide_innehall.txt: {len(titles)} kapitel")
-    # The app carries the phone version of the guide (set for a phone's width),
-    # opened from Inställningar → Användarguide.
-    guide = ROOT / "dokument/anvandarguide/anvandarguide-telefon.pdf"
-    if guide.exists():
-        shutil.copyfile(guide, ROOT / "assets/anvandarguide.pdf")
-        print("assets/anvandarguide.pdf uppdaterad")
+    # The app carries the phone version of the guide as picture slices (no PDF is
+    # rendered on the phone), shown in Inställningar → Användarguide.
+    subprocess.run([sys.executable, "-I", str(ROOT / "dokument/verktyg/make_guide_bilder.py")], check=True)
     return 0
 
 

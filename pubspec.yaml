@@ -48,7 +48,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/anvandarguide.pdf
+    - assets/guide/
     - assets/anvandarguide_innehall.txt
   fonts:
     - family: Inter

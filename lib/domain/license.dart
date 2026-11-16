@@ -4,7 +4,9 @@ import 'package:cryptography/cryptography.dart';
 
 import 'dates.dart';
 
-enum LicenseStatus { missing, active, expired, revoked }
+/// [mismatch]: the company name or organisation number was changed after the
+/// activation or the trial, so it no longer applies until they are put back.
+enum LicenseStatus { missing, active, expired, revoked, mismatch }
 
 /// What an activation code says. A test code has no company and no end date.
 class License {
@@ -18,6 +20,10 @@ class License {
 
   /// The code fixes the company name and org number.
   bool get locksCompany => companyName.isNotEmpty;
+
+  /// The one-week trial that follows an activation order.
+  static const trialId = 'trial';
+  bool get isTrial => id == trialId;
 }
 
 class LicenseState {

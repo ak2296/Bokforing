@@ -709,7 +709,9 @@ class _CompanyPageState extends State<CompanyPage> {
       _taxMode = tax.mode;
       _taxPercent.text = '${tax.percentTenths ~/ 10}${tax.percentTenths % 10 == 0 ? '' : ',${tax.percentTenths % 10}'}';
       _taxAmount.text = tax.yearlyAmount.isZero ? '' : tax.yearlyAmount.toInput();
-      _locked = license.license?.locksCompany ?? false;
+      // Locked while the activation or trial applies; after a change the fields
+      // are open again so the owner can put the company back.
+      _locked = license.status == LicenseStatus.active && (license.license?.locksCompany ?? false);
       _name.text = p.name;
       _org.text = p.orgNumber;
       _address.text = p.address;
@@ -816,17 +818,19 @@ class _CompanyPageState extends State<CompanyPage> {
                 child: Text('Årsrapporter kommer att grupperas annorlunda. Sparade dokument ändras inte.',
                     style: TextStyle(color: AppTheme.warning)),
               ),
-            const SizedBox(height: 16),
-            const Text('Mina företagsnamn'),
+            const SizedBox(height: 24),
+            Text('Mina företagsnamn', style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
             Text('Andra namn som ditt företag har på dokumenten. De blir aldrig leverantör.',
                 style: Theme.of(context).textTheme.bodySmall),
+            if (_ownNames.isNotEmpty) const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               children: [
                 for (final n in _ownNames) InputChip(label: Text(n), onDeleted: () => _removeName(n)),
               ],
             ),
+            const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(

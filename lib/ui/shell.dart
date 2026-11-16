@@ -591,11 +591,22 @@ class _ActivationAction extends StatefulWidget {
 
 class _ActivationActionState extends State<_ActivationAction> {
   LicenseState? _state;
+  bool _collected = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _load();
+    if (!_collected) {
+      _collected = true;
+      // A code the owner has sent for an order activates the app by itself.
+      collectActivation(context).then((activated) {
+        if (activated && mounted) {
+          _load();
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Din aktivering har kommit. Appen är aktiverad.')));
+        }
+      });
+    }
   }
 
   Future<void> _load() async {

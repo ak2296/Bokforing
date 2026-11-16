@@ -14,6 +14,12 @@ class ReleaseNote {
 }
 
 const releaseNotes = <ReleaseNote>[
+  ReleaseNote(5, '17 november 2026', 'Beställ aktivering i appen', [
+    ('Beställ aktivering:', 'under Inställningar → Aktivering skickar du en beställning med företagsnamn och organisationsnummer från Företag. Du får en veckas provperiod direkt.'),
+    ('Koden kommer själv:', 'när betalningen är registrerad aktiveras appen av sig själv nästa gång du öppnar den. Du behöver inte klistra in något.'),
+    ('Företagsuppgifter:', 'namn och organisationsnummer är låsta så länge appen är aktiv. Ändrar du dem slutar appen fungera tills du ändrar tillbaka.'),
+    ('Användarguiden:', 'öppnas nu direkt och går snabbare på äldre telefoner.'),
+  ]),
   ReleaseNote(4, '17 november 2026', 'Guide i appen och retur/kredit', [
     ('Användarguiden:', 'öppnas nu i appen med ett innehåll du kan trycka på för att hoppa till kapitlet.'),
     ('Retur/kredit:', 'kreditnota, returfaktura, returnota och returkvitto känns igen och dras av från utgifterna och momsen.'),
