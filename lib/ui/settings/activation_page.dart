@@ -239,7 +239,9 @@ class _ActivationPageState extends State<ActivationPage> {
               ]),
             ),
           ],
-          if (s != null && s.status != LicenseStatus.active || (license?.isTrial ?? false)) ...[
+          // Everyone but a customer whose own code is active can order: a trial,
+          // a missing, ended or broken activation, and the owner's test code.
+          if (s != null && (s.status != LicenseStatus.active || !(license?.locksCompany ?? false) || license!.isTrial)) ...[
             const SizedBox(height: 12),
             _orderCard(context),
           ],
