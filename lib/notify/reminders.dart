@@ -40,6 +40,13 @@ class Reminders {
     return await android?.requestNotificationsPermission() ?? true;
   }
 
+  /// Whether the phone lets Quee show notifications right now.
+  Future<bool> allowed() async {
+    await init();
+    final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    return await android?.areNotificationsEnabled() ?? true;
+  }
+
   static Future<bool> enabled(Repository repo) => repo.boolSetting(enabledKey, fallback: true);
 
   static Future<int> days(Repository repo) async => int.tryParse(await repo.setting(daysKey) ?? '') ?? defaultDays;

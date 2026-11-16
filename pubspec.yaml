@@ -34,6 +34,7 @@ dependencies:
   saf_stream: ^4.0.3
   share_plus: ^13.3.1
   open_filex: ^5.0.0
+  app_settings: ^9.0.1
 
 dev_dependencies:
   flutter_test:

@@ -23,6 +23,7 @@ import 'category_editor.dart';
 import 'closed_days_page.dart';
 import 'cost_types_page.dart';
 import 'hints_page.dart';
+import 'notification_tile.dart';
 import 'storage_page.dart';
 import 'user_guide.dart';
 import 'z_fields_page.dart';
@@ -220,6 +221,7 @@ class _SettingsPageState extends State<SettingsPage> {
             nav(AppIcons.backup, 'Lagring', 'Hur mycket plats appen tar och hur du frigör plats', () => const StoragePage())),
       ]),
       _Group(AppIcons.notifications, 'Påminnelser', _reminders ? 'På, $_reminderDays dagar före' : 'Av', [
+        const _Entry('aviseringar tillstånd notis telefon blockerad', NotificationPermissionTile()),
         _Entry(
           'påminnelser notis avisering förfallodag fakturor',
           SwitchListTile(

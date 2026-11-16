@@ -55,6 +55,8 @@ jobs:
           # Payment reminders (flutter_local_notifications): survive reboots,
           # receivers for scheduled notifications, core library desugaring.
           grep -q 'RECEIVE_BOOT_COMPLETED' $m || sed -i 's|<application|<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <application|' $m
+          # Android 13+ shows notifications only when this permission is declared and granted.
+          grep -q 'POST_NOTIFICATIONS' $m || sed -i 's|<application|<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <application|' $m
           if ! grep -q 'ScheduledNotificationReceiver' $m; then
             perl -0pi -e 's#</application>#    <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />\n        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">\n            <intent-filter>\n                <action android:name="android.intent.action.BOOT_COMPLETED"/>\n                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>\n                <action android:name="android.intent.action.QUICKBOOT_POWERON" />\n                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>\n            </intent-filter>\n        </receiver>\n    </application>#' $m
           fi
