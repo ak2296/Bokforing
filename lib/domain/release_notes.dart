@@ -14,6 +14,11 @@ class ReleaseNote {
 }
 
 const releaseNotes = <ReleaseNote>[
+  ReleaseNote(8, '17 november 2026', 'Kort, kontant och kassa i Z-rapporten', [
+    ('Z-rapporten:', 'appen läser nu hur mycket som betalades med kort och kontant, och kontant in, kontant ut och vad som finns kvar i kassan. Du ser och rättar dem inne i Z-rapporten.'),
+    ('Bokföringen:', 'SIE-filen bokför kortdelen på företagskontot och resten på kassan.'),
+    ('Redovisning:', 'ny Kassarapport med kontant, kort, in, ut och kvar i kassan per dag.'),
+  ]),
   ReleaseNote(7, '17 november 2026', 'Hur betalade du?', [
     ('Betalades med:', 'när ett kvitto eller en faktura är betald väljer du Bank / kort, Kontant eller Privat. Det styr vilket konto pengarna bokförs från, så kassan, banken och det du lagt ut själv stämmer för din redovisare.'),
     ('Efter skanning:', 'rutan är gul (Kontrollera) tills du har valt. Kvittot kan föreslå Kontant eller kort.'),

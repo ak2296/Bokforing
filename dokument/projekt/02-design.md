@@ -173,7 +173,10 @@ For every document type the parsed draft is given a doubt count (`doubtsOf` for 
 
 ### 4.4b Payment method
 
-`Invoice.payMethod` (`PayMethod`: bank, cash, owner) is stored in `invoices.pay_method` (database version 10, default `bank`). `SieExport.vouchers(form: ...)` credits `PayMethod.account(form)` for a receipt paid on the day and for the later payment of an invoice; the company form decides 2018 or 2893 for private payments. `BalanceSheet.build` adds account 2000–2299 credits as Egna insättningar to equity. `PaymentDetector` returns a suggested method and the reason; `PayMethodChoice` shows it yellow until the owner chooses. `BankMatcher.match(paidByBank:)` marks a match unsure when it also fits a receipt already paid by bank or card, and returns `explained` payments for the "Redan bokförda kortköp" group. Not done: the card/cash split of a Z-report (a day's sales are all booked to Kassa).
+`Invoice.payMethod` (`PayMethod`: bank, cash, owner) is stored in `invoices.pay_method` (database version 10, default `bank`). `SieExport.vouchers(form: ...)` credits `PayMethod.account(form)` for a receipt paid on the day and for the later payment of an invoice; the company form decides 2018 or 2893 for private payments. `BalanceSheet.build` adds account 2000–2299 credits as Egna insättningar to equity. `PaymentDetector` returns a suggested method and the reason; `PayMethodChoice` shows it yellow until the owner chooses. `BankMatcher.match(paidByBank:)` marks a match unsure when it also fits a receipt already paid by bank or card, and returns `explained` payments for the "Redan bokförda kortköp" group.
+### 4.4c Z-report payments and the till
+
+`ZCash.read` (in `z_report_parser.dart`) finds card, Swish, cash, cash in, cash out and cash left by their labels (kort, kontant, insättning, uttag/utbetalning, kassabehållning and the other words listed in the class), on the same row or the next, and marks card and cash sure when they add up to the day's sales. The figures are kept in `daily_sales` (database version 11, null when the report does not say) and shown in the Z-report's review page. `SieExport.vouchers` debits Företagskonto 1930 for the card share and Kassa 1910 for the rest of the day; `cashReportTable` makes the Kassarapport.
 
 ### 4.5 Activation order, trial and key app
 
@@ -245,7 +248,6 @@ GitHub Actions workflow `Bygg Android-APK`: create platform folders, patch Andro
 
 ## 9. Known design limitations
 
-- All of a Z-report's sales are booked to Kassa (1910); the card and cash split is not saved, so Kassa and Företagskonto can differ from reality in Huvudbok and Saldobalans while Kassa och bank together is right.
 - Moms and result are calculated from registered documents only; missing documents mean wrong totals (the app shows "Fyll i" notices for incomplete ones).
 - Tax figures are rough: no depreciation, interest or personal income are considered.
 - Text readers need a reasonable photo; handwritten or heavily skewed documents may need manual entry.

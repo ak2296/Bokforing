@@ -63,6 +63,7 @@ class _ZReviewPageState extends State<ZReviewPage> {
   final _dateKey = GlobalKey();
   final _reportedKey = GlobalKey();
   late final TextEditingController _date, _zNumber, _reported, _note;
+  late final TextEditingController _card, _cash, _cashIn, _cashOut, _cashLeft;
   List<Category>? _categories;
   final List<_Row> _rows = [];
   late bool _editing;
@@ -81,6 +82,13 @@ class _ZReviewPageState extends State<ZReviewPage> {
     _zNumber = TextEditingController(text: e?.zNumber ?? d?.zNumber.value ?? '');
     _reported = TextEditingController(text: (e?.reportedTotal ?? d?.total.value)?.toInput() ?? '');
     _note = TextEditingController(text: e?.note ?? '');
+    String text(Money? m) => m?.toInput() ?? '';
+    final z = d?.cash;
+    _card = TextEditingController(text: text(e?.card ?? z?.card.value));
+    _cash = TextEditingController(text: text(e?.cash ?? z?.cash.value));
+    _cashIn = TextEditingController(text: text(e?.cashIn ?? z?.cashIn.value));
+    _cashOut = TextEditingController(text: text(e?.cashOut ?? z?.cashOut.value));
+    _cashLeft = TextEditingController(text: text(e?.cashLeft ?? z?.cashLeft.value));
     // Every field can be changed straight away; no "Redigera" step.
     _editing = true;
   }
@@ -209,6 +217,11 @@ class _ZReviewPageState extends State<ZReviewPage> {
       reportedTotal: reported,
       items: items,
       note: _note.text.trim(),
+      card: Money.parse(_card.text),
+      cash: Money.parse(_cash.text),
+      cashIn: Money.parse(_cashIn.text),
+      cashOut: Money.parse(_cashOut.text),
+      cashLeft: Money.parse(_cashLeft.text),
       meta: RecordMeta(
         source: widget.existing?.meta.source ?? (widget.fromAi ? RecordSource.ai : widget.scan == null ? RecordSource.manual : RecordSource.ocr),
         manuallyEdited: _edited || (widget.existing?.meta.manuallyEdited ?? false),
@@ -281,6 +294,11 @@ class _ZReviewPageState extends State<ZReviewPage> {
               reportedTotal: day.reportedTotal,
               items: day.items,
               note: day.note,
+              card: day.card,
+              cash: day.cash,
+              cashIn: day.cashIn,
+              cashOut: day.cashOut,
+              cashLeft: day.cashLeft,
               meta: day.meta.copyWith(scanId: scanId),
             ));
       controller.dataChanged();
@@ -376,6 +394,8 @@ class _ZReviewPageState extends State<ZReviewPage> {
                   _summary(detailed, reported, check, ignored),
                   const SizedBox(height: 12),
                   _vatSummary(items),
+                  const SizedBox(height: 12),
+                  _cashSection(d, reported, conf),
                   const SizedBox(height: 12),
                   PlainField(controller: _note, label: 'Anteckning (valfri)', enabled: _editing, onChanged: _changed),
                 ],
@@ -529,6 +549,43 @@ class _ZReviewPageState extends State<ZReviewPage> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+/// Payments and the till, as the report states them. Yellow ("Kontrollera") when the
+  /// reading is unsure or the report did not say; the owner can fill in or change.
+  Widget _cashSection(ZReportDraft? d, Money? reported, Confidence? Function(Extracted<Object?>? e) conf) {
+    final t = Theme.of(context).textTheme;
+    final z = d?.cash;
+    final card = Money.parse(_card.text);
+    final cash = Money.parse(_cash.text);
+    final both = card != null && cash != null && reported != null;
+    final fits = both && (card + cash - reported).abs() < Money.ignoredDifference;
+    Widget field(TextEditingController c, String label, Extracted<Money>? e) => Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: MoneyField(controller: c, label: label, confidence: widget.scan == null ? null : conf(e), enabled: _editing, required: false, onChanged: _changed),
+        );
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text('Betalning och kassa', style: t.titleSmall),
+          Text('Som rapporten anger det. Fyll i det som saknas.', style: t.bodySmall),
+          field(_card, 'Kort (och Swish)', z?.card),
+          field(_cash, 'Kontant', z?.cash),
+          if (both)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                fits ? 'Stämmer: kort och kontant är lika med dagsförsäljningen.' : 'Kort och kontant skiljer ${(card + cash - reported).format()} mot dagsförsäljningen.',
+                style: t.bodySmall?.copyWith(color: fits ? AppTheme.seed : AppTheme.warning),
+              ),
+            ),
+          field(_cashIn, 'Kontant in i kassan', z?.cashIn),
+          field(_cashOut, 'Kontant ut ur kassan', z?.cashOut),
+          field(_cashLeft, 'Kassabehållning (kvar i kassan)', z?.cashLeft),
+        ]),
       ),
     );
   }

@@ -19,6 +19,7 @@ import 'report_hero.dart';
 import '../../domain/dates.dart';
 import '../../domain/money.dart';
 import '../../domain/result_report.dart';
+import '../../export/cash_report.dart';
 import '../../export/sie_export.dart';
 import '../../export/table_export.dart';
 import '../app_icons.dart';
@@ -621,6 +622,13 @@ class _AccountingBody extends StatelessWidget {
                 onPdf: () => exportTablePdf(context, build(ledger, p.title), data.profile),
                 onExcel: () => exportTableCsv(context, build(ledger, p.title)),
                 onPrint: () => printTable(context, build(ledger, p.title), data.profile),
+              ),
+            if (data.sales.any((d) => d.hasCashData))
+              _ExportRow(
+                label: 'Kassarapport',
+                onPdf: () => exportTablePdf(context, cashReportTable(data.sales, p.title), data.profile),
+                onExcel: () => exportTableCsv(context, cashReportTable(data.sales, p.title)),
+                onPrint: () => printTable(context, cashReportTable(data.sales, p.title), data.profile),
               ),
           ]),
         const _Step(3, 'Balansunderlag', text: 'Balansen visas under Bokslut. Här sparar och skriver du ut den.'),

@@ -96,6 +96,9 @@ Priority: **M** must, **S** should, **C** could. "Verified by" names automated t
 | FR-63 | After a scan the choice is yellow ("Kontrollera") until the owner has tapped one; the paper only suggests (Kontant with change, card slip). Marking an unpaid invoice as paid asks for date and method; paid rows show a grey label with the method. | M | `pay_method_test` (suggestion), Manual (screen) |
 | FR-64 | The balance sheet counts the owner's private payments: as Egna insättningar in equity (enskild firma) or as Övriga skulder (aktiebolag), so it still balances. | M | `pay_method_test` |
 | FR-65 | The bank file is matched against unpaid invoices only. A match is ticked in advance only when sure; same amounts, or a fit with a receipt already paid by bank or card, leave it unticked with a note. Payments of receipts registered as Bank / kort are listed as already booked, not missing; the method of a bank-marked invoice is set to Bank / kort. | M | `pay_method_test`, `bank_import_test` |
+| FR-66 | A Z-report records how much was paid by card (Swish counts with card) and by cash, and the till: cash put in, cash taken out and the cash left at the end (kassabehållning). The reader looks for the words registers use for them; the figures are shown inside the Z-report, with the yellow "Kontrollera" colour when unsure or missing, and never as separate lines in the Försäljning list. | M | `z_cash_test` |
+| FR-67 | The SIE file books a Z-report day's takings on Kassa 1910 for the cash part and on Företagskonto 1930 for the card share when the split is saved (the verification still balances); without a split everything stays on Kassa. | M | `z_cash_test` |
+| FR-68 | Redovisning has a Kassarapport (PDF, Excel, print): per day cash, card, cash in, cash out and cash left, with the last day's cash left in the total row. | S | `z_cash_test` |
 
 ### 4.5 Data protection and administration
 

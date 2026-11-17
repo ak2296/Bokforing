@@ -364,6 +364,11 @@ class Repository {
         'business_date': d.businessDate,
         'z_number': d.zNumber,
         'reported_total_ore': d.reportedTotal.ore,
+        'card_ore': d.card?.ore,
+        'cash_ore': d.cash?.ore,
+        'cash_in_ore': d.cashIn?.ore,
+        'cash_out_ore': d.cashOut?.ore,
+        'cash_left_ore': d.cashLeft?.ore,
         'note': d.note,
         'source': d.meta.source.name,
         'manually_edited': d.meta.manuallyEdited ? 1 : 0,
@@ -439,6 +444,8 @@ class Repository {
     return rows.isEmpty ? null : _dailyFromRow(ex, rows.first);
   }
 
+  static Money? _money(Object? ore) => ore is int ? Money(ore) : null;
+
   Future<DailySales> _dailyFromRow(DatabaseExecutor ex, Map<String, Object?> r) async {
     final id = r['id'] as int;
     final items = await ex.query('daily_sales_items',
@@ -448,6 +455,11 @@ class Repository {
       businessDate: r['business_date'] as String,
       zNumber: r['z_number'] as String?,
       reportedTotal: Money(r['reported_total_ore'] as int),
+      card: _money(r['card_ore']),
+      cash: _money(r['cash_ore']),
+      cashIn: _money(r['cash_in_ore']),
+      cashOut: _money(r['cash_out_ore']),
+      cashLeft: _money(r['cash_left_ore']),
       note: r['note'] as String,
       items: [
         for (final i in items)

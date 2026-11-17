@@ -78,7 +78,15 @@ class SieExport {
         vat[bp] = (vat[bp] ?? Money.zero) + item.vatAmount;
       }
       final v = _Ver('A', day.businessDate, 'Dagskassa${day.zNumber == null ? '' : ' Z ${day.zNumber}'}');
-      v.add(cash, day.detailedTotal);
+      // Card and Swish reach the bank, the rest of the day is cash in the till. Without a
+      // saved split everything goes to Kassa, as before.
+      final cardPart = day.card;
+      if (cardPart != null && cardPart.ore > 0 && cardPart.ore <= day.detailedTotal.ore) {
+        v.add(bank, cardPart);
+        if (day.detailedTotal != cardPart) v.add(cash, day.detailedTotal - cardPart);
+      } else {
+        v.add(cash, day.detailedTotal);
+      }
       for (final bp in gross.keys) {
         final rate = VatRate(bp);
         final vatAcc = outputVatAccount(rate);

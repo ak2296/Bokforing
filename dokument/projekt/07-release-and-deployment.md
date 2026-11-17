@@ -81,6 +81,7 @@ Releases from the download repository (all in November 2026). Descriptions are s
 
 | Release | Date | Main changes |
 |---|---|---|
+| `v2026.11.17i` | 2026-11-17 | Z-report: card, cash, cash in and out and the cash left are read and saved (database version 11); the SIE file splits the takings on 1910 and 1930; Kassarapport in Redovisning |
 | `v2026.11.17h` | 2026-11-17 | Betalades med; database version 10 |
 | `v2026.11.17e` | 2026-11-17 | Rapporter with five coloured tabs, Bokslut (Resultat, Balans) and Redovisning; week cards in Utgifter; online chip; one notification line in Påminnelser |
 | `v2026.11.17d` | 2026-11-17 | Test code `0000` removed |
