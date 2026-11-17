@@ -14,6 +14,13 @@ class ReleaseNote {
 }
 
 const releaseNotes = <ReleaseNote>[
+  ReleaseNote(7, '17 november 2026', 'Hur betalade du?', [
+    ('Betalades med:', 'när ett kvitto eller en faktura är betald väljer du Bank / kort, Kontant eller Privat. Det styr vilket konto pengarna bokförs från, så kassan, banken och det du lagt ut själv stämmer för din redovisare.'),
+    ('Efter skanning:', 'rutan är gul (Kontrollera) tills du har valt. Kvittot kan föreslå Kontant eller kort.'),
+    ('Bankfilen:', 'fakturor med samma belopp bockas inte i förväg, och kvitton som redan är betalda med kort räknas som bokförda.'),
+    ('Listan:', 'betalda poster har en grå etikett med hur de betalades.'),
+    ('Balans:', 'det du betalat privat visas som egen insättning (enskild firma) eller skuld till dig (aktiebolag).'),
+  ]),
   ReleaseNote(6, '17 november 2026', 'Nya flikar i Rapporter och veckokort i Utgifter', [
     ('Rapporter:', 'fem flikar i egna färger: Månad, År, Jämför (violett), Bokslut och Redovisning. Fliken har samma färg som rutan överst.'),
     ('Bokslut:', 'Resultat och Balans i samma flik. Balans visar tillgångar, eget kapital och skulder när du lagt in ingående balanser.'),

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
 import '../domain/bank_matcher.dart';
 import '../domain/bank_statement.dart';
+import '../domain/pay_method.dart';
 import 'app_icons.dart';
 import 'theme.dart';
 
@@ -37,7 +38,11 @@ class _BankImportPageState extends State<BankImportPage> {
     });
     try {
       final statement = BankStatement.parse(await File(path).readAsBytes());
-      final result = BankMatcher.match(statement.rows, await controller.repo.unpaidInvoices());
+      final paidByBank = [
+        for (final i in await controller.repo.invoicesBetween('2000-01-01', '9999-12-31'))
+          if (i.paid && i.payMethod == PayMethod.bank && !i.total.isNegative) i,
+      ];
+      final result = BankMatcher.match(statement.rows, await controller.repo.unpaidInvoices(), paidByBank: paidByBank);
       if (!mounted) return;
       setState(() {
         _statement = statement;
@@ -75,7 +80,7 @@ class _BankImportPageState extends State<BankImportPage> {
     final messenger = ScaffoldMessenger.of(context);
     final chosen = [for (final i in _ticked.toList()..sort()) result.matches[i]];
     for (final m in chosen) {
-      await controller.repo.setInvoicePaid(m.invoice.id!, paid: true, paidDate: m.row.date);
+      await controller.repo.setInvoicePaid(m.invoice.id!, paid: true, paidDate: m.row.date, payMethod: PayMethod.bank);
     }
     controller.dataChanged();
     navigator.pop();
@@ -139,7 +144,7 @@ class _BankImportPageState extends State<BankImportPage> {
                       onChanged: (v) => setState(() => v == true ? _ticked.add(i) : _ticked.remove(i)),
                       title: Text('${m.invoice.supplier.isEmpty ? 'Faktura' : m.invoice.supplier} · ${m.invoice.total.format()}'),
                       subtitle: Text(
-                        'Betald ${m.row.date}${m.sure ? '' : ' · osäker koppling, kontrollera'}\n${m.row.text}',
+                        '${m.note != null ? '${m.note}\n' : ''}Betald ${m.row.date}${m.sure || m.note != null ? '' : ' · osäker koppling, kontrollera'}\n${m.row.text}',
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -153,12 +158,30 @@ class _BankImportPageState extends State<BankImportPage> {
                     ),
                   ],
                   const SizedBox(height: 20),
+                  if (result.explained.isNotEmpty)
+                    ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      shape: const Border(),
+                      collapsedShape: const Border(),
+                      title: Text('Redan bokförda kortköp (${result.explained.length})', style: t.titleSmall),
+                      subtitle: const Text('Betalningar som hör till kvitton du registrerat som Bank / kort.'),
+                      children: [
+                        for (final (r, inv) in result.explained)
+                          ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(inv.supplier.isEmpty ? 'Kvitto' : inv.supplier, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            subtitle: Text('${r.date} · ${r.text}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                            trailing: Text(inv.total.format(), style: t.bodyMedium),
+                          ),
+                      ],
+                    ),
                   ExpansionTile(
                     tilePadding: EdgeInsets.zero,
                     shape: const Border(),
                     collapsedShape: const Border(),
                     title: Text('Utbetalningar utan faktura (${result.unmatchedOut.length})', style: t.titleSmall),
-                    subtitle: const Text('Betalningar som inte hör till någon obetald faktura. Saknas ett underlag?'),
+                    subtitle: const Text('Betalningar som inte hör till någon faktura eller något kvitto. Saknas ett underlag?'),
                     children: [
                       for (final r in result.unmatchedOut)
                         ListTile(

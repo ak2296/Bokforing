@@ -6,7 +6,7 @@ import 'package:sqflite/sqflite.dart';
 /// except amounts printed on the document itself (e.g. reported Z total).
 class AppDatabase {
   static const fileName = 'bokforing.db';
-  static const version = 9;
+  static const version = 10;
 
   static Future<Database> open({DatabaseFactory? factory, String? path}) async {
     final f = factory ?? databaseFactory;
@@ -44,6 +44,11 @@ class AppDatabase {
           if (oldVersion < 9) {
             final batch = db.batch();
             _v9Tables(batch);
+            await batch.commit(noResult: true);
+          }
+          if (oldVersion < 10) {
+            final batch = db.batch();
+            _v10Changes(batch);
             await batch.commit(noResult: true);
           }
           if (oldVersion < 7) {
@@ -176,6 +181,7 @@ class AppDatabase {
     _v6Changes(batch);
     _v8Tables(batch);
     _v9Tables(batch);
+    _v10Changes(batch);
     for (final bp in const [0, 600, 1200, 2500]) {
       batch.insert('vat_rates', {'basis_points': bp, 'active': 1});
     }
@@ -240,6 +246,12 @@ class AppDatabase {
         updated_at TEXT NOT NULL,
         PRIMARY KEY (supplier_key, field)
       )''');
+  }
+
+  /// v10: how an invoice or receipt was paid (bank, cash or the owner's own
+  /// money). Every earlier record was booked from the bank, so that is the default.
+  static void _v10Changes(Batch batch) {
+    batch.execute("ALTER TABLE invoices ADD COLUMN pay_method TEXT NOT NULL DEFAULT 'bank'");
   }
 
   /// v9: lönebesked. Name and personnummer are kept for clarification, the

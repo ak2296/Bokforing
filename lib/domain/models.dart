@@ -1,3 +1,4 @@
+import 'pay_method.dart';
 import 'money.dart';
 import 'vat.dart';
 
@@ -180,6 +181,9 @@ class Invoice {
   /// [CostType.key], or '' when not chosen.
   final String costType;
 
+  /// How it was paid (matters for the books when [paid]); [PayMethod.bank] until chosen.
+  final PayMethod payMethod;
+
   /// The day the expense counts on in reports, moms and SIE: the due date
   /// (förfallodatum) when there is one, otherwise the document date. A
   /// receipt has no due date, so it counts on its own date.
@@ -187,6 +191,7 @@ class Invoice {
 
   const Invoice({
     this.costType = '',
+    this.payMethod = PayMethod.bank,
     this.paid = false,
     this.paidDate,
     this.bankgiro = '',
@@ -242,7 +247,9 @@ class RegistrationSummary {
 extension InvoiceCopy on Invoice {
   /// A copy with other payment details or a new scan link; everything else
   /// is kept as it is.
-  Invoice copyWith({bool? paid, String? paidDate, bool clearPaidDate = false, RecordMeta? meta, int? id}) => Invoice(
+  Invoice copyWith(
+          {bool? paid, String? paidDate, bool clearPaidDate = false, RecordMeta? meta, int? id, PayMethod? payMethod}) =>
+      Invoice(
         id: id ?? this.id,
         invoiceDate: invoiceDate,
         supplier: supplier,
@@ -259,6 +266,7 @@ extension InvoiceCopy on Invoice {
         bankgiro: bankgiro,
         plusgiro: plusgiro,
         costType: costType,
+        payMethod: payMethod ?? this.payMethod,
       );
 
   /// A copy with summa and moms in whole kronor, for reports and lists when
@@ -281,6 +289,7 @@ extension InvoiceCopy on Invoice {
         bankgiro: bankgiro,
         plusgiro: plusgiro,
         costType: costType,
+        payMethod: payMethod,
       );
 
   /// What the reports need but the invoice lacks, in Swedish, e.g.

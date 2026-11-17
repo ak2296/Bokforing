@@ -81,6 +81,7 @@ Releases from the download repository (all in November 2026). Descriptions are s
 
 | Release | Date | Main changes |
 |---|---|---|
+| `v2026.11.17h` | 2026-11-17 | Betalades med; database version 10 |
 | `v2026.11.17e` | 2026-11-17 | Rapporter with five coloured tabs, Bokslut (Resultat, Balans) and Redovisning; week cards in Utgifter; online chip; one notification line in Påminnelser |
 | `v2026.11.17d` | 2026-11-17 | Test code `0000` removed |
 | `v2026.11.17c`, `v2026.11.17b` | 2026-11-17 | Order activation with a one-week trial; guide reader from pre-cut images; spacing under Mina företagsnamn; order card visible on the test code |

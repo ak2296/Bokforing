@@ -196,9 +196,11 @@ class BalanceSheet {
     final otherDebts = sum((n) => n >= 2800 && n < 3000, credit: true);
     final debtsTotal = loans + suppliers + taxes + vat + payroll + otherDebts;
 
+    // What the owner paid privately for the company (enskild firma: egen insättning).
+    final deposits = sum((n) => n >= 2000 && n < 2300, credit: true);
     final openingEquity = opening.equity;
     final result = movements.result;
-    final equityTotal = openingEquity + result;
+    final equityTotal = openingEquity + result + deposits;
 
     BalanceRow? row(String label, Money m) => m.isZero ? null : BalanceRow(label, m);
     return BalanceSheet(
@@ -212,6 +214,7 @@ class BalanceSheet {
       [
         BalanceRow('Eget kapital vid årets början', openingEquity),
         BalanceRow('Resultat hittills i år', result),
+        ?row('Egna insättningar', deposits),
         BalanceRow('Summa eget kapital', equityTotal, strong: true),
         ?row('Lån', loans),
         ?row('Leverantörsskulder', suppliers),

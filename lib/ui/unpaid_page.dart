@@ -10,6 +10,7 @@ import '../domain/money.dart';
 import 'record_details.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
+import 'widgets/pay_method_choice.dart';
 import 'widgets/blur_overlay.dart';
 
 /// Unpaid invoices, earliest due date first, with "Betala" details and
@@ -124,15 +125,11 @@ Future<void> showPaySheet(BuildContext context, Invoice inv) => showBlurSheet<vo
                   final controller = AppScope.read(c);
                   final navigator = Navigator.of(c);
                   final messenger = ScaffoldMessenger.of(c);
-                  final date = await showDatePicker(
-                    context: c,
-                    helpText: 'Betalningsdatum',
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2100),
-                  );
-                  if (date == null) return;
-                  await controller.repo.setInvoicePaid(inv.id!, paid: true, paidDate: SwedishDates.iso(date));
+                  final form = await controller.repo.companyForm();
+                  if (!c.mounted) return;
+                  final paid = await askPayment(c, form: form);
+                  if (paid == null) return;
+                  await controller.repo.setInvoicePaid(inv.id!, paid: true, paidDate: paid.date, payMethod: paid.method);
                   controller.dataChanged();
                   navigator.pop();
                   messenger.showSnackBar(const SnackBar(content: Text('Fakturan är markerad som betald.')));

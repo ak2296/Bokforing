@@ -10,6 +10,7 @@ import '../../domain/dates.dart';
 import '../../domain/invoice_parser.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/pay_method.dart';
 import '../../domain/payment_detector.dart';
 import '../../domain/supplier_hints.dart';
 import '../../domain/text_patterns.dart';
@@ -21,6 +22,7 @@ import '../scan/scan_flow.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/fields.dart';
+import '../widgets/pay_method_choice.dart';
 import '../widgets/cost_type_dialog.dart';
 import 'ai_assist.dart';
 import '../settings/activation_page.dart';
@@ -78,6 +80,12 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
   /// Also true before a total is filled in, when the paper says Kreditnota.
   late bool _isCredit =
       (widget.draft?.isCredit ?? false) || (widget.existing?.total.isNegative ?? false);
+
+  /// How it was paid. Only a default or a suggestion from the paper until the owner has chosen.
+  PayMethod _payMethod = PayMethod.bank;
+  bool _methodConfirmed = false;
+  String? _methodReason;
+  CompanyForm? _companyForm;
 
   /// Flips the sign of total, VAT and VAT lines. The amounts themselves are
   /// unchanged; only whether they are added or subtracted.
@@ -143,7 +151,11 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     final p = d?.payment;
     if (e != null) {
       _paid = e.paid;
+      _payMethod = e.payMethod;
+      _methodConfirmed = true;
     } else if (p != null && p.kind != PaymentKind.unknown) {
+      _payMethod = p.method ?? PayMethod.bank;
+      _methodReason = p.methodReason;
       _kind = p.kind;
       _paid = p.paid;
       _paidReason = _reasonFor(p);
@@ -162,6 +174,9 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       if (mounted) setState(() => _rates = r);
     });
     _suggestCostType();
+    repo.companyForm().then((f) {
+      if (mounted) setState(() => _companyForm = f);
+    });
   }
 
   /// The supplier's cost type from earlier invoices, when none is chosen yet.
@@ -267,6 +282,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       bankgiro: _bankgiro.text.trim(),
       plusgiro: _plusgiro.text.trim(),
       costType: _costType,
+      payMethod: _paid == true ? _payMethod : PayMethod.bank,
     );
   }
 
@@ -614,14 +630,28 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
                 value: paid,
                 onChanged: !_editing ? null : (v) => setState(() => _setPaid(v)),
               ),
-              if (paid)
+              if (paid) ...[
                 DateField(
                     controller: _paidDate,
                     label: 'Betalningsdatum',
                     enabled: _editing,
                     required: false,
-                    onChanged: _changed)
-              else ...[
+                    onChanged: _changed),
+                const SizedBox(height: 10),
+                PayMethodChoice(
+                  value: _payMethod,
+                  confirmed: _methodConfirmed,
+                  suggestion: _methodReason,
+                  form: _companyForm,
+                  onChanged: !_editing
+                      ? (_) {}
+                      : (m) => setState(() {
+                            _payMethod = m;
+                            _methodConfirmed = true;
+                            _edited = true;
+                          }),
+                ),
+              ] else ...[
                 if (!SwedishDates.isValidIso(_due.text.trim()))
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),

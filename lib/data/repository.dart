@@ -8,6 +8,7 @@ import '../domain/dates.dart';
 import '../domain/license.dart';
 import '../domain/closed_days.dart';
 import '../domain/models.dart';
+import '../domain/pay_method.dart';
 import '../domain/money.dart';
 import '../domain/tax_estimate.dart';
 import '../domain/supplier_hints.dart';
@@ -494,6 +495,7 @@ class Repository {
         'bankgiro': inv.bankgiro.trim(),
         'plusgiro': inv.plusgiro.trim(),
         'cost_type': inv.costType,
+        'pay_method': inv.paid ? inv.payMethod.name : PayMethod.bank.name,
         'updated_at': _now(),
       };
       int id;
@@ -798,12 +800,21 @@ class Repository {
   }
 
   /// "Markera som betald" / "Markera som obetald", with an audit entry.
-  Future<void> setInvoicePaid(int id, {required bool paid, String? paidDate}) async {
+  Future<void> setInvoicePaid(int id, {required bool paid, String? paidDate, PayMethod? payMethod}) async {
     await db.transaction((txn) async {
       await txn.update(
-          'invoices', {'paid': paid ? 1 : 0, 'paid_date': paid ? paidDate : null, 'updated_at': _now()},
-          where: 'id = ?', whereArgs: [id]);
-      await _audit(txn, 'invoice', id, paid ? 'paid' : 'unpaid', paid ? (paidDate ?? '') : '');
+          'invoices',
+          {
+            'paid': paid ? 1 : 0,
+            'paid_date': paid ? paidDate : null,
+            // An invoice that is not paid again is booked from the bank until it is paid.
+            if (!paid) 'pay_method': PayMethod.bank.name else if (payMethod != null) 'pay_method': payMethod.name,
+            'updated_at': _now(),
+          },
+          where: 'id = ?',
+          whereArgs: [id]);
+      final how = paid && payMethod != null ? ' ${payMethod.name}' : '';
+      await _audit(txn, 'invoice', id, paid ? 'paid' : 'unpaid', paid ? '${paidDate ?? ''}$how'.trim() : '');
     });
   }
 
@@ -838,6 +849,7 @@ class Repository {
       bankgiro: r['bankgiro'] as String? ?? '',
       plusgiro: r['plusgiro'] as String? ?? '',
       costType: r['cost_type'] as String? ?? '',
+      payMethod: PayMethod.parse(r['pay_method'] as String?),
       vatLines: [
         for (final v in vat)
           InvoiceVatLine(
@@ -858,6 +870,7 @@ class Repository {
         'fakturanr': i.invoiceNumber,
         'betald': i.paid,
         'betaldatum': i.paidDate,
+        'betalsatt': i.payMethod.name,
         'summa_ore': i.total.ore,
         'moms_ore': i.vatTotal.ore,
         'moms': [

@@ -87,7 +87,9 @@ Future<PackageData> loadPackage(AppController c, ReportPeriod period) async {
   final upToEnd = await repo.invoicesBetween('2000-01-01', to);
   final inPeriod = [for (final i in upToEnd) if (i.bookingDate.compareTo(from) >= 0 && i.bookingDate.compareTo(to) <= 0) i];
 
-  final vouchers = SieExport.vouchers(fromIso: from, toIso: to, sales: sales, invoices: upToEnd, online: online, payslips: payslips);
+  final form = await repo.companyForm();
+  final vouchers =
+      SieExport.vouchers(fromIso: from, toIso: to, sales: sales, invoices: upToEnd, online: online, payslips: payslips, form: form);
   final ledger = Ledger.of(vouchers);
   final title = period.title;
   final empty = vouchers.isEmpty;
@@ -122,6 +124,7 @@ Future<PackageData> loadPackage(AppController c, ReportPeriod period) async {
       invoices: upToEnd,
       online: await repo.onlineSalesBetween(balances.date, to),
       payslips: await repo.payslipsBetween(balances.date, to),
+      form: form,
     ));
     final sheet = BalanceSheet.build(balances, bl, to);
     balanceItem = PackageItem(
@@ -179,6 +182,7 @@ Future<PackageData> loadPackage(AppController c, ReportPeriod period) async {
     invoices: upToEnd,
     online: online,
     payslips: payslips,
+    form: form,
   );
 
   // Month by month inside the period (the monthly report when it is one month).

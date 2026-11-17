@@ -1,6 +1,7 @@
 import 'bank_statement.dart';
 import 'dates.dart';
 import 'models.dart';
+import 'pay_method.dart';
 import 'text_patterns.dart';
 
 /// A bank payment that pays one of the unpaid invoices.
@@ -12,7 +13,10 @@ class BankMatch {
   /// and no other invoice or payment could be the one. Only these are ticked
   /// at first; the user decides about the rest.
   final bool sure;
-  const BankMatch(this.row, this.invoice, {required this.sure});
+
+  /// Why the match is not sure, in Swedish, when there is something to say.
+  final String? note;
+  const BankMatch(this.row, this.invoice, {required this.sure, this.note});
 }
 
 class BankMatchResult {
@@ -22,7 +26,11 @@ class BankMatchResult {
   /// invoice or receipt.
   final List<BankRow> unmatchedOut;
   final int unmatchedIn;
-  const BankMatchResult(this.matches, this.unmatchedOut, this.unmatchedIn);
+
+  /// Payments out that belong to receipts already registered as paid with bank or
+  /// card: they are accounted for and are not missing anything.
+  final List<(BankRow, Invoice)> explained;
+  const BankMatchResult(this.matches, this.unmatchedOut, this.unmatchedIn, {this.explained = const []});
 }
 
 class BankMatcher {
@@ -44,7 +52,11 @@ class BankMatcher {
   /// invoice's total to the öre (a credit note is a payment in), and the
   /// payment may not be more than a week before the invoice date. Each
   /// payment and each invoice is used once.
-  static BankMatchResult match(List<BankRow> rows, List<Invoice> unpaid) {
+  ///
+  /// [paidByBank] are invoices and receipts already paid with bank or card. A
+  /// payment that fits one of them too is not sure for an unpaid invoice, and a
+  /// payment that fits one and no unpaid invoice is explained, not missing.
+  static BankMatchResult match(List<BankRow> rows, List<Invoice> unpaid, {List<Invoice> paidByBank = const []}) {
     final pairs = <_Pair>[];
     for (var r = 0; r < rows.length; r++) {
       for (var i = 0; i < unpaid.length; i++) {
@@ -77,16 +89,50 @@ class BankMatcher {
       if (usedRows.contains(p.row) || usedInvoices.contains(p.invoice)) continue;
       usedRows.add(p.row);
       usedInvoices.add(p.invoice);
-      matches.add(BankMatch(rows[p.row], unpaid[p.invoice],
-          sure: p.named && perRow[p.row] == 1 && perInvoice[p.invoice] == 1));
+      final row = rows[p.row];
+      final inv = unpaid[p.invoice];
+      final alsoPaid = paidByBank.where((x) => _fitsPaid(row, x)).firstOrNull;
+      final sameRow = (perRow[p.row] ?? 0) > 1;
+      final sameInvoice = (perInvoice[p.invoice] ?? 0) > 1;
+      final note = alsoPaid != null
+          ? 'Beloppet passar också ett kvitto som redan är betalt med kort ${alsoPaid.paidDate ?? alsoPaid.invoiceDate}. Kontrollera.'
+          : sameRow
+              ? 'Två obetalda fakturor har samma belopp. Välj rätt.'
+              : sameInvoice
+                  ? 'Två betalningar har samma belopp. Välj rätt.'
+                  : null;
+      matches.add(BankMatch(row, inv, sure: p.named && !sameRow && !sameInvoice && alsoPaid == null, note: note));
     }
     matches.sort((a, b) => b.row.date.compareTo(a.row.date));
     final rest = [
       for (var r = 0; r < rows.length; r++)
         if (!usedRows.contains(r)) rows[r],
     ];
-    return BankMatchResult(
-        matches, [for (final r in rest) if (r.amount.isNegative) r], rest.where((r) => !r.amount.isNegative).length);
+    // What is left over: payments out that belong to a receipt already paid with
+    // bank or card are explained; each such receipt explains one payment.
+    final explained = <(BankRow, Invoice)>[];
+    final usedPaid = <Invoice>{};
+    final missing = <BankRow>[];
+    for (final r in rest.where((r) => r.amount.isNegative)) {
+      final hit = paidByBank.where((x) => !usedPaid.contains(x) && _fitsPaid(r, x)).toList()
+        ..sort((a, b) => (_named(r, b) ? 1 : 0).compareTo(_named(r, a) ? 1 : 0));
+      if (hit.isEmpty) {
+        missing.add(r);
+      } else {
+        usedPaid.add(hit.first);
+        explained.add((r, hit.first));
+      }
+    }
+    return BankMatchResult(matches, missing, rest.where((r) => !r.amount.isNegative).length, explained: explained);
+  }
+
+  /// A payment that fits a receipt already paid with bank or card: the same amount to the öre,
+  /// from a week before the purchase to ten days after it (the bank books a card payment a
+  /// few days late).
+  static bool _fitsPaid(BankRow row, Invoice inv) {
+    if (inv.payMethod != PayMethod.bank || !inv.paid || inv.total.isZero || row.amount != -inv.total) return false;
+    final days = _days(inv.paidDate ?? inv.invoiceDate, row.date);
+    return days == null || (days >= -7 && days <= 10);
   }
 
   /// Whole days from [fromIso] to [toIso], or null when a date does not parse.

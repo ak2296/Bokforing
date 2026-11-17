@@ -151,6 +151,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 
 
 
+
 /* ---------- Skisser som i appen (skisser.py) ---------- */
 .screen .body { padding: 0 2.2mm; }
 .two-c { display: flex; gap: 1.2mm; margin-bottom: 1.2mm; }
@@ -428,6 +429,14 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   </ul>
   <h2>Vilken dag räknas utgiften?</h2>
   <p>På <b>förfallodatum</b>. Saknas det (kvitto) räknas den på datumet. Det styr månad i rapporter, moms och SIE-fil.</p>
+  <h2>Hur betalade du?</h2>
+  <p>När ett dokument är betalt frågar appen <b>Betalades med</b>. Valet påverkar bara bokföringen (vilket konto pengarna togs från), inte moms eller resultat.</p>
+  <ul>
+    <li><b>Bank / kort:</b> företagets bankkonto eller företagskort (konto 1930). Förvalt.</li>
+    <li><b>Kontant:</b> kontanter ur kassan (1910).</li>
+    <li><b>Privat:</b> du betalade med dina egna pengar. För enskild firma bokförs det som egen insättning (2018), för aktiebolag som en skuld till dig (2893).</li>
+  </ul>
+  <p>Efter en skanning är rutan <b>gul (Kontrollera)</b> tills du har tryckt på ett val. Kvittot kan ge ett förslag, till exempel Kontant när det visar växel, men ett kort kan vara företagets eller ditt eget, så det är du som avgör. Markerar du en obetald faktura som betald väljer du betalsättet i samma ruta. Betalda poster har en grå etikett med valet i listan.</p>
   <h2>Retur/kredit</h2>
   <p>När du lämnar tillbaka varor och får pengar och moms tillbaka kallas pappret olika saker: kreditnota, kreditfaktura, returfaktura, returnota, returkvitto, korrigeringsfaktura. Appen känner igen de orden och slår på <span class="kbd">Retur/kredit</span> själv. Gör den inte det, slå på knappen själv. Beloppen blir minus och dras av från utgifterna och den ingående momsen, precis som en vanlig utgift fast åt andra hållet.</p>
   <h2>Moms</h2>
@@ -535,7 +544,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
       </ul>
       <h3>Att betala, saknade uppgifter och bankfil</h3>
       <p>Kortet <b>Att betala</b> listar obetalda fakturor med bankgiro och OCR; påminnelser kommer före och på förfallodagen. Den lila rutan listar fakturor som saknar uppgifter.</p>
-      <p><span class="kbd">Matcha betalningar från bankfil</span> läser en CSV från internetbanken och föreslår vilka fakturor som är betalda (exakt samma belopp). Du bekräftar. Filen sparas inte.</p>
+      <p><span class="kbd">Matcha betalningar från bankfil</span> läser en CSV från internetbanken och föreslår vilka <b>obetalda</b> fakturor som är betalda (exakt samma belopp). Du bockar i dem och bekräftar; de får betalsättet Bank / kort och betaldatum från banken. Har två fakturor samma belopp, eller passar beloppet också ett kvitto som redan är betalt med kort, bockas ingen i förväg och en gul rad säger varför. Betalningar som hör till kvitton du registrerat som Bank / kort visas som <b>Redan bokförda kortköp</b> och räknas inte som saknade. Kontant och Privat finns aldrig i bankfilen. Filen sparas inte.</p>
     </div>
   </div>
   <div class="folio"><span>Försäljning och utgifter</span><span>11</span></div>

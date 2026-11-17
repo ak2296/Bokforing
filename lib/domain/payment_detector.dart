@@ -1,4 +1,5 @@
 import 'invoice_parser.dart';
+import 'pay_method.dart';
 import 'text_patterns.dart';
 
 enum PaymentKind { kvitto, faktura, unknown }
@@ -10,7 +11,12 @@ class PaymentDetection {
   final bool paid;
   final Confidence confidence;
   final List<String> reasons;
-  const PaymentDetection(this.kind, this.paid, this.confidence, this.reasons);
+
+  /// How the paper says it was paid, when it says: only a suggestion (a card
+  /// can be the company's or the owner's own). [methodReason] says why.
+  final PayMethod? method;
+  final String? methodReason;
+  const PaymentDetection(this.kind, this.paid, this.confidence, this.reasons, {this.method, this.methodReason});
 
   bool get isCertain => kind != PaymentKind.unknown && confidence == Confidence.high;
 }
@@ -141,6 +147,23 @@ class PaymentDetector {
         (text.contains('betalning av faktura') && cardSlip);
     if (statedPaid) reasons.add('betalt enligt pappret');
 
+    // Cash ("Kontantnota", "Kontant 706,00", change given) or a card slip.
+    PayMethod? method;
+    String? methodReason;
+    final change = text.contains('växel');
+    final cashPaid = RegExp(r'kontantnota|betal[dt] med kontant').hasMatch(text) ||
+        norm.any((n) => RegExp(r'^kontant\s+\d[\d\s.,]*(kr|sek)?$').hasMatch(n)) ||
+        (change && (text.contains('mottaget') || text.contains('kontant')));
+    final cardPaid = cardSlip ||
+        RegExp(r'betal[dt] med (kort|swish)|kortbetalning|kontokort|bankkort|kortköp|mastercard|maestro').hasMatch(text);
+    if (cashPaid) {
+      method = PayMethod.cash;
+      methodReason = change ? 'kvittot säger "Kontant" och visar växel' : 'kvittot säger "Kontant"';
+    } else if (cardPaid) {
+      method = PayMethod.bank;
+      methodReason = 'kvittot visar kortbetalning';
+    }
+
     final margin = (receipt - invoice).abs();
     final kind = statedPaid
         ? PaymentKind.kvitto
@@ -163,6 +186,7 @@ class PaymentDetector {
                 : Confidence.low;
     if (stamped) reasons.add('stämpel BETALD');
     return PaymentDetection(
-        stamped && kind == PaymentKind.unknown ? PaymentKind.faktura : kind, paid, confidence, reasons);
+        stamped && kind == PaymentKind.unknown ? PaymentKind.faktura : kind, paid, confidence, reasons,
+        method: method, methodReason: methodReason);
   }
 }

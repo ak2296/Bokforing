@@ -246,6 +246,9 @@ Widget _invoiceRow(BuildContext context, Invoice inv, {bool rounded = false}) =>
       chips: [
         if (inv.total.isNegative) StatusChip('Retur/kredit', color: AppTheme.seed, background: AppTheme.tint),
         if (!inv.paid) _dueChip(inv),
+        // Grey, so it cannot be mistaken for the coloured status labels.
+        if (inv.paid && !inv.total.isNegative)
+          StatusChip(inv.payMethod.label, color: AppTheme.ink.withValues(alpha: 0.78), background: AppTheme.hairline),
       ],
       amountNote: inv.isIncomplete
           ? StatusChip('Fyll i: ${inv.missingFields.join(', ')}', color: AppTheme.fix, background: AppTheme.fixTint)

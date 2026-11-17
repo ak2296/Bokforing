@@ -191,6 +191,7 @@ class InvoiceDetailsPage extends StatelessWidget {
                 ]),
                 _section(context, 'Betalning', [
                   _Row('Status', inv.paid ? 'Betald${inv.paidDate == null ? '' : ' ${inv.paidDate}'}' : 'Obetald'),
+                  if (inv.paid) _Row('Betalades med', inv.payMethod.label),
                   if (!inv.paid) _Row('', dueText(inv.dueDate)),
                   if (inv.bankgiro.isNotEmpty) _Row('Bankgiro', inv.bankgiro),
                   if (inv.plusgiro.isNotEmpty) _Row('Plusgiro', inv.plusgiro),

@@ -27,7 +27,9 @@ class SieExport {
     2731: 'Avräkning lagstadgade sociala avgifter',
     7010: 'Löner',
     7510: 'Lagstadgade sociala avgifter',
+    2018: 'Egen insättning',
     2440: 'Leverantörsskulder',
+    2893: 'Skulder till närstående personer',
     2611: 'Utgående moms på försäljning inom Sverige, 25 %',
     2621: 'Utgående moms på försäljning inom Sverige, 12 %',
     2631: 'Utgående moms på försäljning inom Sverige, 6 %',
@@ -63,6 +65,7 @@ class SieExport {
     required List<Invoice> invoices,
     List<OnlineSale> online = const [],
     List<Payslip> payslips = const [],
+    CompanyForm? form,
   }) {
     bool inPeriod(String? d) => d != null && d.compareTo(fromIso) >= 0 && d.compareTo(toIso) <= 0;
     final vers = <_Ver>[];
@@ -103,21 +106,22 @@ class SieExport {
     for (final i in invoices) {
       final cost = CostType.byKey(i.costType) ?? CostType.other;
       final text = [i.supplier, if (i.invoiceNumber.isNotEmpty) 'nr ${i.invoiceNumber}'].join(' ').trim();
-      // Paid on the day (kvitto): straight from the bank. Otherwise a debt
-      // until it is paid.
+      // Paid on the day (kvitto): straight from where the money came: the bank,
+      // the till or the owner's own money. Otherwise a debt until it is paid.
       final paidAtOnce = i.paid && (i.paidDate == null || i.paidDate == i.bookingDate);
+      final from = i.payMethod.account(form);
       if (inPeriod(i.bookingDate)) {
         final v = _Ver('C', i.bookingDate, text.isEmpty ? 'Leverantörsfaktura' : text);
         v.add(cost.account, i.total - i.vatTotal, name: cost.label);
         if (!i.vatTotal.isZero) v.add(inputVat, i.vatTotal);
-        v.add(paidAtOnce ? bank : supplierDebt, -i.total);
+        v.add(paidAtOnce ? from : supplierDebt, -i.total);
         vers.add(v);
       }
       // A payment in the period, also for an invoice from before it.
       if (!paidAtOnce && i.paid && inPeriod(i.paidDate)) {
         vers.add(_Ver('C', i.paidDate!, 'Betalning ${text.isEmpty ? 'leverantörsfaktura' : text}')
           ..add(supplierDebt, i.total)
-          ..add(bank, -i.total));
+          ..add(from, -i.total));
       }
     }
 
@@ -162,9 +166,10 @@ class SieExport {
     List<OnlineSale> online = const [],
     List<Payslip> payslips = const [],
     DateTime? generated,
+    CompanyForm? form,
   }) {
     final vouchers = SieExport.vouchers(
-        fromIso: fromIso, toIso: toIso, sales: sales, invoices: invoices, online: online, payslips: payslips);
+        fromIso: fromIso, toIso: toIso, sales: sales, invoices: invoices, online: online, payslips: payslips, form: form);
     final names = <int, String>{};
     for (final v in vouchers) {
       for (final r in v.rows) {

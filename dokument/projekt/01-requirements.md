@@ -92,6 +92,10 @@ Priority: **M** must, **S** should, **C** could. "Verified by" names automated t
 |---|---|---|---|
 | FR-36 | A bank CSV file can be matched against unpaid invoices (exact amount); the user confirms every match; the file is not stored. | S | `bank_import_test` |
 | FR-37 | Reminders are shown before and on the due date, with a lead time the user sets. | S | `payments_test` (reminder times); notification display is Manual |
+| FR-62 | A paid invoice or receipt records how it was paid: Bank / kort (1930), Kontant (1910) or Privat (2018 for enskild firma, 2893 for aktiebolag). It only decides the account in the SIE file and the ledger; moms and the result are unchanged. Records from before the choice read as Bank / kort. | M | `pay_method_test` |
+| FR-63 | After a scan the choice is yellow ("Kontrollera") until the owner has tapped one; the paper only suggests (Kontant with change, card slip). Marking an unpaid invoice as paid asks for date and method; paid rows show a grey label with the method. | M | `pay_method_test` (suggestion), Manual (screen) |
+| FR-64 | The balance sheet counts the owner's private payments: as Egna insättningar in equity (enskild firma) or as Övriga skulder (aktiebolag), so it still balances. | M | `pay_method_test` |
+| FR-65 | The bank file is matched against unpaid invoices only. A match is ticked in advance only when sure; same amounts, or a fit with a receipt already paid by bank or card, leave it unticked with a note. Payments of receipts registered as Bank / kort are listed as already booked, not missing; the method of a bank-marked invoice is set to Bank / kort. | M | `pay_method_test`, `bank_import_test` |
 
 ### 4.5 Data protection and administration
 

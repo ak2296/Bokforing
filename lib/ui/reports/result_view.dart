@@ -85,7 +85,11 @@ class _Data {
   final List<OnlineSale> online;
   final List<Payslip> payslips;
   final OpeningBalances balances;
-  const _Data(this.period, this.report, this.profile, this.sales, this.invoices, this.online, this.payslips, this.balances);
+
+  /// The company form decides the account for what the owner paid privately.
+  final CompanyForm? form;
+  const _Data(this.period, this.report, this.profile, this.sales, this.invoices, this.online, this.payslips, this.balances,
+      {this.form});
 
   /// The balance sheet on the last day of the period: the opening balances plus
   /// every verification from the balance date. Null when there is no opening balance
@@ -100,6 +104,7 @@ class _Data {
       invoices: await c.repo.invoicesBetween('2000-01-01', period.to),
       online: await c.repo.onlineSalesBetween(from, period.to),
       payslips: await c.repo.payslipsBetween(from, period.to),
+      form: form,
     ));
     return BalanceSheet.build(balances, ledger, period.to);
   }
@@ -114,7 +119,8 @@ class _Data {
     final report = ResultReport.build(
         title: p.title, fromIso: p.from, toIso: p.to, sales: sales, invoices: invoices, online: online);
     final payslips = await c.repo.payslipsBetween(p.from, p.to);
-    return _Data(p, report, await c.repo.profile(), sales, upToEnd, online, payslips, await loadBalances(c.repo));
+    return _Data(p, report, await c.repo.profile(), sales, upToEnd, online, payslips, await loadBalances(c.repo),
+        form: await c.repo.companyForm());
   }
 
   /// The verifications of the period, as the SIE file gets them.
@@ -125,6 +131,7 @@ class _Data {
         invoices: invoices,
         online: online,
         payslips: payslips,
+        form: form,
       ));
 
   ReportTable table() {
@@ -160,6 +167,7 @@ Future<void> _exportSie(BuildContext context, _Data data) async {
       invoices: data.invoices,
       online: data.online,
       payslips: data.payslips,
+      form: data.form,
     );
     final bytes = SieExport.encode(text);
     final fileName = 'quee_${p.fileTag}.se';
@@ -586,6 +594,7 @@ class _AccountingBody extends StatelessWidget {
                   invoices: data.invoices,
                   online: data.online,
                   payslips: data.payslips,
+                  form: data.form,
                 ),
               ),
             )),

@@ -100,6 +100,10 @@ Mark each line Pass / Fail / N/A with the build number.
 - [ ] Försäljning and Utgifter show weeks; an online sale shows the blue badge, the "Online" chip and the teal amount.
 - [ ] The user guide opens at once, the contents jump to a chapter, also on an old phone.
 - [ ] A payment reminder arrives at 09:00 on the day (and the day before due, as set).
+- [ ] After a scan of a paid receipt the "Betalades med" box is yellow; tapping a choice turns it normal; Kontant is suggested for a receipt with change.
+- [ ] Markera som betald on an unpaid invoice asks for date and method; the list shows a grey label on paid rows.
+- [ ] Bank file: two invoices with the same amount are not ticked; a receipt paid by card shows under Redan bokförda kortköp.
+- [ ] Verifikationslista shows 1930, 1910 and 2893 or 2018 for the three methods; Balans still says it balances.
 
 ## 7. Update test (before publishing a release)
 

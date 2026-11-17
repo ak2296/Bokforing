@@ -171,6 +171,10 @@ For every document type the parsed draft is given a doubt count (`doubtsOf` for 
 
 `AutoBackup` is scheduled 20 s after a data change; it writes an encrypted `.bkp` (key derived from the user's password) into the chosen SAF folder, at most one per day, keeping the last three. A manual "send copy" uses the share menu. Restore reads the file, asks for the password and shows what it contains before replacing data.
 
+### 4.4b Payment method
+
+`Invoice.payMethod` (`PayMethod`: bank, cash, owner) is stored in `invoices.pay_method` (database version 10, default `bank`). `SieExport.vouchers(form: ...)` credits `PayMethod.account(form)` for a receipt paid on the day and for the later payment of an invoice; the company form decides 2018 or 2893 for private payments. `BalanceSheet.build` adds account 2000–2299 credits as Egna insättningar to equity. `PaymentDetector` returns a suggested method and the reason; `PayMethodChoice` shows it yellow until the owner chooses. `BankMatcher.match(paidByBank:)` marks a match unsure when it also fits a receipt already paid by bank or card, and returns `explained` payments for the "Redan bokförda kortköp" group. Not done: the card/cash split of a Z-report (a day's sales are all booked to Kassa).
+
 ### 4.5 Activation order, trial and key app
 
 ```mermaid
@@ -237,9 +241,11 @@ GitHub Actions workflow `Bygg Android-APK`: create platform folders, patch Andro
 | D-13 | Activation order through Firestore over REST, polling, no Cloud Functions | Free plan, no extra Android libraries, nothing to maintain | The customer's app asks when opened; the owner's list refreshes every 20 s while open (a 15-minute background check is not built). |
 | D-14 | One trial per pair of company name and organisation number, hashed | Reports need the correct name and number, so a made-up pair makes the app useless | A real company can order once; no device or name-only checks. |
 | D-15 | Report tabs: Bokslut with two parts instead of a sixth tab | Six tabs do not fit one readable row | Balans is one tap deeper. |
+| D-16 | The payment method is the owner's choice, only suggested from the paper | A card can be the company's or private; only the owner knows | An extra tap on card receipts; unconfirmed choices stay yellow. |
 
 ## 9. Known design limitations
 
+- All of a Z-report's sales are booked to Kassa (1910); the card and cash split is not saved, so Kassa and Företagskonto can differ from reality in Huvudbok and Saldobalans while Kassa och bank together is right.
 - Moms and result are calculated from registered documents only; missing documents mean wrong totals (the app shows "Fyll i" notices for incomplete ones).
 - Tax figures are rough: no depreciation, interest or personal income are considered.
 - Text readers need a reasonable photo; handwritten or heavily skewed documents may need manual entry.

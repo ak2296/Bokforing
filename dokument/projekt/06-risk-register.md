@@ -24,6 +24,7 @@ Baseline: release `v2026.11.13i`. Scale: **Likelihood** and **Impact** are Low /
 | R-18 | **Firebase channel unavailable or changed** (free plan limits, rules, Google changes). Orders and automatic activation stop; codes can still be sent by e-mail. | Low | Medium | Low | The e-mail path stays; rules are kept in `firebase/firestore.rules`; usage is tiny. | Owner | Open |
 | R-19 | **Trial abuse.** Another company name and number gives another trial. | Medium | Low | Low | The trial is one week and only a real pair is useful for the reports; an organisation number must pass the check digit. | Owner | Accepted |
 | R-20 | **Public repositories hold identifiers.** The Firebase API key is in the code (a public identifier). | Low | Low | Low | Only the published rules protect the data; the secret key and keystore are never committed. | Developer | Accepted |
+| R-21 | **Wrong payment method chosen or left on the default.** Cash or private payments booked from the bank make Kassa, bank and owner debt wrong for the accountant. | Medium | Low | Low | The choice is yellow until confirmed; the bank file lists registered card receipts; the guide explains. | Owner | Open |
 
 ## Notes
 
