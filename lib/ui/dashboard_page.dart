@@ -193,7 +193,7 @@ class _UpdateCardState extends State<_UpdateCard> {
         final t = Theme.of(context).textTheme;
         final mb = info.size > 0 ? ', ${(info.size / 1048576).round()} MB' : '';
         return Padding(
-          padding: const EdgeInsets.only(top: 12),
+          padding: const EdgeInsets.only(top: 12, bottom: 12),
           child: Card(
             margin: EdgeInsets.zero,
             color: AppTheme.tint,

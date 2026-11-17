@@ -271,6 +271,8 @@ class DailySalesDetailsPage extends StatelessWidget {
                   for (final i in d.items) _Row('${i.categoryName} (${i.vat.label})', i.amount.format(), money: true),
                   const Divider(),
                   _Row('Dagsförsäljning (enligt rapporten)', d.reportedTotal.format(), money: true),
+                  if (d.card != null) _Row('Varav kort (och Swish)', d.card!.format(), money: true),
+                  if (d.cash != null) _Row('Varav kontant', d.cash!.format(), money: true),
                   _Row('Beräknad detaljerad summa', d.detailedTotal.format(), money: true),
                   _Row('Skillnad', d.difference.format(), money: true),
                 ]),
