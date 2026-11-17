@@ -122,20 +122,13 @@ class DailySales {
   final String note;
   final RecordMeta meta;
 
-  /// What the report says about payments and the till; null when not saved. [card]
-  /// includes Swish. [cashLeft] is the kassabehållning at the end of the day.
+  /// What the report says about payments; null when not saved. [card] includes Swish.
   final Money? card;
   final Money? cash;
-  final Money? cashIn;
-  final Money? cashOut;
-  final Money? cashLeft;
 
   const DailySales({
     this.card,
     this.cash,
-    this.cashIn,
-    this.cashOut,
-    this.cashLeft,
     this.id,
     required this.businessDate,
     this.zNumber,
@@ -147,8 +140,8 @@ class DailySales {
 
   Money get detailedTotal => Money.sum(items.map((i) => i.amount));
 
-  /// True when any of the payment and till figures is saved.
-  bool get hasCashData => card != null || cash != null || cashIn != null || cashOut != null || cashLeft != null;
+  /// True when a payment figure is saved.
+  bool get hasCashData => card != null || cash != null;
   Money get outputVat => Money.sum(items.map((i) => i.vatAmount));
   Money get difference => detailedTotal - reportedTotal;
 

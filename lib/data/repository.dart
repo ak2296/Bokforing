@@ -366,9 +366,6 @@ class Repository {
         'reported_total_ore': d.reportedTotal.ore,
         'card_ore': d.card?.ore,
         'cash_ore': d.cash?.ore,
-        'cash_in_ore': d.cashIn?.ore,
-        'cash_out_ore': d.cashOut?.ore,
-        'cash_left_ore': d.cashLeft?.ore,
         'note': d.note,
         'source': d.meta.source.name,
         'manually_edited': d.meta.manuallyEdited ? 1 : 0,
@@ -457,9 +454,6 @@ class Repository {
       reportedTotal: Money(r['reported_total_ore'] as int),
       card: _money(r['card_ore']),
       cash: _money(r['cash_ore']),
-      cashIn: _money(r['cash_in_ore']),
-      cashOut: _money(r['cash_out_ore']),
-      cashLeft: _money(r['cash_left_ore']),
       note: r['note'] as String,
       items: [
         for (final i in items)

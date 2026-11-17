@@ -174,9 +174,9 @@ For every document type the parsed draft is given a doubt count (`doubtsOf` for 
 ### 4.4b Payment method
 
 `Invoice.payMethod` (`PayMethod`: bank, cash, owner) is stored in `invoices.pay_method` (database version 10, default `bank`). `SieExport.vouchers(form: ...)` credits `PayMethod.account(form)` for a receipt paid on the day and for the later payment of an invoice; the company form decides 2018 or 2893 for private payments. `BalanceSheet.build` adds account 2000–2299 credits as Egna insättningar to equity. `PaymentDetector` returns a suggested method and the reason; `PayMethodChoice` shows it yellow until the owner chooses. `BankMatcher.match(paidByBank:)` marks a match unsure when it also fits a receipt already paid by bank or card, and returns `explained` payments for the "Redan bokförda kortköp" group.
-### 4.4c Z-report payments and the till
+### 4.4c Z-report payments
 
-`ZCash.read` (in `z_report_parser.dart`) finds card, Swish, cash, cash in, cash out and cash left by their labels (kort, kontant, insättning, uttag/utbetalning, kassabehållning and the other words listed in the class), on the same row or the next, and marks card and cash sure when they add up to the day's sales. The figures are kept in `daily_sales` (database version 11, null when the report does not say) and shown in the Z-report's review page. `SieExport.vouchers` debits Företagskonto 1930 for the card share and Kassa 1910 for the rest of the day; `cashReportTable` makes the Kassarapport.
+`ZCash.read` (in `z_report_parser.dart`) finds card (with Swish) and cash by their labels, starting at the "Betalmetoder" section when there is one, and skips till rows (växelkassa, given växel, insättning, uttag). Card and cash are marked sure when they add up to the day's sales; when only one is found the other is the day's sales minus it, medium (yellow). The figures are kept in `daily_sales` (`card_ore`, `cash_ore`, null when the report does not say) and shown in the Z-report's review page. The till figures were dropped on purpose: registers differ and the reports do not need them. `SieExport.vouchers` debits Företagskonto 1930 for the card share and Kassa 1910 for the rest of the day; `cashReportTable` makes the Kassarapport.
 
 ### 4.5 Activation order, trial and key app
 

@@ -17,9 +17,13 @@ const _cats = [
 ];
 const _meta = RecordMeta(source: RecordSource.manual);
 
+/// A day with 6 180,00 sales followed by the given rows.
+String _z(List<String> rest) => ['Z-rapport', 'Försäljning per varugrupp', 'Mat 4 480,00', 'Dryck 1 700,00', 'Total försäljning 6 180,00', ...rest].join(_nl);
+const _nl = '\n';
+
 ZReportDraft _read(String text) => const ZReportParser(_cats).parse(OcrResult.fromPlainText(text));
 
-DailySales _day({Money? card, Money? cash, Money? cashLeft, String date = '2026-11-14'}) => DailySales(
+DailySales _day({Money? card, Money? cash, String date = '2026-11-14'}) => DailySales(
       businessDate: date,
       zNumber: '126',
       reportedTotal: Money.kr(6180),
@@ -29,20 +33,26 @@ DailySales _day({Money? card, Money? cash, Money? cashLeft, String date = '2026-
       ],
       card: card,
       cash: cash,
-      cashLeft: cashLeft,
       meta: _meta,
     );
 
 void main() {
   group('Reading the payments and the till', () {
-    test('card, cash, cash in and out and the cash left are read when the report names them', () {
-      final d = _read('Z-rapport\nFörsäljning per varugrupp\nMat 4 480,00\nDryck 1 700,00\nTotal försäljning 6 180,00\n'
-          'Betalning\nKortbetalningar 4 600,00\nKontanter 1 580,00\nInsättning i kassan 0,00\nUttag ur kassan 300,00\nKassabehållning 2 340,00');
+    test('card and cash are read from Betalmetoder; the till rows above are ignored', () {
+      final d = _read(_z(['Kontanter', 'Ingående växelkassa 500,00', 'Betalningar 1 580,00', 'Given växel -20,00', 'Utgående växelkassa 2 060,00', 'Betalmetoder', 'Kort 4 600,00', 'Kontanter 1 580,00']));
       expect(d.cash.card.value, Money.kr(4600));
       expect(d.cash.cash.value, Money.kr(1580));
-      expect(d.cash.cashIn.value, Money.zero);
-      expect(d.cash.cashOut.value, Money.kr(300));
-      expect(d.cash.cashLeft.value, Money.kr(2340));
+    });
+
+    test('only card found: cash is the day minus card, and the other way round; both yellow', () {
+      final a = _read(_z(['Betalmetoder', 'Kort 4 600,00']));
+      expect(a.cash.cash.value, Money.kr(1580));
+      expect(a.cash.cash.confidence, Confidence.medium);
+      expect(_read(_z(['Betalmetoder', 'Kontant försäljning 1 580,00'])).cash.cash.value, Money.kr(1580));
+      final b = _read(_z(['Betalmetoder', 'Kontant netto 1 580,00']));
+      expect(b.cash.cash.value, Money.kr(1580));
+      expect(b.cash.card.value, Money.kr(4600));
+      expect(b.cash.card.confidence, Confidence.medium);
     });
 
     test('card and cash that add up to the day are sure; Swish counts with the card', () {
@@ -58,25 +68,9 @@ void main() {
       expect(d.cash.card.confidence, Confidence.medium);
     });
 
-    test('other words for the same figures: utgående kassa, kassasaldo, utbetalningar, kontanter ut, closing cash', () {
-      expect(_read('Z-rapport\nUtgående kassa 1 000,00').cash.cashLeft.value, Money.kr(1000));
-      expect(_read('Z-rapport\nKassasaldo 2 000,00').cash.cashLeft.value, Money.kr(2000));
-      expect(_read('Z-rapport\nUtbetalningar 150,00').cash.cashOut.value, Money.kr(150));
-      expect(_read('Z-rapport\nKontanter ut 75,50').cash.cashOut.value, const Money(7550));
-      expect(_read('Z-rapport\nClosing cash 3 000,00').cash.cashLeft.value, Money.kr(3000));
-    });
-
-    test('a label with its amount on the next line is read', () {
-      final d = _read('Z-rapport\nKassabehållning\n2 340,00');
-      expect(d.cash.cashLeft.value, Money.kr(2340));
-    });
-
-    test('a report without these lines gives nothing, and cash in is not mistaken for cash', () {
-      final d = _read('Z-rapport\nFörsäljning per varugrupp\nMat 4 480,00\nTotal försäljning 4 480,00');
-      expect(d.cash.isEmpty, isTrue);
-      final e = _read('Z-rapport\nKontanter ut 75,00');
-      expect(e.cash.cash.hasValue, isFalse);
-      expect(e.cash.cashOut.value, Money.kr(75));
+    test('a report without these lines gives nothing, and till rows are not cash', () {
+      expect(_read('Z-rapport').cash.isEmpty, isTrue);
+      expect(_read(['Z-rapport', 'Kontanter ut 75,00', 'Utgående växelkassa 2 060,00'].join(_nl)).cash.isEmpty, isTrue);
     });
   });
 
@@ -98,15 +92,15 @@ void main() {
       expect(v.rows.any((r) => r.account == 1930), isFalse);
     });
 
-    test('the Kassarapport lists only days with figures and ends with the last cash left', () {
+    test('the Kassarapport lists only days with figures and sums them', () {
       final t = cashReportTable([
-        _day(card: Money.kr(4600), cash: Money.kr(1580), cashLeft: Money.kr(2340)),
-        _day(date: '2026-11-13', card: Money.kr(5020), cash: Money.kr(2100), cashLeft: Money.kr(1060)),
+        _day(card: Money.kr(4600), cash: Money.kr(1580)),
+        _day(date: '2026-11-13', card: Money.kr(5020), cash: Money.kr(2100)),
         _day(date: '2026-11-12'),
       ], 'november 2026');
       expect(t.rows.length, 2);
       expect(t.rows.first.first, '2026-11-13');
-      expect(t.totals!.last.replaceAll(RegExp(r'\s'), ''), '2340,00');
+      expect(t.totals![3].replaceAll(RegExp(r'\s'), ''), '9620,00');
     });
   });
 
@@ -119,12 +113,12 @@ void main() {
     tearDown(() => repo.db.close());
 
     test('the figures are saved and read back; a day without them stays empty', () async {
-      await repo.saveDailySales(_day(card: Money.kr(4600), cash: Money.kr(1580), cashLeft: Money.kr(2340)));
+      await repo.saveDailySales(_day(card: Money.kr(4600), cash: Money.kr(1580)));
       await repo.saveDailySales(_day(date: '2026-11-15'));
       final days = await repo.dailySalesBetween('2026-11-01', '2026-11-30');
       final a = days.firstWhere((d) => d.businessDate == '2026-11-14');
       final b = days.firstWhere((d) => d.businessDate == '2026-11-15');
-      expect((a.card, a.cash, a.cashLeft), (Money.kr(4600), Money.kr(1580), Money.kr(2340)));
+      expect((a.card, a.cash), (Money.kr(4600), Money.kr(1580)));
       expect(b.hasCashData, isFalse);
     });
   });

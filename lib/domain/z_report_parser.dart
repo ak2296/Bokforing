@@ -34,24 +34,19 @@ class ZLine {
   });
 }
 
-/// What a Z-report says about payments and the till: card (with Swish), cash, cash
-/// put in, cash taken out and the cash left at the end (kassabehållning). Each is
-/// [Extracted.none] when the report does not say.
+/// What a Z-report says about payments (section "Betalmetoder"): card (with Swish) and
+/// cash. Each is [Extracted.none] when the report does not say; when only one is found
+/// the other is worked out from the day's sales. The till (växelkassa, given växel)
+/// is not read.
 class ZCash {
   final Extracted<Money> card;
   final Extracted<Money> cash;
-  final Extracted<Money> cashIn;
-  final Extracted<Money> cashOut;
-  final Extracted<Money> cashLeft;
   const ZCash({
     this.card = const Extracted.none(),
     this.cash = const Extracted.none(),
-    this.cashIn = const Extracted.none(),
-    this.cashOut = const Extracted.none(),
-    this.cashLeft = const Extracted.none(),
   });
 
-  bool get isEmpty => !(card.hasValue || cash.hasValue || cashIn.hasValue || cashOut.hasValue || cashLeft.hasValue);
+  bool get isEmpty => !(card.hasValue || cash.hasValue);
 
   /// The words the reports use, in normalised form (lower case). Learned from the
   /// layouts of several registers, never from a customer's own papers.
@@ -59,29 +54,29 @@ class ZCash {
       r'kort|kortbetalning(?:ar)?|kortköp|kortförsäljning|bankkort|kontokort|betalkort|debetkort|kreditkort|visa|mastercard|amex|card|cards|credit card|debit card|card payment';
   static const swishWords = r'swish|swishbetalning(?:ar)?';
   static const cashWords =
-      r'kontanter|kontant|kontantbetalning(?:ar)?|kontantförsäljning|betalt kontant|cash|cash payment';
-  static const inWords =
-      r'kassainsättning|insättning(?: i kassan)?|inbetalning|kontanter in|kontant in|kassa in|in kassa|påfyllning|cash in|paid in';
-  static const outWords =
-      r'utbetalning(?:ar)?|kassauttag|uttag(?: ur kassan)?|kontanter ut|kontant ut|kassa ut|ut kassa|bankinsättning|utlägg|cash out|paid out';
-  static const leftWords =
-      r'kassabehållning|kassasaldo|saldo kassa|summa kassa|utgående kassa|utgående kontanter|kontanter i kassa(?:lådan|låda)?|kontant i kassa|slutkassa|kassa vid stängning|kassa totalt|closing cash|cash in drawer|cash balance|expected cash';
+      r'kontant försäljning|kontanter försäljning|kontant netto|kontanter netto|netto kontant|kontanter|kontant|kontantbetalning(?:ar)?|kontantförsäljning|betalt kontant|cash|cash payment';
+  static const methodWords = r'betalmetod(?:er)?|betalsätt|betalningsmetod(?:er)?|betalningssätt|payment methods?';
+  // Rows of the till (växelkassa, given växel) must never be taken for cash.
+  static const tillWords =
+      r'ingående|utgående|växel|given|kassabehållning|kassasaldo|insättning|uttag|utbetalning|kontanter in|kontant in|kontanter ut|kontant ut';
 
   static RegExp _label(String words) =>
       RegExp('^(?:summa |totalt |total )?(?:$words)(?![a-zåäö])');
   static final _card = _label(cardWords);
   static final _swish = _label(swishWords);
   static final _cash = _label(cashWords);
-  static final _in = _label(inWords);
-  static final _out = _label(outWords);
-  static final _left = _label(leftWords);
+  static final _method = RegExp('^(?:$methodWords)(?![a-zåäö])');
+  static final _till = RegExp('^(?:$tillWords)');
 
-  /// Reads the figures from the rows of a report. [total] is the day's sales, used to
-  /// check that card and cash add up to it.
+  /// Reads the figures from the rows of a report. [total] is the day's sales: it
+  /// checks that card and cash add up and fills in whichever one is missing.
   static ZCash read(List<TextRow> rows, List<String> norm, Money? total) {
-    Extracted<Money> find(RegExp label, {List<RegExp> not = const []}) {
-      for (var i = 0; i < rows.length; i++) {
-        if (!label.hasMatch(norm[i]) || not.any((n) => n.hasMatch(norm[i]))) continue;
+    // Prefer the "Betalmetoder" section; the cash section above it has other rows.
+    var start = norm.indexWhere(_method.hasMatch);
+    if (start < 0) start = 0;
+    Extracted<Money> find(RegExp label) {
+      for (var i = start; i < rows.length; i++) {
+        if (!label.hasMatch(norm[i]) || _till.hasMatch(norm[i])) continue;
         final here = TextPatterns.amounts(rows[i].text).where((a) => a.hasDecimals).toList();
         if (here.isNotEmpty) return Extracted(here.last.value, Confidence.high, source: rows[i].text);
         if (i + 1 < rows.length) {
@@ -94,12 +89,9 @@ class ZCash {
       return const Extracted.none();
     }
 
-    final left = find(_left);
-    final out = find(_out);
-    final cin = find(_in, not: [_left, _out]);
-    var card = find(_card, not: [_left, _out, _in]);
+    var card = find(_card);
     final swish = find(_swish);
-    var cash = find(_cash, not: [_left, _out, _in]);
+    var cash = find(_cash);
     if (swish.hasValue) {
       card = Extracted((card.value ?? Money.zero) + swish.value!,
           card.hasValue && card.confidence == Confidence.high && swish.confidence == Confidence.high ? Confidence.high : Confidence.medium,
@@ -116,7 +108,13 @@ class ZCash {
         cash = Extracted(cash.value, Confidence.medium, source: cash.source);
       }
     }
-    return ZCash(card: card, cash: cash, cashIn: cin, cashOut: out, cashLeft: left);
+    // One found, the other follows from the day's sales (yellow, so it gets checked).
+    if (total != null && card.hasValue && !cash.hasValue) {
+      cash = Extracted(total - card.value!, Confidence.medium, note: 'Räknat: dagens summa minus kort');
+    } else if (total != null && cash.hasValue && !card.hasValue) {
+      card = Extracted(total - cash.value!, Confidence.medium, note: 'Räknat: dagens summa minus kontant');
+    }
+    return ZCash(card: card, cash: cash);
   }
 }
 
