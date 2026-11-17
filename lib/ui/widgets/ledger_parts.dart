@@ -333,3 +333,48 @@ const costPalette = [
   AppTheme.pumpkin, AppTheme.pumpkinLight, AppTheme.pumpkinPale, Color(0xFF8A5300),
   Color(0xFFD9A066), Color(0xFFB0A08A), Color(0xFFC2410C), Color(0xFFFFD08A),
 ];
+
+/// Dated rows (newest first) in one fold-out card per week: the days of
+/// Försäljning and the invoices of Utgifter. This week is open; in a past
+/// month the newest week is.
+List<Widget> weekCards(List<(String, Widget)> entries, {required Color color}) {
+  if (entries.isEmpty) return const [];
+  final groups = <DateTime, List<(String, Widget)>>{};
+  for (final e in entries) {
+    final d = SwedishDates.parseIso(e.$1);
+    final monday = d == null ? DateTime(0) : SwedishDates.mondayOf(d);
+    (groups[monday] ??= []).add(e);
+  }
+  final thisWeek = SwedishDates.mondayOf(DateTime.now());
+  final open = groups.containsKey(thisWeek) ? thisWeek : groups.keys.first;
+  return [
+    for (final MapEntry(key: monday, value: days) in groups.entries)
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: ExpansionTile(
+            initiallyExpanded: monday == open,
+            iconColor: color,
+            collapsedIconColor: color,
+            shape: const Border(),
+            collapsedShape: const Border(),
+            title: Text(monday.year == 0 ? 'Utan datum' : 'Vecka ${SwedishDates.isoWeek(monday)}'),
+            subtitle: Text([
+              if (monday.year != 0)
+                '${SwedishDates.mediumDay(SwedishDates.iso(monday))} – '
+                    '${SwedishDates.mediumDay(SwedishDates.iso(DateTime(monday.year, monday.month, monday.day + 6)))}',
+              '${days.length} st',
+            ].join(' · ')),
+            children: [
+              for (final (i, e) in days.indexed) ...[
+                if (i > 0) const Divider(indent: 70),
+                e.$2,
+              ],
+            ],
+          ),
+        ),
+      ),
+  ];
+}

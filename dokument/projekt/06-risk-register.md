@@ -20,9 +20,14 @@ Baseline: release `v2026.11.13i`. Scale: **Likelihood** and **Impact** are Low /
 | R-14 | **Accessibility shortfalls** (contrast, text size, screen reader) exclude some users. | Medium | Medium | Medium | Findings F-07, F-08; fix and re-test (G-7). | Developer | Open |
 | R-15 | **Activation code misuse or expiry.** A copied code works on many phones; an ended customer keeps using the app. | Medium | Low | Low | Codes carry an end date and can be revoked in a later release; test code stops on a fixed date. Not a security boundary. | Owner | Accepted |
 | R-16 | **Private data leaks into the repository** (real documents, bank file, payslips). | Low | High | Medium | Project rule: learn layouts only, never copy real data; tests use anonymised text; review before each commit; the repository is public. | Developer | Open |
+| R-17 | **Key password lost.** The locked secret key cannot be opened, so no code can be made (this happened once; the unlocked copy was found on another PC). | Medium | High | High | Keep an unlocked copy offline (USB stick); write the password down; a new key pair would also need a new public key in the app. | Owner | Mitigated |
+| R-18 | **Firebase channel unavailable or changed** (free plan limits, rules, Google changes). Orders and automatic activation stop; codes can still be sent by e-mail. | Low | Medium | Low | The e-mail path stays; rules are kept in `firebase/firestore.rules`; usage is tiny. | Owner | Open |
+| R-19 | **Trial abuse.** Another company name and number gives another trial. | Medium | Low | Low | The trial is one week and only a real pair is useful for the reports; an organisation number must pass the check digit. | Owner | Accepted |
+| R-20 | **Public repositories hold identifiers.** The Firebase API key is in the code (a public identifier). | Low | Low | Low | Only the published rules protect the data; the secret key and keystore are never committed. | Developer | Accepted |
 
 ## Notes
 
+- The key app repository `ak2296/Bokforing-nycklar` was public only while its app was built and is private again (2026-11-17).
 - The repository `ak2296/Bokforing` is public. R-16 therefore matters: anything committed is visible.
 - The download repository `ak2296/quee` holds only the release APKs and the download page.
 - Review this register at every release and whenever a risk changes; record the date and the changes below.
@@ -32,3 +37,4 @@ Baseline: release `v2026.11.13i`. Scale: **Likelihood** and **Impact** are Low /
 | Date | Reviewer | Changes |
 |---|---|---|
 | 2026-11-13 | Developer (draft) | First version; for owner review |
+| 2026-11-17 | Developer | Test code (R-15) removed; added R-17 to R-20 (key password, Firebase channel, trial abuse, public identifiers) |

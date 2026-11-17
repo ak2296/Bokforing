@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import '../app_icons.dart';
 
 import '../../app/app_controller.dart';
+import '../../data/accounting_settings.dart';
 import '../../domain/comparison.dart';
 import '../../domain/dates.dart';
 import '../../domain/models.dart';
 import '../../domain/money.dart';
+import '../../domain/report_period.dart';
 import '../../domain/reports.dart';
 import '../../export/table_export.dart';
 import '../export_actions.dart';
@@ -16,7 +18,6 @@ import '../theme.dart';
 import '../widgets/charts.dart';
 import '../widgets/report_charts.dart';
 import '../widgets/common.dart';
-import 'package_page.dart';
 import 'report_hero.dart';
 import 'result_card.dart';
 import 'result_view.dart';
@@ -30,9 +31,36 @@ class ReportsPage extends StatefulWidget {
 }
 
 class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 4, vsync: this);
+  // Månad, År, Jämför, Res/Bal, Redovisning.
+  late final TabController _tabs = TabController(length: 5, vsync: this)..addListener(_changed);
   YearMonth _ym = YearMonth.now();
   int _year = DateTime.now().year;
+
+  /// One period for Resultat, Balans and Redovisning, so they always agree.
+  ReportPeriod? _period;
+
+  /// Inside Res/Bal: 0 Resultat, 1 Balans.
+  int _resBal = 0;
+  bool _started = false;
+
+  void _changed() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    _init();
+  }
+
+  Future<void> _init() async {
+    final repo = AppScope.read(context).repo;
+    final acc = await loadAccounting(repo);
+    final start = await repo.fiscalStartMonth();
+    if (mounted) setState(() => _period = ReportPeriod.containing(acc.kind, DateTime.now(), start));
+  }
 
   @override
   void dispose() {
@@ -40,34 +68,62 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
     super.dispose();
   }
 
+  Widget _resBalView() {
+    final period = _period;
+    if (period == null) return const Center(child: CircularProgressIndicator());
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+        child: Row(children: [
+          for (final (i, label, color) in [(0, 'Resultat', AppTheme.pumpkin), (1, 'Balans', AppTheme.balance)]) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(
+              child: Material(
+                color: _resBal == i ? color : Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: color, width: 1.5)),
+                child: InkWell(
+                  customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  onTap: () => setState(() => _resBal = i),
+                  child: Container(
+                    height: 44,
+                    alignment: Alignment.center,
+                    child: Text(label,
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: _resBal == i ? Colors.white : color)),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ]),
+      ),
+      Expanded(
+        child: ResultView(
+          period: period,
+          onChanged: (v) => setState(() => _period = v),
+          mode: _resBal == 0 ? ResultMode.resultat : ResultMode.balans,
+          ym: _ym,
+        ),
+      ),
+    ]);
+  }
+
+  Widget _accountingView() {
+    final period = _period;
+    if (period == null) return const Center(child: CircularProgressIndicator());
+    return ResultView(
+      period: period,
+      onChanged: (v) => setState(() => _period = v),
+      mode: ResultMode.redovisning,
+      ym: _ym,
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: FilledButton.tonalIcon(
-              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44)),
-              icon: const Icon(AppIcons.report, size: 18),
-              label: const Text('Redovisarpaket'),
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PackagePage(ym: _ym))),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              height: 40,
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(color: AppTheme.hairline, borderRadius: BorderRadius.circular(12)),
-              child: TabBar(
-                controller: _tabs,
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicator: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(10)),
-                labelColor: AppTheme.ink,
-                unselectedLabelColor: AppTheme.muted,
-                labelStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 13),
-                tabs: const [Tab(text: 'Månad'), Tab(text: 'År'), Tab(text: 'Resultat'), Tab(text: 'Jämför')],
-              ),
-            ),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            child: _ReportTabBar(controller: _tabs),
           ),
           Expanded(
             // The pages swipe, so these tabs change by tap only.
@@ -84,13 +140,78 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
                     _tabs.animateTo(0);
                   },
                 ),
-                const ResultView(),
                 const _CompareView(),
+                _resBalView(),
+                _accountingView(),
               ],
             ),
           ),
         ],
       );
+}
+
+/// The five report tabs as one pill: the chosen tab is filled with the colour of
+/// its page's hero, the others show a small dot in it. The widths follow the
+/// words, so "Redovisning" fits and "År" stays small.
+class _ReportTabBar extends StatelessWidget {
+  final TabController controller;
+  const _ReportTabBar({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final tabs = <(String, Color, int)>[
+      ('Månad', AppTheme.seed, 11),
+      ('År', AppTheme.sales, 6),
+      ('Jämför', AppTheme.compare, 11),
+      ('Res/Bal', AppTheme.pumpkin, 11),
+      ('Redovisning', AppTheme.accounting, 16),
+    ];
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(color: AppTheme.hairline, borderRadius: BorderRadius.circular(14)),
+      child: Row(children: [
+        for (final (i, tab) in tabs.indexed)
+          Expanded(
+            flex: tab.$3,
+            child: Semantics(
+              button: true,
+              selected: controller.index == i,
+              label: tab.$1,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(11),
+                onTap: () => controller.animateTo(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: controller.index == i ? tab.$2 : Colors.transparent,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      if (controller.index != i) ...[
+                        Container(width: 5, height: 5, decoration: BoxDecoration(color: tab.$2, shape: BoxShape.circle)),
+                        const SizedBox(width: 3),
+                      ],
+                      Text(tab.$1,
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12.5,
+                            fontWeight: controller.index == i ? FontWeight.w600 : FontWeight.w500,
+                            color: controller.index == i ? Colors.white : AppTheme.muted,
+                          )),
+                    ]),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
 }
 
 class _MonthView extends StatelessWidget {
@@ -634,7 +755,7 @@ class _CompareViewState extends State<_CompareView> {
         showSelectedIcon: false,
         style: ButtonStyle(
           visualDensity: VisualDensity.compact,
-          backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? _accent : null),
+          backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? AppTheme.compare : null),
           foregroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? Colors.white : null),
         ),
         segments: [
@@ -669,7 +790,7 @@ class _CompareViewState extends State<_CompareView> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [_accent, Color.lerp(_accent, Colors.black, 0.28)!],
+          colors: [AppTheme.compare, Color.lerp(AppTheme.compare, Colors.black, 0.28)!],
         ),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

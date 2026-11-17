@@ -1,6 +1,6 @@
 # 07 – Release and deployment notes
 
-Baseline: `v2026.11.13i`, commit `8204b71`.
+Baseline: `v2026.11.13i`, commit `8204b71`. Updated 2026-11-17: only the newest release is kept in the download repository; see §7 and §9.
 
 ## 1. Deployment model
 
@@ -81,6 +81,9 @@ Releases from the download repository (all in November 2026). Descriptions are s
 
 | Release | Date | Main changes |
 |---|---|---|
+| `v2026.11.17e` | 2026-11-17 | Rapporter with five coloured tabs, Res/Bal (Resultat, Balans) and Redovisning; week cards in Utgifter; online chip; one notification line in Påminnelser |
+| `v2026.11.17d` | 2026-11-17 | Test code `0000` removed |
+| `v2026.11.17c`, `v2026.11.17b` | 2026-11-17 | Order activation with a one-week trial; guide reader from pre-cut images; spacing under Mina företagsnamn; order card visible on the test code |
 | `v2026.11.13i` | 2026-11-13 | Enskild firma: yearly preliminary tax amount for the tax estimate |
 | `v2026.11.13h` | 2026-11-13 | Resultat and estimated tax on Månad and År; equal-height key cards; "Nästa" due date in Att betala; Kommande betalningar removed |
 | `v2026.11.13g` | 2026-11-13 | Half-width Säkerhetskopia and Att betala cards; red and brown amounts; scan button under the cards; "Importera fil" |
@@ -96,7 +99,7 @@ Releases from the download repository (all in November 2026). Descriptions are s
 | `v2026.11.12` | 2026-11-12 | Lönebesked, dark mode, fingerprint, swipe between tabs, grouped settings with search, new charts |
 | `v2026.11.08b`, `v2026.11.08-quee`, `v2026.11.08` | 2026-11-08 | Earlier releases (before this period; not summarised here) |
 
-Release notes in GitHub are shorter than this table; this table is the project's own record.
+Release notes in GitHub are shorter than this table; this table is the project's own record. On 2026-11-17 every release older than `v2026.11.17e` was deleted from `ak2296/quee` (one user, no old copies to keep); the table above keeps the history.
 
 ## 8. Pending release hygiene
 
@@ -104,3 +107,11 @@ Release notes in GitHub are shorter than this table; this table is the project's
 - Add the database upgrade test and run the update test for every release (G-3, R-01).
 - Store a copy of the signing keystore safely (R-03).
 - Add a visible version string in Om appen that matches the release tag.
+
+## 9. The key app Quee Nycklar (2026-11-17)
+
+- Source: `ak2296/Bokforing-nycklar` (private again after the first builds); app in `app/`, workflow `Bygg Quee Nycklar (APK)`.
+- Each push builds a signed APK and publishes it as a release `bygge-N` in the same repository. The signing key is generated for each build, so a new build cannot be installed over the previous one: uninstall first and load the key file again.
+- Secrets stay out of the repository: `nyckel-last.txt` (the locked key) and the keystore are ignored by Git. An unlocked copy of the secret key belongs on a USB stick (risk R-17).
+- A build can fail for outside reasons, for example "429 Too Many Requests" from Maven Central; re-run the failed job.
+- Firebase project `quee-aktivering` (Firestore in `eur3`, free plan; Authentication with Anonymous and Email/Password). The rules are in `firebase/firestore.rules` (outside both repositories) and must be published in the console after any change.

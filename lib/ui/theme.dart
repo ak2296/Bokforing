@@ -59,6 +59,18 @@ class AppTheme {
   static Color get online => dark ? const Color(0xFFE8A878) : const Color(0xFF7E3D12);
   static Color get onlineTint => dark ? const Color(0xFF35241A) : const Color(0xFFFCEBDD);
 
+  /// Online sales on Försäljning: the amount and the "Online" chip, a teal next
+  /// to the slate blue of the page so they stand out from the Z-reports.
+  static Color get onlineAmount => dark ? const Color(0xFF5CC6C2) : const Color(0xFF0B7C7C);
+  static Color get onlineChip => dark ? const Color(0xFF14302F) : const Color(0xFFDDF1F0);
+  static Color get onlineChipText => dark ? const Color(0xFF7FD9D5) : const Color(0xFF0B6E6E);
+
+  /// The heroes of the report tabs: Månad seed green, År [sales] blue, Jämför
+  /// violet, Res/Bal pumpkin (Resultat) and graphite (Balans), Redovisning petrol.
+  static Color get compare => dark ? const Color(0xFF8A6FF0) : const Color(0xFF7C5CFF);
+  static Color get balance => dark ? const Color(0xFF5F7771) : const Color(0xFF4B5F5A);
+  static Color get accounting => dark ? const Color(0xFF2B9DB8) : const Color(0xFF0E7490);
+
   static ThemeData light() => _build(false);
   static ThemeData darkTheme() => _build(true);
 

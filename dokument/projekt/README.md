@@ -6,7 +6,7 @@ Project documents for **Quee**, a local-first Swedish bookkeeping assistant for 
 
 | No. | Document | Purpose | Status |
 |---|---|---|---|
-| 01 | [Requirements and user stories](01-requirements.md) | What the product must do, with acceptance criteria and traceability to tests | Baseline for release 2026.11.13 |
+| 01 | [Requirements and user stories](01-requirements.md) | What the product must do, with acceptance criteria and traceability to tests | Updated 2026-11-17 (release 2026.11.17e) |
 | 02 | [Design document](02-design.md) | Architecture, modules, data model, key flows, design decisions, security | Baseline |
 | 03 | [Test plan](03-test-plan.md) | Test strategy, levels, environments, entry and exit criteria, manual checklist | Baseline |
 | 04 | [Test report](04-test-report.md) | What exists and what was verified for the current release, with gaps | Release 2026.11.13i |

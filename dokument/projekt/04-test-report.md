@@ -1,6 +1,6 @@
 # 04 – Test report
 
-Release under test: `v2026.11.13i` (commit `8204b71`, 2026-11-13).
+Release under test: `v2026.11.13i` (commit `8204b71`, 2026-11-13). Addendum 2026-11-17: see the end of §1.
 
 ## 1. Summary
 
@@ -13,6 +13,8 @@ Release under test: `v2026.11.13i` (commit `8204b71`, 2026-11-13).
 | Code coverage | **Not measured** |
 | Manual checklist (03 §6) | **Not executed as a formal run for this release.** Individual features were seen on the owner's phone during development (screenshots), see §4. |
 | Update test (03 §7) | **Not executed as a formal run** for this release. Earlier releases were installed over each other by the owner without reported data loss. |
+
+**Addendum 2026-11-17 (release `v2026.11.17e`, key app build 6).** `flutter analyze` is clean and 385 tests pass in Quee (CI green); the key app has 13 tests (codes, lock, cloud) and passes. New automated tests: `activation_order_test` (company pair, check digit, trial, mismatch, order and collect against a fake server), `week_cards_test`, `guide_assets_test`, and in the key app `lock_test`, `cloud_test` and a regression test for the isolate error. Checked by hand on the owner's phones: the order flow end to end (order, paid, code, automatic activation), the lock and the key app. **Not yet checked on a phone:** the new report tabs, Res/Bal with Balans, Redovisning, the week cards in Utgifter and the online chip; the notification at 09:00; the guide reader on an old phone.
 
 **Judgement.** The money, parsing, report and data rules are well covered by automated tests. Screens and device behaviour are covered by hand only. The release is suitable for the owner's own use; before wider customer rollout, close gaps G-1, G-3 and G-6 and run the manual checklist.
 

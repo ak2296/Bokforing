@@ -1,6 +1,6 @@
 # 02 – Design document
 
-Baseline: commit `8204b71`, release `v2026.11.13i`, database version 9.
+Baseline: release `v2026.11.13i`, database version 9. Updated 2026-11-17 for release `v2026.11.17e` (activation order, report tabs, guide reader) and the key app `Quee Nycklar` (build 6).
 
 ## 1. Overview
 
@@ -89,6 +89,9 @@ flowchart TB
 - `Reloading<T>` is the common loader: it reloads when `AppController.revision` changes (after any save, edit or delete).
 - First-run tour: `ui/tour.dart` draws a dimmed overlay with a hole over a `GlobalKey` target and a text box.
 - A tap on a tab makes a soft round flash that opens where the finger touched and fades out. `_FlashLayer` in `shell.dart` draws it in the page area, so it shows above the cards and below the bar; the tabs themselves have no ink splash.
+- Rapporter (`ui/reports/reports_page.dart`): one `_ReportTabBar` with five tabs (Månad, År, Jämför, Res/Bal, Redovisning) whose widths follow the labels. The period (`ReportPeriod`) is held by the page and shared by Resultat, Balans and Redovisning through `ResultView(mode: resultat | balans | redovisning)`, which loads one `_Data` for all three.
+- `weekCards` (`ui/widgets/ledger_parts.dart`) is the one fold-out week list used by Försäljning and Utgifter.
+- The user guide is read from `assets/guide/` (WebP slices and `index.json`, made by `dokument/verktyg/make_guide_bilder.py` from the phone PDF); the reader loads only the slices near the screen.
 - SIE: `SieExport.vouchers` builds the verifications (series, number, date, text, rows); `SieExport.build` writes the file from them and `SiePreviewPage` shows them, so the preview is always what the file holds.
 
 ## 3. Data design
@@ -168,10 +171,31 @@ For every document type the parsed draft is given a doubt count (`doubtsOf` for 
 
 `AutoBackup` is scheduled 20 s after a data change; it writes an encrypted `.bkp` (key derived from the user's password) into the chosen SAF folder, at most one per day, keeping the last three. A manual "send copy" uses the share menu. Restore reads the file, asks for the password and shows what it contains before replacing data.
 
+### 4.5 Activation order, trial and key app
+
+```mermaid
+sequenceDiagram
+  participant Q as Quee (customer)
+  participant F as Firestore (EU, free plan)
+  participant N as Quee Nycklar (owner)
+  Q->>F: anonymous sign-in, create requests/{id} (name, org, pair hash, status ny)
+  Q->>F: create trials/{pair hash} (server time); one trial per pair
+  Note over Q: trial = server time + 7 days, stored locally
+  N->>F: owner sign-in, list requests
+  N->>F: status betald (owner marks payment by hand)
+  N->>N: unlock the secret key with the key password, sign BOK1 code
+  N->>F: status skickad + code
+  Q->>F: get requests/{id}
+  Q->>Q: activateLicense(code): name and org are copied to Företag and locked
+```
+
+Both apps use the Firestore REST interface with a plain HTTP client (no Firebase SDK). The rules (`firebase/firestore.rules`, kept outside the repositories) allow a customer to create one request and one trial and to read only its own request, and allow the owner (one fixed user id, password sign-in) to list, change and delete requests. `LicenseChecker` accepts a code only if the Ed25519 signature matches the public key in the app; `Repository.licenseState` returns the code state, else the trial, and `mismatch` when the company in Företag differs from the code or trial. The key app unlocks the secret key (PBKDF2-SHA256 600 000 rounds, AES-256-GCM) off the UI thread through a top-level function, because a closure made inside a screen carries the screen's objects and Dart refuses to send them to an isolate.
+
 ## 5. Visual and interaction design
 
 - Brand colours: green (seed) and pumpkin orange; expenses and "Kontrollera" use orange; credit notes and good changes use green; overdue uses red; unpaid uses brown.
 - `AppTheme` exposes colours as static getters that read `AppTheme.dark`, set once per frame from the resolved brightness. Therefore they cannot be used in `const` expressions. A global `_ThemeRefresh` marks all elements dirty when the brightness changes so nothing stays in the old theme.
+- Report tab colours: Månad `seed` green, År `sales` slate blue, Jämför `compare` violet, Res/Bal pumpkin (Resultat) and `balance` graphite (Balans), Redovisning `accounting` petrol. Online sales use the sales blue badge with a teal chip and amount (`onlineAmount`, `onlineChip`).
 - Entry fields are filled with the surface colour and a clear outline; the label is always shown and the hint is visible when empty.
 - Cards that sit in a row use `IntrinsicHeight` so they have equal height.
 - The nav pill is white (light) or near black (dark) with a lamp and light cone on the chosen tab; Skanna is green when idle.
@@ -185,7 +209,8 @@ For every document type the parsed draft is given a doubt count (`doubtsOf` for 
 | Secrets | PIN data, backup password and API key in secure storage (Android Keystore). |
 | App lock | PIN 4–6 digits with escalating waits; optional fingerprint. |
 | Backup | Encrypted with a key derived from the user's password. A forgotten password means the backup cannot be opened; the UI warns about this. |
-| Activation | Ed25519 signature check offline; the app holds only the public key; ended codes can be listed in the app. |
+| Activation | Ed25519 signature check offline; the app holds only the public key; ended codes can be listed in the app. An order sends only company name, organisation number and a hash of the pair; orders are deleted after 30 days. |
+| Key app | Secret key locked with the owner's password (never stored); app lock 4-digit PIN and fingerprint; owner login token in secure storage. |
 | Online reading | Off by default, own API key, explicit confirmation each time, shows what is sent and to whom. |
 | Learning | Stores only printed labels per supplier, never values; viewable and removable. |
 
@@ -209,6 +234,9 @@ GitHub Actions workflow `Bygg Android-APK`: create platform folders, patch Andro
 | D-10 | Fixed signing key in CI | Updates install over old versions | The key secret must never be lost or replaced. |
 | D-11 | One orange warning level | Two levels confused users | Less nuance in the UI. |
 | D-12 | Company-only functions parked | No company exists yet | See `FUTURE_FUNCTIONS.md`. |
+| D-13 | Activation order through Firestore over REST, polling, no Cloud Functions | Free plan, no extra Android libraries, nothing to maintain | The customer's app asks when opened; the owner's list refreshes every 20 s while open (a 15-minute background check is not built). |
+| D-14 | One trial per pair of company name and organisation number, hashed | Reports need the correct name and number, so a made-up pair makes the app useless | A real company can order once; no device or name-only checks. |
+| D-15 | Report tabs: Res/Bal with two parts instead of a sixth tab | Six tabs do not fit one readable row | Balans is one tap deeper. |
 
 ## 9. Known design limitations
 

@@ -74,13 +74,17 @@ Priority: **M** must, **S** should, **C** could. "Verified by" names automated t
 | FR-26 | Försäljning and Utgifter list a month at a time with totals, share bars, search and filters; incomplete invoices are marked "Fyll i". | M | `search_incomplete_test` |
 | FR-27 | Månad report: one row per day with sales per category, expenses and moms; empty days are hidden in the app but always present in PDF, Excel and print. | M | `month_export_test`, `export_test` |
 | FR-28 | År report: every month with sales, online, expenses, output and input moms, moms difference, and a card with the year's result and moms. | M | `report_charts_test`, `export_test` |
-| FR-29 | Resultat report: income, costs per cost type and result, without moms, for a month or a financial year, with a waterfall chart and a cost-share view. | M | `result_charts_test`, `result_sie_test` |
+| FR-29 | Resultat report (in Res/Bal): income, costs per cost type and result, without moms, for a month, quarter, half-year or financial year, with a waterfall chart and a cost-share view. | M | `result_charts_test`, `result_sie_test` |
 | FR-30 | Jämför compares two years month by month with percentage change. | S | `comparison_test` |
 | FR-31 | Månad and År show an estimated tax to set aside: 20,6 % for aktiebolag; for enskild firma the owner's own percentage or yearly amount. Labelled as an estimate. | S | `tax_estimate_test` |
 | FR-32 | Reports can be exported as PDF, Excel/CSV and printed. | M | `export_test` |
 | FR-33 | "Avrunda utgifter" shows costs in whole kronor (half up) in lists and reports without changing saved amounts. | S | `avrundning_test` |
 | FR-34 | A SIE file (type 4) for a period can be sent by e-mail or saved; verifikationer for invoices, payments, Z-reports and payslips (series D). | M | `result_sie_test` |
 | FR-35 | Moms is shown as "beräknad" and is never presented as a moms return. | M | Manual |
+| FR-51 | Rapporter has five tabs in one pill, each filled with the colour of its page's hero when chosen: Månad (green), År (blue), Jämför (violet), Res/Bal (pumpkin) and Redovisning (petrol). The widths follow the labels so that all five fit. | M | Manual |
+| FR-52 | Res/Bal has two parts chosen at the top: Resultat (FR-29) and Balans, a balance sheet draft on the last day of the period (assets, equity and debts, balance check) built from the opening balances and the verifications. Without opening balances it says what is missing and links to them. | M | `balances_test` (figures), Manual (screen) |
+| FR-53 | Redovisning gathers what the accountant needs in the order it is used: Redovisarpaket, SIE file and preview, the bookkeeping reports and the balance papers (balansräkning, avskrivningsplan, lånplan), each with PDF, Excel and print; one period is shared with Res/Bal. | M | `report_fixes_test`, `package_test`, Manual |
+| FR-54 | Försäljning and Utgifter list their rows in one fold-out card per week (this week or the newest open). Online sales keep the Z-report's blue date badge and add an "Online" chip and a teal amount. | S | `week_cards_test` |
 
 ### 4.4 Payments and reminders
 
@@ -98,7 +102,7 @@ Priority: **M** must, **S** should, **C** could. "Verified by" names automated t
 | FR-40 | A wrong PIN shakes the dots and vibrates. | C | Manual |
 | FR-41 | Automatic encrypted backup to a folder chosen by the user, after each change (at most one per day, last three kept), with a password the user writes down. | M | `export_test`, `storage_test` |
 | FR-42 | A backup can be sent to a cloud service through the share menu and restored on a new phone (also from the first screen). | M | `export_test` |
-| FR-43 | The app is activated with an offline-verifiable code (signature check); without activation records can be viewed but not created. | M | `license_test` |
+| FR-43 | The app is activated with an offline-verifiable code (Ed25519 signature check); without activation records can be viewed but not created. The old test code `0000` was removed on 2026-11-17. | M | `license_test` |
 | FR-44 | The first-run wizard sets company name, form, categories with moms, and Z-report line rules. | M | Manual |
 | FR-45 | Settings are grouped, searchable, and include theme (Auto, Ljust, Mörkt), rounding, reminders, learned fields, storage and the user guide. | M | Manual |
 | FR-46 | A first-run tour highlights the main parts of the app and can be shown again. | C | Manual |
@@ -106,6 +110,18 @@ Priority: **M** must, **S** should, **C** could. "Verified by" names automated t
 | FR-49 | Any scan whose first reading has doubts (a key field missing or uncertain, rows that do not add up) is read a second time when that can help: a tilted photo is turned by the measured tilt, and small print (median line height under 26 px) is enlarged two times; the better reading is kept. The waiting screen shows a progress bar and the step. Applies to invoices, Z-reports, online sales and payslips. | S | `z_layout_test`, `reading_doubts_test` (doubt counts); the second reading itself: Manual |
 | FR-50 | Before the SIE file is sent, the owner can open "Förhandsvisa SIE" and see every verification the file will hold: series and number, date, text, each account with debit and credit, a balance check per verification and in total. The lines are the ones the file is built from. | S | `result_sie_test`, `sie_preview_test` |
 | FR-48 | The app looks for a newer release once a day (switch in Inställningar), shows a card on Översikt, and on request downloads the APK and hands it to Android's installer; data is kept. Off in a Google Play build. | S | `app_update_test` (release parsing, download); installer step Manual |
+
+### 4.6 Activation order and the owner's key app
+
+| ID | Requirement | Pri | Verified by |
+|---|---|---|---|
+| FR-55 | In Inställningar → Aktivering the owner can order an activation. The company name and organisation number come from Företag; the organisation number must pass the check digit. The order goes to the app owner through a Firestore channel (anonymous sign-in, nothing else is sent). | M | `activation_order_test` |
+| FR-56 | An order starts a one-week trial, once per pair of normalised company name and organisation number (a hash of the pair is the key on the server). A second order for the same pair gives no new trial. | M | `activation_order_test` |
+| FR-57 | A trial or an activation belongs to the company in Företag: changing the name or the number makes it inactive (status mismatch) until restored, and the fields are locked while it applies. | M | `activation_order_test`, `license_test` |
+| FR-58 | The code that the owner sends back for an order activates the app by itself the next time it is opened, or at once on "Kontrollera nu". Entering a code by hand stays possible. | M | `activation_order_test` |
+| FR-59 | The key app Quee Nycklar is locked by a 4-digit PIN (3 free tries, then waits of 30 s to 1 h) and optional fingerprint, again after 30 s in the background. | M | `lock_test` (key app) |
+| FR-60 | In Quee Nycklar the owner signs in once, sees the orders (Ny, Betald, Skickad, Avslagen), marks one paid, and only then creates the signed code, which is sent to the customer's app; the code can also be copied. Orders are deleted after 30 days. | M | `cloud_test` (key app), Manual |
+| FR-61 | The in-app user guide opens in the app from pre-cut picture slices (no PDF is rendered on the phone) with a contents list that jumps to a chapter. | S | `guide_assets_test`, Manual |
 
 ## 5. Non-functional requirements
 

@@ -203,7 +203,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   ),
                 )
               else
-                LedgerCard(children: [for (final r in rows) r.$2]),
+                ...weekCards(rows, color: _expense),
             ],
           );
         },
