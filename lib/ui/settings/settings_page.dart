@@ -250,7 +250,6 @@ class _SettingsPageState extends State<SettingsPage> {
             nav(AppIcons.backup, 'Lagring', 'Hur mycket plats appen tar och hur du frigör plats', () => const StoragePage())),
       ]),
       _Group(AppIcons.notifications, 'Påminnelser', _reminders ? 'På, $_reminderDays dagar före' : 'Av', [
-        const _Entry('aviseringar tillstånd notis telefon blockerad', NotificationPermissionTile()),
         _Entry('aviseringar tillstånd notis telefon blockerad', NotificationPermissionTile(onChanged: (ok) {
           if (mounted && ok != _notifAllowed) setState(() => _notifAllowed = ok);
         })),
