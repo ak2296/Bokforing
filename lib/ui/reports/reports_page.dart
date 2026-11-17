@@ -31,7 +31,7 @@ class ReportsPage extends StatefulWidget {
 }
 
 class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStateMixin {
-  // Månad, År, Jämför, Res/Bal, Redovisning.
+  // Månad, År, Jämför, Bokslut, Redovisning.
   late final TabController _tabs = TabController(length: 5, vsync: this)..addListener(_changed);
   YearMonth _ym = YearMonth.now();
   int _year = DateTime.now().year;
@@ -39,7 +39,7 @@ class _ReportsPageState extends State<ReportsPage> with SingleTickerProviderStat
   /// One period for Resultat, Balans and Redovisning, so they always agree.
   ReportPeriod? _period;
 
-  /// Inside Res/Bal: 0 Resultat, 1 Balans.
+  /// Inside Bokslut: 0 Resultat, 1 Balans.
   int _resBal = 0;
   bool _started = false;
 
@@ -163,7 +163,7 @@ class _ReportTabBar extends StatelessWidget {
       ('Månad', AppTheme.seed, 11),
       ('År', AppTheme.sales, 6),
       ('Jämför', AppTheme.compare, 11),
-      ('Res/Bal', AppTheme.pumpkin, 11),
+      ('Bokslut', AppTheme.pumpkin, 11),
       ('Redovisning', AppTheme.accounting, 16),
     ];
     return Container(

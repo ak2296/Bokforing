@@ -81,7 +81,7 @@ Releases from the download repository (all in November 2026). Descriptions are s
 
 | Release | Date | Main changes |
 |---|---|---|
-| `v2026.11.17e` | 2026-11-17 | Rapporter with five coloured tabs, Res/Bal (Resultat, Balans) and Redovisning; week cards in Utgifter; online chip; one notification line in Påminnelser |
+| `v2026.11.17e` | 2026-11-17 | Rapporter with five coloured tabs, Bokslut (Resultat, Balans) and Redovisning; week cards in Utgifter; online chip; one notification line in Påminnelser |
 | `v2026.11.17d` | 2026-11-17 | Test code `0000` removed |
 | `v2026.11.17c`, `v2026.11.17b` | 2026-11-17 | Order activation with a one-week trial; guide reader from pre-cut images; spacing under Mina företagsnamn; order card visible on the test code |
 | `v2026.11.13i` | 2026-11-13 | Enskild firma: yearly preliminary tax amount for the tax estimate |

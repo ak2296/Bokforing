@@ -48,7 +48,7 @@ class _Period {
 /// Which part of the period's figures a [ResultView] shows.
 enum ResultMode { resultat, balans, redovisning }
 
-/// The body of Res/Bal (Resultat and Balans) and of Redovisning. The period is
+/// The body of Bokslut (Resultat and Balans) and of Redovisning. The period is
 /// chosen on the reports page, so the three views always show the same one.
 class ResultView extends StatelessWidget {
   final ReportPeriod period;
@@ -614,7 +614,7 @@ class _AccountingBody extends StatelessWidget {
                 onPrint: () => printTable(context, build(ledger, p.title), data.profile),
               ),
           ]),
-        const _Step(3, 'Balansunderlag', text: 'Balansen visas under Res/Bal. Här sparar och skriver du ut den.'),
+        const _Step(3, 'Balansunderlag', text: 'Balansen visas under Bokslut. Här sparar och skriver du ut den.'),
         if (!balanceOk)
           _NeedsCard(
             icon: AppIcons.report,

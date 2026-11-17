@@ -66,7 +66,7 @@ class AppTheme {
   static Color get onlineChipText => dark ? const Color(0xFF7FD9D5) : const Color(0xFF0B6E6E);
 
   /// The heroes of the report tabs: Månad seed green, År [sales] blue, Jämför
-  /// violet, Res/Bal pumpkin (Resultat) and graphite (Balans), Redovisning petrol.
+  /// violet, Bokslut pumpkin (Resultat) and graphite (Balans), Redovisning petrol.
   static Color get compare => dark ? const Color(0xFF8A6FF0) : const Color(0xFF7C5CFF);
   static Color get balance => dark ? const Color(0xFF5F7771) : const Color(0xFF4B5F5A);
   static Color get accounting => dark ? const Color(0xFF2B9DB8) : const Color(0xFF0E7490);

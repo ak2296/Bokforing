@@ -150,6 +150,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
 
 
 
+
 /* ---------- Skisser som i appen (skisser.py) ---------- */
 .screen .body { padding: 0 2.2mm; }
 .two-c { display: flex; gap: 1.2mm; margin-bottom: 1.2mm; }
@@ -550,7 +551,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
         <tr><td style="width:17mm"><b>Månad</b></td><td>En rad per dag, sedan Resultat (försäljning − utgifter, med uppskattad skatt) och moms. Tomma dagar döljs i appen men finns med i exporterna. Grön flik.</td></tr>
         <tr><td><b>År</b></td><td>Varje månad, diagram och längst ner en ruta med årets resultat och moms. Tryck på en månad för att öppna den. Blå flik.</td></tr>
         <tr><td><b>Jämför</b></td><td>Två år mot varandra. Överst står svaret: hur många procent mer eller mindre, över samma månader i båda åren (pågår året jämförs bara månaderna hittills). Välj Försäljning, Utgifter eller Moms, se största ökning och minskning, diagrammet och varje månad med två staplar, båda summorna och procent. Pilknappen byter plats på åren. Violett flik.</td></tr>
-        <tr><td><b>Res/Bal</b></td><td>Två delar, som du väljer överst: <b>Resultat</b> (orange) med diagram från intäkter till resultat, sedan intäkter, kostnader per typ och resultat, utan moms, och en lila ruta med fakturor att rätta. <b>Balans</b> (grågrön) visar balansräkningen som utkast: tillgångar till vänster i summan, eget kapital och skulder därunder, och en etikett som säger att den balanserar. Balans kräver att du lagt in ingående balanser.</td></tr>
+        <tr><td><b>Bokslut</b></td><td>Två delar, som du väljer överst: <b>Resultat</b> (orange) med diagram från intäkter till resultat, sedan intäkter, kostnader per typ och resultat, utan moms, och en lila ruta med fakturor att rätta. <b>Balans</b> (grågrön) visar balansräkningen som utkast: tillgångar till vänster i summan, eget kapital och skulder därunder, och en etikett som säger att den balanserar. Balans kräver att du lagt in ingående balanser.</td></tr>
         <tr><td><b>Redovisning</b></td><td>Allt för din redovisare på ett ställe, i den ordning du använder det: den stora knappen <b>Redovisarpaket</b>, <b>SIE-fil</b> och förhandsvisning, <b>Bokföringsrapporter</b> (Momsunderlag, Verifikationslista, Huvudbok, Saldobalans och Resultaträkning (BAS)) och <b>Balansunderlag</b> (Balansräkning, Avskrivningsplan och Lånplan) med länk till Ingående balanser. Petrolfärgad flik.</td></tr>
       </table>
       <p>Varje rapport har <span class="kbd">PDF</span>, <span class="kbd">Excel</span> och <span class="kbd">Skriv ut</span>. Varje flik börjar med en stor ruta med det viktigaste talet, och fliken har samma färg som rutan.</p>
@@ -558,10 +559,10 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
       <p>Den stora knappen <b>Redovisarpaket</b> överst under fliken <b>Redovisning</b> samlar allt din redovisare behöver för en månad: månadsrapport, momsunderlag (rutorna 05, 10–12, 48 och 49), verifikationslista, huvudbok, saldobalans, resultaträkning, SIE-fil, balansräkning (utkast) och en kontrollrapport. Varje rad visar om den är klar eller vad som saknas, till exempel ingående balanser eller Z-rapporter.</p>
       <p>Tre val: <b>Skapa mapp och spara</b> (en ZIP-fil med en mapp i), <b>Skicka filerna med e-post</b> eller <b>Välj papper att skriva ut</b> där du bockar för de rapporter du vill lämna på papper och ser antal sidor.</p>
       <h2>Perioder och din redovisare</h2>
-      <p>Res/Bal, Redovisning och Redovisarpaket delar period och kan visa en <b>månad, ett kvartal, ett halvår eller ett år</b>. Under Inställningar → Företag → <b>Redovisning</b> väljer du vad du brukar lämna; det blir förvalet, och du kan byta direkt på sidan. Moms redovisas per månad, kvartal eller år, inte per halvår. Skatteverket bestämmer vilken period just ditt företag har.</p>
+      <p>Bokslut, Redovisning och Redovisarpaket delar period och kan visa en <b>månad, ett kvartal, ett halvår eller ett år</b>. Under Inställningar → Företag → <b>Redovisning</b> väljer du vad du brukar lämna; det blir förvalet, och du kan byta direkt på sidan. Moms redovisas per månad, kvartal eller år, inte per halvår. Skatteverket bestämmer vilken period just ditt företag har.</p>
       <p>Samma sida har din redovisares namn, e-post och mobilnummer, och din egen e-post. Då öppnar <b>Skicka till …</b> din e-postapp med mottagare, ämne, text och alla filer bifogade. Du trycker själv på skicka. Efteråt erbjuds ett färdigt sms till redovisaren: sms-appen öppnas med texten, och du trycker själv på skicka. Uppgifterna finns bara i din telefon.</p>
       <h2>Ingående balanser</h2>
-      <p>Under Inställningar → Företag lägger du in vad företaget äger och är skyldigt på första dagen av räkenskapsåret. Eget kapital räknas ut. Då kan appen visa <b>Balans</b> under Res/Bal och göra en balansräkning (utkast), en avskrivningsplan och en lånplan. De är utkast som din redovisare avgör.</p>
+      <p>Under Inställningar → Företag lägger du in vad företaget äger och är skyldigt på första dagen av räkenskapsåret. Eget kapital räknas ut. Då kan appen visa <b>Balans</b> under Bokslut och göra en balansräkning (utkast), en avskrivningsplan och en lånplan. De är utkast som din redovisare avgör.</p>
       <p><b>Tillgångar</b> (det företaget äger):</p>
       <ul>
         <li><b>Bankkonto:</b> pengarna på företagets bankkonto den dagen.</li>

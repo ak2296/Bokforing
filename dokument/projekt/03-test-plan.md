@@ -96,7 +96,7 @@ Mark each line Pass / Fail / N/A with the build number.
 - [ ] Aktivering: with the company in Företag, "Beställ aktivering" sends an order; the trial message shows with the end date; a second order for the same name and number gives no new trial.
 - [ ] Changing the company name in Företag while active (or on trial) makes the app inactive; putting it back restores it. The fields are locked while active.
 - [ ] In Quee Nycklar: PIN and fingerprint lock; the order appears as Ny within about 20 s; Markera betald, then Skapa kod (wait up to a minute); the customer's Quee activates by itself.
-- [ ] Rapporter: five tabs, each filled with its colour; Res/Bal switches between Resultat and Balans; Redovisning shows the package, SIE, reports and balance papers; one period for all three.
+- [ ] Rapporter: five tabs, each filled with its colour; Bokslut switches between Resultat and Balans; Redovisning shows the package, SIE, reports and balance papers; one period for all three.
 - [ ] Försäljning and Utgifter show weeks; an online sale shows the blue badge, the "Online" chip and the teal amount.
 - [ ] The user guide opens at once, the contents jump to a chapter, also on an old phone.
 - [ ] A payment reminder arrives at 09:00 on the day (and the day before due, as set).

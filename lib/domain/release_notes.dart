@@ -15,8 +15,8 @@ class ReleaseNote {
 
 const releaseNotes = <ReleaseNote>[
   ReleaseNote(6, '17 november 2026', 'Nya flikar i Rapporter och veckokort i Utgifter', [
-    ('Rapporter:', 'fem flikar i egna färger: Månad, År, Jämför (violett), Res/Bal och Redovisning. Fliken har samma färg som rutan överst.'),
-    ('Res/Bal:', 'Resultat och Balans i samma flik. Balans visar tillgångar, eget kapital och skulder när du lagt in ingående balanser.'),
+    ('Rapporter:', 'fem flikar i egna färger: Månad, År, Jämför (violett), Bokslut och Redovisning. Fliken har samma färg som rutan överst.'),
+    ('Bokslut:', 'Resultat och Balans i samma flik. Balans visar tillgångar, eget kapital och skulder när du lagt in ingående balanser.'),
     ('Redovisning:', 'allt för din redovisare på ett ställe: Redovisarpaket, SIE-fil, bokföringsrapporter och balansunderlag.'),
     ('Utgifter:', 'fakturor och kvitton visas vecka för vecka, som Z-rapporterna.'),
     ('Försäljning:', 'onlineförsäljning har samma blå ruta som en Z-rapport, en etikett "Online" och beloppet i turkos.'),
