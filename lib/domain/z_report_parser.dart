@@ -846,6 +846,40 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     if (best != null && bestScore >= 0.75) {
       return (categoryId: null, suggested: best.id, match: MatchKind.possible, warning: rateWarning(best));
     }
+    // A cut-off name ("Dryc") or one with junk around it ("XDycka"): only suggested,
+    // and only when exactly one category fits, so a short or common name never guesses.
+    final names = <String, int>{
+      for (final c in active) normalizeLabel(c.name): c.id!,
+      for (final e in aliases.entries)
+        if (active.any((c) => c.id == e.value)) e.key: e.value,
+    };
+    final byPrefix = {
+      for (final e in names.entries)
+        if (n.length >= 4 && e.key.length > n.length && e.key.startsWith(n)) e.value,
+    };
+    var ids = byPrefix;
+    if (ids.isEmpty && n.length >= 6) {
+      var bestDist = 3;
+      final near = <int>{};
+      for (final e in names.entries) {
+        if (e.key.length < 6) continue;
+        final longest = n.length > e.key.length ? n.length : e.key.length;
+        final dist = ((1 - TextPatterns.similarity(n, e.key)) * longest).round();
+        if (dist <= 2 && dist < bestDist) {
+          bestDist = dist;
+          near
+            ..clear()
+            ..add(e.value);
+        } else if (dist <= 2 && dist == bestDist) {
+          near.add(e.value);
+        }
+      }
+      ids = near;
+    }
+    if (ids.length == 1) {
+      final c = active.firstWhere((c) => c.id == ids.single);
+      return (categoryId: null, suggested: c.id, match: MatchKind.possible, warning: rateWarning(c));
+    }
     return (categoryId: null, suggested: null, match: MatchKind.none, warning: null);
   }
 

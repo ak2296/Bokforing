@@ -99,6 +99,7 @@ Priority: **M** must, **S** should, **C** could. "Verified by" names automated t
 | FR-66 | A Z-report records how much was paid by card (Swish counts with card) and by cash. The reader looks for these figures by their labels (section "Betalmetoder" first; kontant, kontanter, kontant försäljning, kontant netto and others) and ignores the till rows (ingående och utgående växelkassa, given växel, insättning, uttag), because registers differ. When only one is found the other is the day's sales minus it, shown yellow "Kontrollera". The figures are shown inside the Z-report, never as separate lines in the Försäljning list. | M | `z_cash_test` |
 | FR-67 | The SIE file books a Z-report day's takings on Kassa 1910 for the cash part and on Företagskonto 1930 for the card share when the split is saved (the verification still balances); without a split everything stays on Kassa. | M | `z_cash_test` |
 | FR-68 | Redovisning has a Kassarapport (PDF, Excel, print): per day cash and card, with a total row. | S | `z_cash_test` |
+| FR-69 | In Redovisarpaket every yellow row (something to see over or fill in) opens one list of all yellow points; each point opens the document or page where it is fixed. A yellow row is left out of the package until the owner confirms, in a second step, that it may be sent as it is (the owner takes the responsibility). When the points are fixed the rows turn normal again. A Z-report whose rows differ from its total is such a point; the app never corrects it. | M | `package_accept_test` |
 
 ### 4.5 Data protection and administration
 

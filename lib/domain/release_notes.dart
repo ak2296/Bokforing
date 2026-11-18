@@ -14,6 +14,11 @@ class ReleaseNote {
 }
 
 const releaseNotes = <ReleaseNote>[
+  ReleaseNote(10, '19 november 2026', 'Redovisarpaket: se över och godkänn', [
+    ('Gula rader:', 'tryck på en gul rad i Redovisarpaket så ser du allt som behöver ses över. Tryck på en punkt för att öppna dokumentet och rätta det.'),
+    ('Godkänn:', 'vill du skicka ändå, till exempel när en Z-rapport skiljer på grund av rabatter, godkänner du det själv. Då kommer raden med i mappen.'),
+    ('Z-rapporten:', 'appen föreslår kategorin även när namnet är avkortat, som Dryc.'),
+  ]),
   ReleaseNote(9, '18 november 2026', 'Bättre läsning av Z-rapporter', [
     ('Belopp på raden ovanför:', 'när kameran läser beloppen en rad över namnen paras de ändå ihop rätt, både varugrupper och kort/kontant. Appen säger till att du ska kontrollera.'),
     ('Långa kvitton i delar:', 'det som syns på två bilder räknas bara en gång, även när texten lästs lite olika.'),

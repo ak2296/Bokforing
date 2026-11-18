@@ -56,6 +56,19 @@ class PackageItem {
   });
 }
 
+/// Where a point to look at can be fixed.
+enum IssueTarget { zReport, invoice, balances, none }
+
+/// One thing to look at before the package is handed over. Shown in the list that
+/// opens from a yellow row; a tap opens the document or page where it is fixed.
+class ReviewIssue {
+  final String text;
+  final IssueTarget target;
+  final int? id;
+  final Invoice? invoice;
+  const ReviewIssue(this.text, this.target, {this.id, this.invoice});
+}
+
 class PackageData {
   final ReportPeriod period;
   final BusinessProfile profile;
@@ -64,11 +77,24 @@ class PackageData {
   final MonthData? month;
   final List<PackageItem> items;
   final bool hasVerifications;
-  const PackageData(this.period, this.profile, this.month, this.items, this.hasVerifications);
+
+  /// Everything yellow in the package, with where to fix it.
+  final List<ReviewIssue> issues;
+
+  /// Ids of the yellow items the owner has confirmed to send as they are.
+  final Set<String> accepted = {};
+  PackageData(this.period, this.profile, this.month, this.items, this.hasVerifications, {this.issues = const []});
 
   String get folderName => 'Redovisarpaket ${period.fileTag}';
 
-  List<PackageItem> get printable => [for (final i in items) if (i.table != null && i.included) i];
+  /// A yellow item (something to look at or fill in) that can be confirmed.
+  static bool needsOk(PackageItem i) => i.problem != null && i.problem != 'Tom';
+
+  /// Goes into the package: not left out, not empty, and when yellow only after the
+  /// owner confirmed it.
+  bool selected(PackageItem i) => i.included && i.problem != 'Tom' && (!needsOk(i) || accepted.contains(i.id));
+
+  List<PackageItem> get printable => [for (final i in items) if (i.table != null && i.included && (i.problem == 'Tom' || selected(i))) i];
 }
 
 /// Builds every document the package holds for [period], from what is
@@ -268,7 +294,17 @@ Future<PackageData> loadPackage(AppController c, ReportPeriod period) async {
       problem: issues > 0 ? 'Se över' : null,
     ),
   ];
-  return PackageData(period, profile, month, items, !empty);
+  final issueList = <ReviewIssue>[
+    for (final s in sales)
+      if (!s.reportedTotal.isZero && !s.difference.isZero)
+        ReviewIssue('Z-rapport ${s.businessDate}: raderna skiljer ${s.difference.format()} mot dagsförsäljningen', IssueTarget.zReport, id: s.id),
+    for (final d in missing.take(10)) ReviewIssue('Z-rapport saknas för $d', IssueTarget.none),
+    if (missing.length > 10) ReviewIssue('… och ${missing.length - 10} dagar till saknar Z-rapport', IssueTarget.none),
+    for (final i in incomplete)
+      ReviewIssue('${i.supplier.isEmpty ? 'Okänd leverantör' : i.supplier}: fyll i ${i.missingFields.join(', ')}', IssueTarget.invoice, invoice: i),
+    if (balanceItem.problem != null) ReviewIssue('${balanceItem.title}: ${balanceItem.detail}', IssueTarget.balances),
+  ];
+  return PackageData(period, profile, month, items, !empty, issues: issueList);
 }
 
 /// The files of one item as (file name, bytes): PDF and Excel, or the SIE file.
@@ -282,7 +318,7 @@ Future<List<(String, Uint8List)>> itemFiles(PackageData d, PackageItem i) async 
 }
 
 /// The items that go into the package: included, and not empty.
-List<PackageItem> packageContents(PackageData d) => [for (final i in d.items) if (i.included && i.problem != 'Tom') i];
+List<PackageItem> packageContents(PackageData d) => [for (final i in d.items) if (d.selected(i)) i];
 
 /// The package as a ZIP with one folder, ready to save or send.
 Future<Uint8List> zipPackage(PackageData d, {required String readme}) async {

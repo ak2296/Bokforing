@@ -15,6 +15,8 @@ import '../../data/accounting_settings.dart';
 import '../../domain/report_period.dart';
 import '../../export/redovisar_package.dart';
 import '../app_icons.dart';
+import '../record_details.dart';
+import '../review/invoice_review_page.dart';
 import '../settings/accounting_page.dart';
 import '../settings/balances_page.dart';
 import '../widgets/blur_overlay.dart';
@@ -38,6 +40,9 @@ class _PackagePageState extends State<PackagePage> {
   ReportPeriod? _period;
   AccountingSettings _acc = const AccountingSettings();
   int _reload = 0;
+
+  /// Yellow items the owner confirmed to send as they are; cleared when anything changes.
+  final Set<String> _accepted = {};
   bool _busy = false;
   bool _started = false;
 
@@ -69,6 +74,7 @@ class _PackagePageState extends State<PackagePage> {
     if (mounted) {
       setState(() {
         _acc = acc;
+        _accepted.clear();
         _reload++;
       });
     }
@@ -177,12 +183,18 @@ class _PackagePageState extends State<PackagePage> {
       body: period == null
           ? const Center(child: CircularProgressIndicator())
           : Column(children: [
-              PeriodPicker(value: period, onChanged: (v) => setState(() => _period = v)),
+              PeriodPicker(value: period, onChanged: (v) => setState(() {
+                _accepted.clear();
+                _period = v;
+              })),
               Expanded(
                 child: Reloading<PackageData>(
                   deps: '${period.fileTag} ${period.kind.name} $_reload',
                   loader: (c) => loadPackage(c, period),
                   builder: (context, d) {
+                    d.accepted
+                      ..clear()
+                      ..addAll(_accepted);
                     final ready = packageContents(d);
                     return ListView(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -218,7 +230,7 @@ class _PackagePageState extends State<PackagePage> {
                             padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Text('DET HÄR INGÅR', style: t.labelMedium?.copyWith(color: AppTheme.muted, letterSpacing: 0.4)),
-                              for (final i in d.items) _row(context, i),
+                              for (final i in d.items) _row(context, d, i),
                             ]),
                           ),
                         ),
@@ -256,13 +268,51 @@ class _PackagePageState extends State<PackagePage> {
     );
   }
 
-  Widget _row(BuildContext context, PackageItem i) {
+  /// The list of everything yellow. A tap on a line opens the place where it is fixed.
+  /// At the bottom the owner confirms to send as it is; only then the row is ticked.
+  Future<void> _review(PackageData d) async {
+    final result = await showBlurSheet<Object>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _ReviewSheet(d),
+    );
+    if (!mounted) return;
+    if (result is ReviewIssue) {
+      switch (result.target) {
+        case IssueTarget.zReport:
+          if (result.id != null) await openRecord(context, 'daily_sales', result.id!);
+        case IssueTarget.invoice:
+          if (result.invoice != null) await Navigator.of(context).push(MaterialPageRoute(builder: (_) => InvoiceReviewPage(existing: result.invoice)));
+        case IssueTarget.balances:
+          await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BalancesPage()));
+        case IssueTarget.none:
+          break;
+      }
+      // Fixed things turn normal again; what is still yellow needs a new confirmation.
+      if (mounted) {
+        setState(() {
+          _accepted.clear();
+          _reload++;
+        });
+      }
+    } else if (result == true) {
+      setState(() => _accepted
+        ..clear()
+        ..addAll([for (final i in d.items) if (PackageData.needsOk(i) && i.included) i.id]));
+    } else if (result == false) {
+      setState(_accepted.clear);
+    }
+  }
+
+  Widget _row(BuildContext context, PackageData d, PackageItem i) {
     final t = Theme.of(context).textTheme;
-    final ok = i.included && i.problem == null;
-    final warn = i.problem != null;
+    final yellow = PackageData.needsOk(i);
+    final accepted = yellow && _accepted.contains(i.id);
+    final ok = i.included && !yellow;
     final color = ok ? AppTheme.seed : AppTheme.warning;
+    final label = ok ? 'klar' : accepted ? 'godkänd av dig' : (i.problem ?? '');
     return InkWell(
-      onTap: i.action == 'balances' ? () => _open(const BalancesPage()) : null,
+      onTap: yellow ? () => _review(d) : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 9),
         child: Row(children: [
@@ -270,20 +320,89 @@ class _PackagePageState extends State<PackagePage> {
             width: 20,
             height: 20,
             decoration: BoxDecoration(
-              color: ok ? AppTheme.seed : Colors.transparent,
+              color: ok ? AppTheme.seed : accepted ? AppTheme.warning : Colors.transparent,
               border: ok ? null : Border.all(color: AppTheme.warning, width: 1.5),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: ok ? const Icon(AppIcons.check, size: 14, color: Colors.white) : null,
+            child: ok || accepted ? const Icon(AppIcons.check, size: 14, color: Colors.white) : null,
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(i.title),
-              Text(i.detail, style: t.bodySmall?.copyWith(color: warn ? AppTheme.warning : null)),
+              Text(i.detail, style: t.bodySmall?.copyWith(color: yellow ? AppTheme.warning : null)),
             ]),
           ),
-          Text(ok ? 'klar' : (i.problem ?? ''), style: t.labelMedium?.copyWith(color: color, fontWeight: warn ? FontWeight.w600 : null)),
+          Text(label, style: t.labelMedium?.copyWith(color: color, fontWeight: yellow ? FontWeight.w600 : null)),
+        ]),
+      ),
+    );
+  }
+}
+
+/// "Att se över": every yellow point, each opening where it is fixed, and the owner's
+/// own confirmation to send the package although some of it is not as it should be.
+class _ReviewSheet extends StatefulWidget {
+  final PackageData data;
+  const _ReviewSheet(this.data);
+
+  @override
+  State<_ReviewSheet> createState() => _ReviewSheetState();
+}
+
+class _ReviewSheetState extends State<_ReviewSheet> {
+  bool _sure = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final d = widget.data;
+    final already = d.accepted.isNotEmpty;
+    final canAccept = d.items.any((i) => PackageData.needsOk(i) && i.included);
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Att se över före du skickar', style: t.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text('Tryck på en rad för att öppna dokumentet och rätta det. Det som inte går att rätta kan du godkänna längst ned.', style: t.bodyMedium),
+          const SizedBox(height: 12),
+          if (d.issues.isEmpty)
+            Text('Inget att se över.', style: t.bodyMedium)
+          else
+            for (final i in d.issues)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Material(
+                  color: AppTheme.warningTint,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: AppTheme.warningBorder)),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: i.target == IssueTarget.none ? null : () => Navigator.pop(context, i),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(children: [
+                        Expanded(child: Text(i.text, style: TextStyle(color: AppTheme.warning, fontSize: 14))),
+                        if (i.target != IssueTarget.none) Icon(AppIcons.chevronRight, size: 18, color: AppTheme.warning),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+          const SizedBox(height: 8),
+          if (canAccept && !already) ...[
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _sure,
+              onChanged: (v) => setState(() => _sure = v == true),
+              title: const Text('Jag har tagit del av punkterna ovan och godkänner att underlaget skickas som det är. Jag ansvarar för att uppgifterna stämmer.'),
+            ),
+            FilledButton(onPressed: _sure ? () => Navigator.pop(context, true) : null, child: const Text('Godkänn och ta med')),
+          ],
+          if (already) OutlinedButton(onPressed: () => Navigator.pop(context, false), child: const Text('Ta bort mitt godkännande')),
+          const SizedBox(height: 8),
+          OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Stäng')),
         ]),
       ),
     );

@@ -108,6 +108,7 @@ Mark each line Pass / Fail / N/A with the build number.
 - [ ] Scan an A4 Z-report where the amounts sit a line above the names: categories, Kort and Kontanter get the right names and a note asks to check.
 - [ ] Scan a long thermal Z-report in 2–3 overlapping photos: Betalmetoder and the categories appear once in Avläst text; Grand total is never the day's sales.
 - [ ] Scan a paper with payment terms "Kontant" on its own line: Betalades med is Kontant, yellow until chosen.
+- [ ] Redovisarpaket: a yellow row opens "Att se över"; a tap on a point opens the Z-report or invoice; after "Godkänn och ta med" the row is ticked and goes into the folder; after a fix the row is green again.
 - [ ] Redovisning has a Kassarapport; the SIE file shows 1910 and 1930 on the Dagskassa verification.
 
 ## 7. Update test (before publishing a release)
