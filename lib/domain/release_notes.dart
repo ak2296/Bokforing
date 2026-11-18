@@ -14,6 +14,12 @@ class ReleaseNote {
 }
 
 const releaseNotes = <ReleaseNote>[
+  ReleaseNote(9, '18 november 2026', 'Bättre läsning av Z-rapporter', [
+    ('Belopp på raden ovanför:', 'när kameran läser beloppen en rad över namnen paras de ändå ihop rätt, både varugrupper och kort/kontant. Appen säger till att du ska kontrollera.'),
+    ('Långa kvitton i delar:', 'det som syns på två bilder räknas bara en gång, även när texten lästs lite olika.'),
+    ('Svårlästa kvitton:', 'rubriken för varugrupper och summan av försäljningskvitton hittas även när texten är otydlig. Grand total och bokföringsunderlag räknas aldrig som dagens försäljning.'),
+    ('Kontant:', 'står det "Kontant" som betalningsvillkor föreslår appen Kontant under Betalades med (gult tills du har valt).'),
+  ]),
   ReleaseNote(8, '17 november 2026', 'Kort och kontant i Z-rapporten', [
     ('Z-rapporten:', 'appen läser hur mycket som betalades med kort och kontant. Hittas bara ett av dem räknar appen ut det andra och markerar det gult.'),
     ('Bokföringen:', 'SIE-filen bokför kortdelen på företagskontot och resten på kassan.'),

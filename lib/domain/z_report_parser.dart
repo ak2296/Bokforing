@@ -236,7 +236,15 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     // it. A shift is accepted only if the rows then add up to the total
     // exactly; being closer proves nothing and has given wrong amounts. The
     // total as read on its own row comes first.
-    final tries = [base, for (final s in ocr.rowShifts()) _parseRows(ocr.rows(rightShift: s))];
+    // A photo where the amount column sits higher than the names gives each
+    // amount on the line above its name. That reading comes before the
+    // shifts, so it wins a tie: a shift that moves every amount one name
+    // down "adds up" just as well.
+    final tries = [
+      base,
+      _parseRows(ocr.rows(), amountFirst: true),
+      for (final s in ocr.rowShifts()) _parseRows(ocr.rows(rightShift: s)),
+    ];
     for (final t in tries) {
       ZReportDraft? best;
       for (final l in tries) {
@@ -251,8 +259,13 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
           total: t.total,
           lines: best.lines,
           sectionFound: best.sectionFound,
-          notes: base.notes,
-          cash: base.cash,
+          notes: best == base
+              ? base.notes
+              : [...base.notes, 'Beloppen stod inte på samma rad som namnen och har parats ihop. Kontrollera mot pappret.'],
+          // Card and cash from the reading where both were read and add up.
+          cash: tries.map((r) => r.cash).firstWhere(
+              (c) => c.card.confidence == Confidence.high && c.cash.confidence == Confidence.high,
+              orElse: () => base.cash),
         );
       }
     }
@@ -320,8 +333,10 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     return (Money.sum(lines.lines.map((l) => l.amount)) - t).abs();
   }
 
-  ZReportDraft _parseRows(List<TextRow> ocrRows) {
-    final rows = [for (final r in _pairLabelsWithAmounts(ocrRows)) TextRow(_stripFooter(r.text), r.box, r.index)];
+  ZReportDraft _parseRows(List<TextRow> ocrRows, {bool amountFirst = false}) {
+    final rows = [
+      for (final r in _pairLabelsWithAmounts(ocrRows, amountFirst: amountFirst)) TextRow(_stripFooter(r.text), r.box, r.index)
+    ];
     final norm = [for (final r in rows) TextPatterns.normalize(r.text)];
     final notes = <String>[];
 
@@ -332,6 +347,10 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         start = i + 1;
         break;
       }
+    }
+    if (start < 0) {
+      final i = norm.indexWhere((n) => _looksLikeSalesHeading(n));
+      if (i >= 0 && !TextPatterns.amounts(rows[i].text).any((a) => a.hasDecimals)) start = i + 1;
     }
     var end = rows.length;
     if (start >= 0) {
@@ -346,7 +365,16 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
     }
 
     final lines = <ZLine>[];
-    final range = start >= 0 ? [for (var i = start; i < end; i++) i] : [for (var i = 0; i < rows.length; i++) i];
+    // Without a sales section, the sums for all time ("Grand total") and the
+    // account list ("Bokföringsunderlag") below are never sales; nor is
+    // anything after them.
+    var stop = rows.length;
+    if (start < 0) {
+      final i = norm.indexWhere((n) =>
+          RegExp(r'^gr[ao]n?d\s*total|momsgrupp').hasMatch(n) || (n.contains('underla') && !n.startsWith('underlag')));
+      if (i >= 0) stop = i;
+    }
+    final range = start >= 0 ? [for (var i = start; i < end; i++) i] : [for (var i = 0; i < stop; i++) i];
     // When the sales amounts have öre, a whole number is not one of them: it
     // comes from other text, like "360" in the footer's onslip360.com.
     final found = [for (final i in range) ...TextPatterns.amounts(rows[i].text).reversed.take(1)];
@@ -361,12 +389,20 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         continue;
       }
       final amount = amounts.last;
-      if (decimalsOnly && !amount.hasDecimals) continue;
       final label = _label(rows[i].text, amount.start);
       final nameLike = label.isNotEmpty && (hasLetters.hasMatch(label) || _looksLikeShortName(label));
+      // In a sales section a misread "1 347." (grouped thousands) or "Drycka 40"
+      // (a category's own name) is still an amount.
+      final wholeIsSale = start >= 0 &&
+          (!amount.plainDigits ||
+              (nameLike && const {MatchKind.exact, MatchKind.remembered}.contains(_match(label, null).match)));
+      if (decimalsOnly && !amount.hasDecimals && !wholeIsSale) continue;
+      // Without a section: account rows ("150001 Försäljning Mat") and
+      // negative amounts are not the day's sales.
+      if (start < 0 && (amount.value.isNegative || RegExp(r'^\W?\w?\d{5,}\s').hasMatch(norm[i]))) continue;
       if (!nameLike) {
         // A row with a rate ("12%  714,29  85,71") is VAT, not a sale.
-        if (start >= 0 && amount.hasDecimals && !amount.value.isZero && !rows[i].text.contains('%')) {
+        if (start >= 0 && (amount.hasDecimals || wholeIsSale) && !amount.value.isZero && !rows[i].text.contains('%')) {
           nameless.add(amount.value);
         }
         continue;
@@ -428,9 +464,17 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         }
       }
       // Misread: "Perioderns försåljning".
-      if (score < 100 && RegExp(r'^period\w* f\S*jning').hasMatch(n)) {
+      // Also "Periodens försäljining".
+      if (score < 100 && RegExp(r'^period\w* f\S*j\S*ng').hasMatch(n)) {
         score = 100;
         label = 'periodens försäljning';
+      }
+      // "Försäljningskvitton (49)": the sum of the day's sales receipts, also
+      // misread ("Füradljningskvillon").
+      final first = _fold(n.split(' ').first.replaceAll(RegExp(r'[^a-zåäöü]'), ''));
+      if (score < 85 && TextPatterns.similarity(first, 'forsaljningskvitton') >= 0.7) {
+        score = 85;
+        label = 'försäljningskvitton';
       }
       if (label == null) continue;
       if (_notTotal.any((w) => n.contains(w)) && score < 90) continue;
@@ -594,19 +638,40 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
   /// When OCR reads the name column and the amount column separately, a name
   /// row ("Mat avhämtning") is followed by a row that is only an amount
   /// ("1 507,00"). Such pairs are joined. Headings are never joined.
-  static List<TextRow> _pairLabelsWithAmounts(List<TextRow> rows) {
+  ///
+  /// With [amountFirst] the amount column was read a line too high: an
+  /// amount-only row ("5 105,00 kr") is joined with the name row below it
+  /// ("Kort"), never with a heading or a total.
+  static List<TextRow> _pairLabelsWithAmounts(List<TextRow> rows, {bool amountFirst = false}) {
     bool hasLetters(String s) => RegExp(r'[A-Za-zÅÄÖåäö]{2,}').hasMatch(s.replaceAll(RegExp(r'\b(kr|sek)\b', caseSensitive: false), ''));
     bool isHeading(String s) {
       final n = TextPatterns.normalize(s);
       // A heading like "Sales by VAT rate" ends the section wherever the word is.
       return _sectionStart.any(n.contains) ||
+          _looksLikeSalesHeading(n) ||
+          ZCash._method.hasMatch(n) ||
           _sectionEnd.any((w) => n.startsWith(w) || RegExp('(?<![a-zåäö])${RegExp.escape(w)}(?![a-zåäö])').hasMatch(n));
     }
+
+    bool isName(String s) =>
+        hasLetters(s) &&
+        TextPatterns.amounts(s).isEmpty &&
+        !isHeading(s) &&
+        !_totalLabels.keys.any(TextPatterns.normalize(s).contains);
 
     final out = <TextRow>[];
     for (var i = 0; i < rows.length; i++) {
       final r = rows[i];
       final next = i + 1 < rows.length ? rows[i + 1] : null;
+      if (amountFirst) {
+        if (next != null && !hasLetters(r.text) && TextPatterns.amounts(r.text).isNotEmpty && isName(next.text)) {
+          out.add(TextRow('${next.text}   ${r.text}', next.box, out.length));
+          i++;
+        } else {
+          out.add(TextRow(r.text, r.box, out.length));
+        }
+        continue;
+      }
       if (next != null &&
           hasLetters(r.text) &&
           TextPatterns.amounts(r.text).isEmpty &&
@@ -620,6 +685,25 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
       }
     }
     return out;
+  }
+
+  /// A badly read "Försäljning per varugrupp" ("For sal jing pe varuiyr upp"):
+  /// letters only, spaces dropped, compared with the heading. It must be
+  /// nearer to it than to "Försäljning per momsgrupp", the VAT section.
+  static bool _looksLikeSalesHeading(String n) {
+    final c = _fold(n).replaceAll(RegExp(r'[^a-z]'), '');
+    if (c.length < 15) return false;
+    double near(String target) {
+      var best = 0.0;
+      for (var len = target.length - 2; len <= target.length + 2; len++) {
+        final s = TextPatterns.similarity(c.substring(0, len.clamp(0, c.length)), target);
+        if (s > best) best = s;
+      }
+      return best;
+    }
+
+    final sales = near('forsaljningpervarugrupp');
+    return sales >= 0.7 && sales > near('forsaljningpermomsgrupp');
   }
 
   /// Web addresses and page numbers from the foot of the page, cut out of a
@@ -771,6 +855,8 @@ class ZReportParser implements DocumentParser<ZReportDraft> {
         caseSensitive: false);
     for (var i = 0; i < rows.length; i++) {
       final m = re.firstMatch(rows[i].text);
+      // "Z-RAPPORT 2026-11 -17 11:16": a date, not the report number.
+      if (m != null && RegExp(r'^\s*[-./]\s*\d{1,2}\s*[-./]').hasMatch(rows[i].text.substring(m.end))) continue;
       if (m != null) return Extracted(m.group(1)!, Confidence.medium, source: rows[i].text);
     }
     // "Underlag: Z1-180"

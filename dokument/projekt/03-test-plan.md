@@ -105,6 +105,9 @@ Mark each line Pass / Fail / N/A with the build number.
 - [ ] Bank file: two invoices with the same amount are not ticked; a receipt paid by card shows under Redan bokförda kortköp.
 - [ ] Verifikationslista shows 1930, 1910 and 2893 or 2018 for the three methods; Balans still says it balances.
 - [ ] Scan a Z-report with a Betalmetoder section: card and cash appear inside the Z-report (the till rows are ignored), uncertain or calculated ones yellow; Försäljning shows only the sum.
+- [ ] Scan an A4 Z-report where the amounts sit a line above the names: categories, Kort and Kontanter get the right names and a note asks to check.
+- [ ] Scan a long thermal Z-report in 2–3 overlapping photos: Betalmetoder and the categories appear once in Avläst text; Grand total is never the day's sales.
+- [ ] Scan a paper with payment terms "Kontant" on its own line: Betalades med is Kontant, yellow until chosen.
 - [ ] Redovisning has a Kassarapport; the SIE file shows 1910 and 1930 on the Dagskassa verification.
 
 ## 7. Update test (before publishing a release)

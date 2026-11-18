@@ -156,9 +156,15 @@ class PaymentDetector {
         (change && (text.contains('mottaget') || text.contains('kontant')));
     final cardPaid = cardSlip ||
         RegExp(r'betal[dt] med (kort|swish)|kortbetalning|kontokort|bankkort|kortköp|mastercard|maestro').hasMatch(text);
-    if (cashPaid) {
+    // Payment terms "Kontant" on a row of their own (the amount can sit on the
+    // line above it) also mean the paper was paid in cash.
+    if (cashPaid || (cashTerms && !cardPaid)) {
       method = PayMethod.cash;
-      methodReason = change ? 'kvittot säger "Kontant" och visar växel' : 'kvittot säger "Kontant"';
+      methodReason = change
+          ? 'kvittot säger "Kontant" och visar växel'
+          : cashPaid
+              ? 'kvittot säger "Kontant"'
+              : 'betalningsvillkoret är "Kontant"';
     } else if (cardPaid) {
       method = PayMethod.bank;
       methodReason = 'kvittot visar kortbetalning';

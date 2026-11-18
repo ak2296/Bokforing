@@ -178,6 +178,12 @@ For every document type the parsed draft is given a doubt count (`doubtsOf` for 
 
 `ZCash.read` (in `z_report_parser.dart`) finds card (with Swish) and cash by their labels, starting at the "Betalmetoder" section when there is one, and skips till rows (växelkassa, given växel, insättning, uttag). Card and cash are marked sure when they add up to the day's sales; when only one is found the other is the day's sales minus it, medium (yellow). The figures are kept in `daily_sales` (`card_ore`, `cash_ore`, null when the report does not say) and shown in the Z-report's review page. The till figures were dropped on purpose: registers differ and the reports do not need them. `SieExport.vouchers` debits Företagskonto 1930 for the card share and Kassa 1910 for the rest of the day; `cashReportTable` makes the Kassarapport.
 
+### 4.4d Amounts read above their names, and joined photos
+
+On some photos (an A4 print-out photographed in parts, a curved page) the amount column sits higher than the names, so OCR gives each amount on the row above its name ("5 105,00 kr" / "Kort"). The sum check cannot tell this from the normal pairing: both use every amount. So `ZReportParser._bestReading` adds a reading with `amountFirst: true` right after the plain one: an amount-only row joins the name-only row below it (never a heading or a total). The reading with the fewest doubts (names without amounts, amounts without names) wins, and it comes before the geometric row shifts, so it wins a tie. A reading other than the plain one adds the note "Beloppen stod inte på samma rad som namnen". Card and cash come from the first reading where both were read and add up to the day's sales.
+
+`TextMerge.merge` joins the text of several photos. When no exact repeat is found at the join, rows are matched loosely and in order (similar text, or the same non-zero amount) between the last 120 rows so far and the first 120 of the next photo. With at least three matches that start near the top of the new photo, reach near the end of the old one and do not start at the old text's top (a repeated letterhead), the text is cut in the middle of the overlap, where both photos read best. Without a sales section the reader stops at Grand total, Bokföringsunderlag or Momsgrupp and skips account rows and negative amounts. A badly read "Försäljning per varugrupp" heading is found by comparing letters only (it must be nearer than "per momsgrupp"), and "Försäljningskvitton" counts as the day's sales after the labelled totals.
+
 ### 4.5 Activation order, trial and key app
 
 ```mermaid
