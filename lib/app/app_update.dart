@@ -134,6 +134,19 @@ class AppUpdater {
     }
   }
 
+  /// Why a download failed, in plain Swedish with the technical name last, so the
+  /// owner can say what went wrong.
+  static String failureReason(Object e) {
+    final what = switch (e) {
+      TimeoutException() => 'Anslutningen svarade inte',
+      SocketException() => 'Ingen kontakt med nedladdningen',
+      FileSystemException() => 'Filen kunde inte sparas, kanske är telefonens minne fullt',
+      HttpException(:final message) => message,
+      _ => 'Okänt fel',
+    };
+    return '$what (${e.runtimeType})';
+  }
+
   /// Hands the APK to Android's installer. The first time, Android asks the
   /// user to allow Quee to install apps.
   static Future<OpenResult> install(File apk) => OpenFilex.open(apk.path, type: 'application/vnd.android.package-archive');

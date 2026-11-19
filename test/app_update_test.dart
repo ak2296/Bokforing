@@ -100,6 +100,13 @@ void main() {
       expect(ranges, [null, 'bytes=400-']);
     });
 
+    test('the failure reason says what went wrong', () {
+      expect(AppUpdater.failureReason(const SocketException('x')), startsWith('Ingen kontakt'));
+      expect(AppUpdater.failureReason(const FileSystemException('x')), contains('minne'));
+      expect(AppUpdater.failureReason(const HttpException('HTTP 404')), startsWith('HTTP 404'));
+      expect(AppUpdater.failureReason(StateError('x')), startsWith('Okänt fel'));
+    });
+
     test('a download that is cut short is deleted and fails', () async {
       final client = MockClient.streaming(
           (req, _) async => http.StreamedResponse(Stream.value([1, 2, 3]), 200, contentLength: 10));

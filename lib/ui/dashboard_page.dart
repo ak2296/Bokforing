@@ -174,11 +174,11 @@ class _UpdateCardState extends State<_UpdateCard> {
           }
         });
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() {
           _progress = null;
-          _problem = 'Hämtningen misslyckades. Kontrollera nätverket och försök igen.';
+          _problem = 'Hämtningen misslyckades: ${AppUpdater.failureReason(e)}. Försök igen.';
         });
       }
     }
