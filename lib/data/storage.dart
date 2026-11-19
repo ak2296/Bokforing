@@ -40,13 +40,13 @@ class AppStorage {
         if (e is File && (where == null || where(e))) {
           try {
             n += await e.length();
-          } on FileSystemException {
+          } catch (_) {
             // Gone while counting.
           }
         }
       }
-    } on FileSystemException {
-      // A folder the app may not read; count what was reached.
+    } catch (_) {
+      // A folder the app may not read, or one that changes while counting: count what was reached.
     }
     return n;
   }

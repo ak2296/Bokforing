@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app/app_controller.dart';
@@ -17,6 +19,7 @@ class StoragePage extends StatefulWidget {
 
 class _StoragePageState extends State<StoragePage> {
   StorageUsage? _usage;
+  String? _error;
   bool _working = false;
   String? _progress;
 
@@ -26,9 +29,16 @@ class _StoragePageState extends State<StoragePage> {
     _load();
   }
 
+  /// Counting never spins for ever: after 40 seconds or on any error the page says so
+  /// and offers to try again.
   Future<void> _load() async {
-    final u = await AppStorage.usage();
-    if (mounted) setState(() => _usage = u);
+    if (mounted) setState(() => _error = null);
+    try {
+      final u = await AppStorage.usage().timeout(const Duration(seconds: 40));
+      if (mounted) setState(() => _usage = u);
+    } catch (e) {
+      if (mounted) setState(() => _error = e is TimeoutException ? 'Det tog för lång tid att räkna.' : 'Det gick inte att räkna: ${e.runtimeType}');
+    }
   }
 
   Future<void> _free() async {
@@ -97,7 +107,18 @@ class _StoragePageState extends State<StoragePage> {
         );
     return Scaffold(
       appBar: AppBar(title: const Text('Lagring')),
-      body: u == null
+      body: u == null && _error != null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(_error!, textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  FilledButton(onPressed: _load, child: const Text('Försök igen')),
+                ]),
+              ),
+            )
+          : u == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),

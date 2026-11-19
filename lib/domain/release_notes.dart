@@ -14,6 +14,9 @@ class ReleaseNote {
 }
 
 const releaseNotes = <ReleaseNote>[
+  ReleaseNote(13, '19 november 2026', 'Lagring snurrar inte för alltid', [
+    ('Lagring:', 'om det inte går att räkna ut utrymmet får du ett besked och kan försöka igen, i stället för en snurra som aldrig slutar.'),
+  ]),
   ReleaseNote(12, '19 november 2026', 'Stabilare uppdatering', [
     ('Uppdatering i appen:', 'om anslutningen är långsam eller bryts fortsätter hämtningen där den slutade, i stället för att börja om eller ge upp.'),
   ]),
