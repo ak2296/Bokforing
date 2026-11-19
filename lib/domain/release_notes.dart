@@ -14,6 +14,9 @@ class ReleaseNote {
 }
 
 const releaseNotes = <ReleaseNote>[
+  ReleaseNote(12, '19 november 2026', 'Stabilare uppdatering', [
+    ('Uppdatering i appen:', 'om anslutningen är långsam eller bryts fortsätter hämtningen där den slutade, i stället för att börja om eller ge upp.'),
+  ]),
   ReleaseNote(11, '19 november 2026', 'Jämförelse till samma dag', [
     ('Startsidan:', 'försäljning och utgifter jämförs nu med förra månaden fram till samma dag, så att en månad som inte är slut inte jämförs med en hel månad.'),
   ]),

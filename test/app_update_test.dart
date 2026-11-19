@@ -82,6 +82,24 @@ void main() {
       expect(seen, [400, 1000]);
     });
 
+    test('a dropped connection carries on from where it stopped', () async {
+      final bytes = List<int>.generate(1000, (i) => i % 256);
+      var calls = 0;
+      final ranges = <String?>[];
+      final client = MockClient.streaming((req, _) async {
+        ranges.add(req.headers['Range']);
+        if (calls++ == 0) {
+          return http.StreamedResponse(
+              Stream<List<int>>.fromFutures([Future.value(bytes.sublist(0, 400)), Future.error(const SocketException('cut'))]), 200,
+              contentLength: bytes.length);
+        }
+        return http.StreamedResponse(Stream.value(bytes.sublist(400)), 206, contentLength: 600);
+      });
+      final file = await AppUpdater.download(info, (_, _) {}, client: client, into: dir);
+      expect(file.readAsBytesSync(), bytes);
+      expect(ranges, [null, 'bytes=400-']);
+    });
+
     test('a download that is cut short is deleted and fails', () async {
       final client = MockClient.streaming(
           (req, _) async => http.StreamedResponse(Stream.value([1, 2, 3]), 200, contentLength: 10));

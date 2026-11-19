@@ -83,34 +83,52 @@ class AppUpdater {
     }
   }
 
-  /// Downloads the APK to the app's cache, reporting progress. Throws when the
-  /// download is cut short, so a half file is never handed to the installer.
+  /// Downloads the APK to the app's cache, reporting progress. A slow or dropped
+  /// connection carries on from where it stopped (up to [attempts] tries); it
+  /// throws when the file still is not whole, so a half file is never handed to the
+  /// installer. Older update files in the cache are removed first.
   static Future<File> download(UpdateInfo u, void Function(int received, int total) onProgress,
-      {http.Client? client, Directory? into}) async {
+      {http.Client? client, Directory? into, int attempts = 6}) async {
     final c = client ?? http.Client();
     try {
-      final req = http.Request('GET', Uri.parse(u.apkUrl))..headers['User-Agent'] = 'Quee';
-      final res = await c.send(req);
-      if (res.statusCode != 200) throw HttpException('HTTP ${res.statusCode}');
-      final total = res.contentLength ?? u.size;
       final dir = into ?? await getTemporaryDirectory();
+      for (final f in dir.listSync()) {
+        final name = p.basename(f.path);
+        if (f is File && name.startsWith('Quee-') && name.endsWith('.apk')) f.deleteSync();
+      }
       final file = File(p.join(dir.path, 'Quee-${u.build}.apk'));
-      final sink = file.openWrite();
       var got = 0;
-      try {
-        await for (final chunk in res.stream) {
-          got += chunk.length;
-          sink.add(chunk);
-          onProgress(got, total);
+      var total = u.size;
+      Object? last;
+      for (var attempt = 0; attempt < attempts; attempt++) {
+        try {
+          final req = http.Request('GET', Uri.parse(u.apkUrl))..headers['User-Agent'] = 'Quee';
+          if (got > 0) req.headers['Range'] = 'bytes=$got-';
+          final res = await c.send(req).timeout(const Duration(seconds: 30));
+          if (res.statusCode != 200 && res.statusCode != 206) throw HttpException('HTTP ${res.statusCode}');
+          final resumed = res.statusCode == 206 && got > 0;
+          if (!resumed) {
+            got = 0;
+            total = res.contentLength ?? u.size;
+          }
+          final sink = file.openWrite(mode: resumed ? FileMode.append : FileMode.write);
+          try {
+            await for (final chunk in res.stream.timeout(const Duration(seconds: 30))) {
+              got += chunk.length;
+              sink.add(chunk);
+              onProgress(got, total);
+            }
+          } finally {
+            await sink.close();
+          }
+          if (total <= 0 || got == total) return file;
+          last = const HttpException('Hämtningen avbröts');
+        } catch (e) {
+          last = e;
         }
-      } finally {
-        await sink.close();
       }
-      if (total > 0 && got != total) {
-        await file.delete();
-        throw const HttpException('Hämtningen avbröts');
-      }
-      return file;
+      if (file.existsSync()) await file.delete();
+      throw last ?? const HttpException('Hämtningen misslyckades');
     } finally {
       if (client == null) c.close();
     }
