@@ -45,15 +45,18 @@ class MonthData {
   const MonthData(this.profile, this.categories, this.sales, this.invoices, this.online, this.report,
       {this.rounded = false, this.payslips = const []});
 
-  static Future<MonthData> load(AppController c, YearMonth ym) async {
+  /// [upToDay]: only the days 1 to that day of the month, for a like-for-like
+  /// comparison with a month that is not over yet.
+  static Future<MonthData> load(AppController c, YearMonth ym, {int? upToDay}) async {
+    final to = upToDay == null ? ym.lastDay : '${SwedishDates.monthKey(ym.year, ym.month)}-${upToDay.toString().padLeft(2, '0')}';
     final repo = c.repo;
     final profile = await repo.profile();
     final cats = await repo.categories(includeInactive: true);
-    final sales = await repo.dailySalesBetween(ym.firstDay, ym.lastDay);
-    final invoices = await repo.invoicesBetween(ym.firstDay, ym.lastDay);
-    final online = await repo.onlineSalesBetween(ym.firstDay, ym.lastDay);
+    final sales = await repo.dailySalesBetween(ym.firstDay, to);
+    final invoices = await repo.invoicesBetween(ym.firstDay, to);
+    final online = await repo.onlineSalesBetween(ym.firstDay, to);
     final rounded = await repo.boolSetting(SettingsKeys.roundExpenses);
-    final payslips = await repo.payslipsBetween(ym.firstDay, ym.lastDay);
+    final payslips = await repo.payslipsBetween(ym.firstDay, to);
     final expenses = [
       ...invoices,
       for (final p in payslips) ...p.asExpenses(),

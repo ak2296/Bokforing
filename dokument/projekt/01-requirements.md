@@ -100,6 +100,7 @@ Priority: **M** must, **S** should, **C** could. "Verified by" names automated t
 | FR-67 | The SIE file books a Z-report day's takings on Kassa 1910 for the cash part and on Företagskonto 1930 for the card share when the split is saved (the verification still balances); without a split everything stays on Kassa. | M | `z_cash_test` |
 | FR-68 | Redovisning has a Kassarapport (PDF, Excel, print): per day cash and card, with a total row. | S | `z_cash_test` |
 | FR-69 | In Redovisarpaket every yellow row (something to see over or fill in) opens one list of all yellow points; each point opens the document or page where it is fixed. A yellow row is left out of the package until the owner confirms, in a second step, that it may be sent as it is (the owner takes the responsibility). When the points are fixed the rows turn normal again. A Z-report whose rows differ from its total is such a point; the app never corrects it. | M | `package_accept_test` |
+| FR-70 | The home page's Försäljning and Utgifter compare this month so far with last month up to the same day of the month (on the 18th: 1st to 18th of last month), not with the whole last month. | S | on a phone |
 
 ### 4.5 Data protection and administration
 

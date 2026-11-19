@@ -14,6 +14,9 @@ class ReleaseNote {
 }
 
 const releaseNotes = <ReleaseNote>[
+  ReleaseNote(11, '19 november 2026', 'Jämförelse till samma dag', [
+    ('Startsidan:', 'försäljning och utgifter jämförs nu med förra månaden fram till samma dag, så att en månad som inte är slut inte jämförs med en hel månad.'),
+  ]),
   ReleaseNote(10, '19 november 2026', 'Redovisarpaket: se över och godkänn', [
     ('Gula rader:', 'tryck på en gul rad i Redovisarpaket så ser du allt som behöver ses över. Tryck på en punkt för att öppna dokumentet och rätta det.'),
     ('Godkänn:', 'vill du skicka ändå, till exempel när en Z-rapport skiljer på grund av rabatter, godkänner du det själv. Då kommer raden med i mappen.'),

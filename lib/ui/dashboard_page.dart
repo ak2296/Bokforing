@@ -33,7 +33,7 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ym = YearMonth.now();
-    return Reloading<(MonthData, List<RegistrationSummary>, int, List<Invoice>, LicenseState, YearReport, YearReport, DashboardExtras)>(
+    return Reloading<(MonthData, List<RegistrationSummary>, int, List<Invoice>, LicenseState, YearReport, YearReport, DashboardExtras, MonthData)>(
       deps: ym.title,
       loader: (c) async => (
         await MonthData.load(c, ym),
@@ -44,9 +44,11 @@ class DashboardPage extends StatelessWidget {
         await _year(c, ym.year),
         await _year(c, ym.year - 1),
         await DashboardExtras.load(c),
+        // Last month up to the same day, so the hero compares like with like.
+        await MonthData.load(c, ym.previous, upToDay: DateTime.now().day),
       ),
       builder: (context, data) {
-        final (month, recent, count, unpaid, license, thisYear, lastYear, extras) = data;
+        final (month, recent, count, unpaid, license, thisYear, lastYear, extras, previousToDate) = data;
         final r = month.report;
         final t = Theme.of(context).textTheme;
         // The last six months, oldest first, across the turn of the year.
@@ -56,7 +58,6 @@ class DashboardPage extends StatelessWidget {
                 ? (ym.month - back, thisYear.rows[ym.month - back - 1])
                 : (ym.month - back + 12, lastYear.rows[ym.month - back + 11]),
         ];
-        final previous = months[months.length - 2].$2;
         final diff = r.vatDifference;
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 112),
@@ -73,7 +74,7 @@ class DashboardPage extends StatelessWidget {
               ),
             const _UpdateCard(),
             _RakningarPill(unpaid),
-            _MonthHero(report: r, previous: previous, title: ym.title),
+            _MonthHero(report: r, previous: previousToDate.report, title: ym.title),
             const SizedBox(height: 8),
             _Panel(
               child: Row(children: [
@@ -287,7 +288,7 @@ class _RakningarPill extends StatelessWidget {
 /// report) and, under it, sales and expenses with the change since last month.
 class _MonthHero extends StatelessWidget {
   final MonthlyReport report;
-  final YearRow previous;
+  final MonthlyReport previous;
   final String title;
   const _MonthHero({required this.report, required this.previous, required this.title});
 
@@ -324,9 +325,9 @@ class _MonthHero extends StatelessWidget {
           Divider(height: 1, color: Colors.white.withValues(alpha: 0.25)),
           const SizedBox(height: 12),
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: _HeroFigure('Försäljning', r.totalAllSales, previous.sales, higherIsGood: true)),
+            Expanded(child: _HeroFigure('Försäljning', r.totalAllSales, previous.totalAllSales, higherIsGood: true)),
             const SizedBox(width: 12),
-            Expanded(child: _HeroFigure('Utgifter', r.totalExpenses, previous.expenses, higherIsGood: false)),
+            Expanded(child: _HeroFigure('Utgifter', r.totalExpenses, previous.totalExpenses, higherIsGood: false)),
           ]),
         ]),
       ),
