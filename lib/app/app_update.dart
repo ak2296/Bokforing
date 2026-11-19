@@ -142,7 +142,7 @@ class AppUpdater {
       SocketException() => 'Ingen kontakt med nedladdningen',
       FileSystemException() => 'Filen kunde inte sparas, kanske är telefonens minne fullt',
       HttpException(:final message) => message,
-      _ => 'Okänt fel',
+      _ => 'Okänt fel: ${e.toString().replaceAll(RegExp(r'\s+'), ' ')}',
     };
     return '$what (${e.runtimeType})';
   }

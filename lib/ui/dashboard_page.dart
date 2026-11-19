@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import 'package:open_filex/open_filex.dart' show ResultType;
@@ -161,16 +163,28 @@ class _UpdateCardState extends State<_UpdateCard> {
       _progress = 0;
       _problem = null;
     });
+    File file;
     try {
-      final file = await AppUpdater.download(info, (got, total) {
+      file = await AppUpdater.download(info, (got, total) {
         if (mounted && total > 0) setState(() => _progress = got / total);
       });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _progress = null;
+          _problem = 'Hämtningen misslyckades: ${AppUpdater.failureReason(e)}. Försök igen.';
+        });
+      }
+      return;
+    }
+    // The file is whole here; a failure from now on is the installer's, not the network's.
+    try {
       final r = await AppUpdater.install(file);
       if (mounted) {
         setState(() {
           _progress = null;
           if (r.type != ResultType.done) {
-            _problem = 'Android släppte inte igenom installationen. Tillåt att Quee installerar appar i telefonens inställningar och försök igen.';
+            _problem = 'Android släppte inte igenom installationen (${r.type.name}: ${r.message}). Tillåt att Quee installerar appar i telefonens inställningar och försök igen.';
           }
         });
       }
@@ -178,7 +192,7 @@ class _UpdateCardState extends State<_UpdateCard> {
       if (mounted) {
         setState(() {
           _progress = null;
-          _problem = 'Hämtningen misslyckades: ${AppUpdater.failureReason(e)}. Försök igen.';
+          _problem = 'Filen är hämtad men installationen kunde inte startas: ${AppUpdater.failureReason(e)}.';
         });
       }
     }
