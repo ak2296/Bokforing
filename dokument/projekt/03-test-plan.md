@@ -109,6 +109,9 @@ Mark each line Pass / Fail / N/A with the build number.
 - [ ] Scan a long thermal Z-report in 2–3 overlapping photos: Betalmetoder and the categories appear once in Avläst text; Grand total is never the day's sales.
 - [ ] Scan a paper with payment terms "Kontant" on its own line: Betalades med is Kontant, yellow until chosen.
 - [ ] Home page: the percent next to Försäljning and Utgifter compares with last month up to today's date (check one figure by hand in the month list).
+- [ ] Redovisarpaket: the status line shows ready, "med punkter du har godkänt" or "saker att se över"; the folder holds a Kassarapport and, with open points, "Att känna till"; the message field fills itself, keeps the owner's edit when leaving and coming back, and "Skriv om automatiskt" restores it; the message is in the mail and in the README.
+- [ ] Redovisning → Momsfil till Skatteverket: the figures equal the Momsunderlag; with your own figures the DINA marks show and the file cannot be saved before the confirm box; the saved XML uploads in Skatteverket's "Deklarera via fil" (test with a real month before relying on it).
+- [ ] Bank file from SEB, Handelsbanken and Nordea (own file, private): payments are read; tell the owner which layouts failed.
 - [ ] Redovisarpaket: a yellow row opens "Att se över"; a tap on a point opens the Z-report or invoice; after "Godkänn och ta med" the row is ticked and goes into the folder; after a fix the row is green again.
 - [ ] Redovisning has a Kassarapport; the SIE file shows 1910 and 1930 on the Dagskassa verification.
 

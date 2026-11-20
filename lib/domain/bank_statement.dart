@@ -51,9 +51,9 @@ class BankStatement {
     final dateCol = col(const [
       'bokföringsdag',
       'bokföringsdatum',
+      'reskontradatum',
       'transaktionsdag',
       'transaktionsdatum',
-      'reskontradatum',
       'datum',
       'valutadag',
     ]);
@@ -61,8 +61,16 @@ class BankStatement {
     if (dateCol == null || amountCol == null) {
       throw const FormatException('Hittar inte kolumnerna för datum och belopp.');
     }
+    // Description first, then name and reference; Nordea's Rubrik/Namn/Mottagare and
+    // SEB's and Handelsbanken's Text are found by name too (layouts from the banks'
+    // public exports, not yet tested on real files).
     final textCols = [
-      for (final c in [col(const ['beskrivning', 'text', 'transaktion', 'specifikation']), col(const ['referens', 'meddelande'])])
+      for (final c in [
+        col(const ['beskrivning', 'text', 'transaktion', 'specifikation', 'rubrik']),
+        col(const ['namn']),
+        col(const ['referens', 'meddelande']),
+        col(const ['mottagare', 'avsändare']),
+      ])
         ?c,
     ];
     final balanceCol = col(const ['bokfört saldo', 'saldo']);

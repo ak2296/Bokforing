@@ -15,6 +15,7 @@ import '../domain/money.dart';
 import '../domain/report_period.dart';
 import '../domain/reports.dart';
 import '../ui/widgets/common.dart';
+import 'cash_report.dart';
 import 'monthly_pdf.dart';
 import 'sie_export.dart';
 import 'table_export.dart';
@@ -94,7 +95,58 @@ class PackageData {
   /// owner confirmed it.
   bool selected(PackageItem i) => i.included && i.problem != 'Tom' && (!needsOk(i) || accepted.contains(i.id));
 
-  List<PackageItem> get printable => [for (final i in items) if (i.table != null && i.included && (i.problem == 'Tom' || selected(i))) i];
+  List<PackageItem> get printable => [
+        for (final i in allItems) if (i.table != null && i.included && (i.problem == 'Tom' || selected(i))) i,
+      ];
+
+  /// The documents the list shows: the fixed ones and, when there is anything to
+  /// look at, the page "Att känna till" for the accountant.
+  List<PackageItem> get allItems => [...items, ?issuesItem];
+
+  /// "Att känna till": every open point and what the owner confirmed, as a paper for
+  /// the accountant. Built from the state now, so it follows the owner's confirmation.
+  PackageItem? get issuesItem {
+    if (issues.isEmpty) return null;
+    return PackageItem(
+      id: 'attkanna',
+      title: 'Att känna till',
+      detail: accepted.isEmpty ? '${issues.length} ${issues.length == 1 ? 'punkt' : 'punkter'} som inte är klara' : 'Punkter du har godkänt',
+      table: ReportTable(
+        title: 'Att känna till ${period.title}',
+        fileName: 'att_kanna_till_${period.fileTag}',
+        headers: const ['Punkt', 'Status'],
+        rows: [for (final i in issues) [i.text, accepted.isEmpty ? 'Öppen' : 'Godkänd av ägaren']],
+      ),
+    );
+  }
+
+  /// Where the package stands, for the line at the top of the page.
+  PackageStatus get status {
+    if (!hasVerifications) return PackageStatus.empty;
+    final yellow = [for (final i in items) if (needsOk(i) && i.included) i];
+    if (yellow.isEmpty && issues.isEmpty) return PackageStatus.ready;
+    if (yellow.isNotEmpty && yellow.every((i) => accepted.contains(i.id))) return PackageStatus.accepted;
+    if (yellow.isEmpty) return PackageStatus.ready;
+    return PackageStatus.open;
+  }
+
+  /// Points still open, for "N saker att se över".
+  int get openCount => status == PackageStatus.open ? issues.length : 0;
+}
+
+/// Where a package stands before it is sent.
+enum PackageStatus {
+  /// Nothing registered for the period.
+  empty,
+
+  /// Nothing yellow.
+  ready,
+
+  /// Something yellow, and the owner confirmed to send it as it is.
+  accepted,
+
+  /// Something yellow that the owner has not dealt with.
+  open,
 }
 
 /// Builds every document the package holds for [period], from what is
@@ -262,6 +314,7 @@ Future<PackageData> loadPackage(AppController c, ReportPeriod period) async {
     );
   }
 
+  final cashDays = sales.where((s) => s.hasCashData).toList();
   PackageItem ledgerItem(String id, String name, ReportTable Function(Ledger, String) build) =>
       PackageItem(id: id, title: name, detail: empty ? none : 'PDF + Excel', table: build(ledger, title), problem: empty ? 'Tom' : null);
 
@@ -273,6 +326,13 @@ Future<PackageData> loadPackage(AppController c, ReportPeriod period) async {
         detail: empty ? none : 'Rutor 05, 10-12, 48, 49',
         table: vatBasisTable(ledger, title),
         problem: empty ? 'Tom' : null),
+    PackageItem(
+      id: 'kassa',
+      title: 'Kassarapport',
+      detail: cashDays.isEmpty ? 'Inga Z-rapporter med kontant och kort i perioden' : 'Kontant och kort per dag, PDF + Excel',
+      table: cashReportTable(sales, title),
+      problem: cashDays.isEmpty ? 'Tom' : null,
+    ),
     ledgerItem('ver', 'Verifikationslista', voucherListTable),
     ledgerItem('huvudbok', 'Huvudbok', generalLedgerTable),
     ledgerItem('saldo', 'Saldobalans', trialBalanceTable),
@@ -318,7 +378,7 @@ Future<List<(String, Uint8List)>> itemFiles(PackageData d, PackageItem i) async 
 }
 
 /// The items that go into the package: included, and not empty.
-List<PackageItem> packageContents(PackageData d) => [for (final i in d.items) if (d.selected(i)) i];
+List<PackageItem> packageContents(PackageData d) => [for (final i in d.allItems) if (d.selected(i)) i];
 
 /// The package as a ZIP with one folder, ready to save or send.
 Future<Uint8List> zipPackage(PackageData d, {required String readme}) async {
@@ -333,16 +393,35 @@ Future<Uint8List> zipPackage(PackageData d, {required String readme}) async {
   return Uint8List.fromList(ZipEncoder().encode(archive));
 }
 
-/// The README inside the package.
-String packageReadme(PackageData d) => [
+/// The status line in words, for the page and the README.
+String packageStatusText(PackageData d) => switch (d.status) {
+      PackageStatus.empty => 'Inget registrerat för perioden',
+      PackageStatus.ready => 'Klart att skicka',
+      PackageStatus.accepted => 'Klart, med ${d.issues.length} ${d.issues.length == 1 ? 'punkt' : 'punkter'} som ägaren har godkänt',
+      PackageStatus.open => d.issues.isEmpty ? 'Något att se över' : '${d.issues.length} ${d.issues.length == 1 ? 'sak' : 'saker'} att se över',
+    };
+
+/// The README inside the package. [message] is the owner's text to the accountant.
+String packageReadme(PackageData d, {String message = ''}) => [
       d.folderName,
       '',
       'Företag: ${d.profile.name}${d.profile.orgNumber.isEmpty ? '' : ' (${d.profile.orgNumber})'}',
       'Period: ${d.period.title} (${d.period.from} - ${d.period.to})',
       'Skapad: ${SwedishDates.iso(DateTime.now())} med Quee',
+      'Status: ${packageStatusText(d)}',
       '',
       'Innehåll:',
       for (final i in packageContents(d)) '- ${i.title}',
+      if (d.issues.isNotEmpty) ...[
+        '',
+        'Att känna till:',
+        for (final i in d.issues) '- ${i.text}',
+      ],
+      if (message.trim().isNotEmpty) ...[
+        '',
+        'Meddelande från ägaren:',
+        message.trim().replaceAll('\r\n', '\n').replaceAll('\n', '\r\n'),
+      ],
       '',
       'Allt bygger på det som är registrerat i Quee. Beräknad moms är inte en momsdeklaration.',
       'Balansräkning och avskrivningar är utkast som din redovisare avgör.',
@@ -355,6 +434,16 @@ String packageMailBody(PackageData d, {required String greeting, required String
     greeting.isEmpty ? 'Hej!' : 'Hej $greeting!',
     '',
     'Här kommer underlag för ${d.period.title} (${d.period.from} - ${d.period.to}) från $company: rapporter som PDF och Excel samt SIE-fil.',
+    if (d.issues.isNotEmpty) ...[
+      '',
+      d.status == PackageStatus.accepted
+          ? 'Att känna till (jag har tagit del av punkterna och skickar underlaget som det är):'
+          : 'Det här är inte klart ännu:',
+      for (final i in d.issues) '- ${i.text}',
+    ] else if (d.status == PackageStatus.ready) ...[
+      '',
+      'Allt ser komplett ut.',
+    ],
     '',
     'Hör av dig om något saknas.',
     '',

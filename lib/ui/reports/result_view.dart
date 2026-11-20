@@ -20,6 +20,7 @@ import '../../domain/dates.dart';
 import '../../domain/money.dart';
 import '../../domain/result_report.dart';
 import '../../export/cash_report.dart';
+import '../../export/moms_xml.dart';
 import '../../export/sie_export.dart';
 import '../../export/table_export.dart';
 import '../app_icons.dart';
@@ -29,6 +30,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/ledger_parts.dart';
 import '../widgets/result_charts.dart';
+import 'moms_file_page.dart';
 import 'package_page.dart';
 import 'sie_preview_page.dart';
 import '../widgets/blur_overlay.dart';
@@ -69,7 +71,7 @@ class ResultView extends StatelessWidget {
               builder: (context, data) => switch (mode) {
                 ResultMode.resultat => _ResultBody(data: data),
                 ResultMode.balans => _BalanceBody(data: data),
-                ResultMode.redovisning => _AccountingBody(data: data, ym: ym),
+                ResultMode.redovisning => _AccountingBody(data: data, ym: ym, period: period),
               },
             ),
           ),
@@ -525,7 +527,8 @@ class _BalanceBody extends StatelessWidget {
 class _AccountingBody extends StatelessWidget {
   final _Data data;
   final YearMonth ym;
-  const _AccountingBody({required this.data, required this.ym});
+  final ReportPeriod period;
+  const _AccountingBody({required this.data, required this.ym, required this.period});
 
   @override
   Widget build(BuildContext context) {
@@ -582,6 +585,13 @@ class _AccountingBody extends StatelessWidget {
         const _Step(1, 'SIE-fil', text: 'Till Fortnox, Visma, Bokio och andra bokföringsprogram.'),
         LedgerCard(children: [
           _ActionRow(icon: AppIcons.file, title: 'SIE-fil till redovisaren', onTap: () => _exportSie(context, data)),
+          _ActionRow(
+            icon: AppIcons.cloudUpload,
+            title: 'Momsfil till Skatteverket',
+            subtitle: VatReturn.supports(period.kind) ? 'Momsdeklarationen som fil att lämna in via e-tjänsten' : 'Välj månad, kvartal eller år för momsfilen',
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => MomsFilePage(period: period, ledger: ledger, profile: data.profile))),
+          ),
           _ActionRow(
             icon: AppIcons.search,
             title: 'Förhandsvisa SIE',

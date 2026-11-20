@@ -184,6 +184,14 @@ On some photos (an A4 print-out photographed in parts, a curved page) the amount
 
 `TextMerge.merge` joins the text of several photos. When no exact repeat is found at the join, rows are matched loosely and in order (similar text, or the same non-zero amount) between the last 120 rows so far and the first 120 of the next photo. With at least three matches that start near the top of the new photo, reach near the end of the old one and do not start at the old text's top (a repeated letterhead), the text is cut in the middle of the overlap, where both photos read best. Without a sales section the reader stops at Grand total, Bokföringsunderlag or Momsgrupp and skips account rows and negative amounts. A badly read "Försäljning per varugrupp" heading is found by comparing letters only (it must be nearer than "per momsgrupp"), and "Försäljningskvitton" counts as the day's sales after the labelled totals.
 
+### 4.4e Redovisarpaket status, message and the moms file
+
+`PackageData.status` is `ready` when nothing included is yellow, `accepted` when every included yellow item is confirmed by the owner, `open` otherwise and `empty` when the period has no verifications. `issuesItem` builds the paper "Att känna till" from the issue list at the time of use, so its status column ("Öppen" or "Godkänd av ägaren") follows the confirmation; `packageContents` adds it whenever there are issues. The Kassarapport is a normal item built by `cashReportTable` and is empty ("Tom") when no Z-report of the period has cash or card figures.
+
+The message to the accountant is `packageMailBody` (greeting, period, open points, sign-off). The page fills the field with it while the owner has not typed; the first edit marks it as the owner's and saves it in the settings table under `package_message_<period tag>`; "Skriv om automatiskt" clears that and refills the field. The text sent is the field, or the automatic text when the field is empty; the README carries it under "Meddelande från ägaren" with the status line.
+
+`VatReturn` (export/moms_xml.dart) takes the ledger of the period (3001-3003 sales, 2611/2621/2631 output VAT, 2641 input VAT, 3004 and 3000 other sales), rounds every figure to whole kronor (half away from zero) and adds the owner's own figures per ruta. Ruta 49 is worked out from the rounded boxes. The XML follows Skatteverket's page "Lämna momsdeklaration via fil i e-tjänsten": `<?xml version="1.0" encoding="ISO-8859-1"?>`, `<eSKDUpload Version="6.0">`, `OrgNr` as xxxxxx-xxxx, `Moms`, `Period` YYYYMM (the last month of a quarter or year), boxes in the form's order, zero boxes left out except `MomsBetala`, no spaces or tabs inside lines. No DTD or XSD is published on the pages read, so the file is not validated locally; Skatteverket checks it at upload. The owner's own figures are stored per period under `vat_manual_<period tag>` as JSON (ruta to kronor).
+
 ### 4.5 Activation order, trial and key app
 
 ```mermaid
@@ -251,6 +259,7 @@ GitHub Actions workflow `Bygg Android-APK`: create platform folders, patch Andro
 | D-14 | One trial per pair of company name and organisation number, hashed | Reports need the correct name and number, so a made-up pair makes the app useless | A real company can order once; no device or name-only checks. |
 | D-15 | Report tabs: Bokslut with two parts instead of a sixth tab | Six tabs do not fit one readable row | Balans is one tap deeper. |
 | D-16 | The payment method is the owner's choice, only suggested from the paper | A card can be the company's or private; only the owner knows | An extra tap on card receipts; unconfirmed choices stay yellow. |
+| D-17 | The moms file is only for the owner to upload; the app never sends it. The owner's own figures are marked and confirmed, not checked | The owner signs and answers for the return at Skatteverket; the app cannot know EU trade or import | An extra confirm tap; typed figures are not in the SIE file. |
 
 ## 9. Known design limitations
 

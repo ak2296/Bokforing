@@ -14,6 +14,12 @@ class ReleaseNote {
 }
 
 const releaseNotes = <ReleaseNote>[
+  ReleaseNote(14, '20 november 2026', 'Momsfil och bättre redovisarpaket', [
+    ('Momsfil:', 'under Redovisning finns Momsfil till Skatteverket. Du sparar filen och lämnar in den hos Skatteverket via Deklarera via fil. Har du siffror för EU-handel, import eller omvänd skattskyldighet kan du skriva in dem själv.'),
+    ('Redovisarpaket:', 'en statusrad visar om allt är klart. Kassarapporten följer med, och ett papper Att känna till visar din redovisare vad som är öppet.'),
+    ('Meddelande:', 'appen skriver ett meddelande till redovisaren åt dig. Du kan ändra texten fritt.'),
+    ('Bankfil:', 'fler bankers kolumnnamn känns igen (SEB, Handelsbanken, Nordea).'),
+  ]),
   ReleaseNote(13, '19 november 2026', 'Lagring snurrar inte för alltid', [
     ('Lagring:', 'om det inte går att räkna ut utrymmet får du ett besked och kan försöka igen, i stället för en snurra som aldrig slutar.'),
   ]),

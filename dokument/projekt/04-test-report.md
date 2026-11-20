@@ -85,3 +85,5 @@ The automated suite is a strong base for the numbers and reading rules. Release 
 | Role | Name | Date | Decision |
 |---|---|---|---|
 | Product owner | | | |
+
+**Addendum 2026-11-20.** `flutter analyze` is clean and 441 tests pass locally (new: `moms_xml_test` for the XML, the own figures and ruta 49; `package_accept_test` for status, "Att känna till", the mail text and the README; `bank_layouts_test` for SEB, Handelsbanken and Nordea column names with invented rows). **Not yet checked on a phone:** the status line, the message field, the moms file screen and its upload at Skatteverket, and the three bank layouts on real files.

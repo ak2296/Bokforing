@@ -46,6 +46,51 @@ class _PackagePageState extends State<PackagePage> {
   bool _busy = false;
   bool _started = false;
 
+  /// The message to the accountant. Written automatically from the package; once the
+  /// owner types in it, it is left alone (and kept for the period) until "Skriv om automatiskt".
+  final TextEditingController _msg = TextEditingController();
+  bool _edited = false;
+  PackageData? _data;
+
+  String _msgKey(ReportPeriod p) => 'package_message_${p.fileTag}';
+
+  @override
+  void dispose() {
+    _msg.dispose();
+    super.dispose();
+  }
+
+  /// The text that goes to the accountant: what stands in the field, or the automatic text.
+  String _message(PackageData d) =>
+      _msg.text.trim().isEmpty ? packageMailBody(d, greeting: _acc.greetingName, ownerEmail: _acc.ownerEmail) : _msg.text;
+
+  /// Keeps the field in step with the package while the owner has not changed it.
+  void _syncMessage(PackageData d) {
+    _data = d;
+    final auto = packageMailBody(d, greeting: _acc.greetingName, ownerEmail: _acc.ownerEmail);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_edited && _msg.text != auto) _msg.text = auto;
+    });
+  }
+
+  Future<void> _loadMessage(ReportPeriod p) async {
+    final saved = await AppScope.read(context).repo.setting(_msgKey(p));
+    if (!mounted || _period?.fileTag != p.fileTag) return;
+    setState(() {
+      _edited = saved != null && saved.isNotEmpty;
+      if (_edited) _msg.text = saved!;
+    });
+  }
+
+  Future<void> _rewriteMessage() async {
+    final p = _period;
+    if (p != null) await AppScope.read(context).repo.setSetting(_msgKey(p), '');
+    if (!mounted) return;
+    setState(() => _edited = false);
+    final d = _data;
+    if (d != null) _syncMessage(d);
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -61,10 +106,12 @@ class _PackagePageState extends State<PackagePage> {
     final m = widget.ym;
     final base = acc.kind == PeriodKind.month && m != null ? DateTime(m.year, m.month, 1) : DateTime.now();
     if (!mounted) return;
+    final period = ReportPeriod.containing(acc.kind, base, start);
     setState(() {
       _acc = acc;
-      _period = ReportPeriod.containing(acc.kind, base, start);
+      _period = period;
     });
+    await _loadMessage(period);
   }
 
   Future<void> _open(Widget page) async {
@@ -92,7 +139,7 @@ class _PackagePageState extends State<PackagePage> {
   }
 
   Future<void> _saveFolder(PackageData d) => _run(() async {
-        final bytes = await zipPackage(d, readme: packageReadme(d));
+        final bytes = await zipPackage(d, readme: packageReadme(d, message: _message(d)));
         final saved = await FilePicker.saveFile(dialogTitle: 'Spara redovisarpaket', fileName: '${d.folderName}.zip', bytes: bytes);
         if (saved != null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paketet har sparats som en ZIP-fil med en mapp i.')));
@@ -121,7 +168,7 @@ class _PackagePageState extends State<PackagePage> {
         final paths = await _writeFiles(d);
         final company = d.profile.name.trim().isEmpty ? 'Quee' : d.profile.name.trim();
         final subject = 'Underlag ${d.period.title}, $company';
-        final body = packageMailBody(d, greeting: _acc.greetingName, ownerEmail: _acc.ownerEmail);
+        final body = _message(d);
         if (!_acc.hasAccountantEmail) {
           await SharePlus.instance.share(ShareParams(files: [for (final f in paths) XFile(f)], subject: subject, text: body));
           return;
@@ -183,10 +230,15 @@ class _PackagePageState extends State<PackagePage> {
       body: period == null
           ? const Center(child: CircularProgressIndicator())
           : Column(children: [
-              PeriodPicker(value: period, onChanged: (v) => setState(() {
-                _accepted.clear();
-                _period = v;
-              })),
+              PeriodPicker(value: period, onChanged: (v) {
+                setState(() {
+                  _accepted.clear();
+                  _period = v;
+                  _edited = false;
+                  _msg.clear();
+                });
+                _loadMessage(v);
+              }),
               Expanded(
                 child: Reloading<PackageData>(
                   deps: '${period.fileTag} ${period.kind.name} $_reload',
@@ -196,6 +248,7 @@ class _PackagePageState extends State<PackagePage> {
                       ..clear()
                       ..addAll(_accepted);
                     final ready = packageContents(d);
+                    _syncMessage(d);
                     return ListView(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                       children: [
@@ -223,6 +276,10 @@ class _PackagePageState extends State<PackagePage> {
                           _Notice('Lägg in din redovisares e-post så öppnas mejlet färdigt med mottagare, text och alla filer.',
                               button: 'Fyll i redovisare', onPressed: () => _open(const AccountingPage())),
                         ],
+                        if (d.status != PackageStatus.empty) ...[
+                          const SizedBox(height: 10),
+                          _statusLine(context, d),
+                        ],
                         const SizedBox(height: 10),
                         Card(
                           margin: EdgeInsets.zero,
@@ -230,11 +287,30 @@ class _PackagePageState extends State<PackagePage> {
                             padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Text('DET HÄR INGÅR', style: t.labelMedium?.copyWith(color: AppTheme.muted, letterSpacing: 0.4)),
-                              for (final i in d.items) _row(context, d, i),
+                              for (final i in d.allItems) _row(context, d, i),
                             ]),
                           ),
                         ),
                         const SizedBox(height: 14),
+                        Text('MEDDELANDE TILL REDOVISAREN', style: t.labelMedium?.copyWith(color: AppTheme.muted, letterSpacing: 0.4)),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _msg,
+                          minLines: 8,
+                          maxLines: null,
+                          keyboardType: TextInputType.multiline,
+                          textCapitalization: TextCapitalization.sentences,
+                          onChanged: (v) {
+                            if (!_edited) setState(() => _edited = true);
+                            final p = _period;
+                            if (p != null) AppScope.read(context).repo.setSetting(_msgKey(p), v);
+                          },
+                        ),
+                        Row(children: [
+                          Expanded(child: Text(_edited ? 'Du har ändrat texten.' : 'Skrivs automatiskt. Ändra fritt.', style: t.bodySmall)),
+                          if (_edited) TextButton(onPressed: _rewriteMessage, child: const Text('Skriv om automatiskt')),
+                        ]),
+                        const SizedBox(height: 10),
                         FilledButton.icon(
                           icon: const Icon(AppIcons.save, size: 18),
                           label: const Text('Skapa mapp och spara'),
@@ -265,6 +341,50 @@ class _PackagePageState extends State<PackagePage> {
                 ),
               ),
             ]),
+    );
+  }
+
+  /// One line under the header: where the package stands. Open points open the list.
+  Widget _statusLine(BuildContext context, PackageData d) {
+    final t = Theme.of(context).textTheme;
+    final open = d.status == PackageStatus.open;
+    final color = open ? AppTheme.warning : AppTheme.seed;
+    final text = switch (d.status) {
+      PackageStatus.accepted => 'Klart, med ${d.issues.length} ${d.issues.length == 1 ? 'punkt' : 'punkter'} du har godkänt',
+      PackageStatus.open => packageStatusText(d),
+      _ => 'Klart att skicka',
+    };
+    final sub = switch (d.status) {
+      PackageStatus.accepted => 'Din redovisare ser dem i "Att känna till"',
+      PackageStatus.open => 'Tryck för att öppna listan och rätta eller godkänna',
+      _ => null,
+    };
+    return Material(
+      color: open ? AppTheme.warningTint : AppTheme.tint,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: open ? AppTheme.warningBorder : AppTheme.hairline)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: d.status == PackageStatus.ready ? null : () => _review(d),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(children: [
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              child: Icon(open ? AppIcons.warning : AppIcons.check, size: 14, color: Colors.white),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(text, style: t.titleSmall?.copyWith(color: color, fontWeight: FontWeight.w600)),
+                if (sub != null) Text(sub, style: t.bodySmall?.copyWith(color: color)),
+              ]),
+            ),
+            if (d.status != PackageStatus.ready) Icon(AppIcons.chevronRight, size: 18, color: color),
+          ]),
+        ),
+      ),
     );
   }
 

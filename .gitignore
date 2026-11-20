@@ -12,3 +12,5 @@ pubspec.lock
 # Old code kept locally only
 /_gammal_kod/
 __pycache__/
+# Local planning notes
+STORES_IOS_PLAY.local.md
