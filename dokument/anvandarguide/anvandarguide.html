@@ -431,7 +431,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <h2>Vilken dag räknas utgiften?</h2>
   <p>På <b>förfallodatum</b>. Saknas det (kvitto) räknas den på datumet. Det styr månad i rapporter, moms och SIE-fil.</p>
   <h2>Hur betalade du?</h2>
-  <p>När ett dokument är betalt frågar appen <b>Betalades med</b>. Valet påverkar bara bokföringen (vilket konto pengarna togs från), inte moms eller resultat.</p>
+  <p>När ett dokument är betalt frågar appen <b>Betalades med</b>. Valet påverkar bara bokföringen (vilket konto pengarna togs från), inte moms eller resultat. Betalade du delvis kontant och delvis med kort trycker du på <b>Dela upp betalningen</b>: välj betalsätt och belopp på varje rad, och sista raden fylls i med resten. Varje del bokförs på sitt eget konto.</p>
   <ul>
     <li><b>Bank / kort:</b> företagets bankkonto eller företagskort (konto 1930). Förvalt.</li>
     <li><b>Kontant:</b> kontanter ur kassan (1910).</li>
@@ -558,11 +558,11 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <div class="two">
     <div>
       <table class="t">
-        <tr><td style="width:17mm"><b>Månad</b></td><td>En rad per dag, sedan Resultat (försäljning − utgifter, med uppskattad skatt) och moms. Tomma dagar döljs i appen men finns med i exporterna. Grön flik.</td></tr>
-        <tr><td><b>År</b></td><td>Varje månad, diagram och längst ner en ruta med årets resultat och moms. Tryck på en månad för att öppna den. Blå flik.</td></tr>
-        <tr><td><b>Jämför</b></td><td>Två år mot varandra. Överst står svaret: hur många procent mer eller mindre, över samma månader i båda åren (pågår året jämförs bara månaderna hittills). Välj Försäljning, Utgifter eller Moms, se största ökning och minskning, diagrammet och varje månad med två staplar, båda summorna och procent. Pilknappen byter plats på åren. Violett flik.</td></tr>
+        <tr><td style="width:17mm"><b>Period</b></td><td>Överst väljer du <b>Månad</b> eller <b>År</b>. Månad har en rad per dag, sedan Resultat och moms. Under stora rutan står en rad med <b>Kontant kvar</b>, <b>Bank / kort netto</b> och <b>Z mot bank</b>, och kortet <b>Kassa denna månad</b> visar kontant och kort in och ut. Det är netto, inte saldo. År visar varje månad och diagram; tryck på en månad för att öppna den. Grön och blå.</td></tr>
+        <tr><td><b>Moms</b></td><td>Moms att betala för perioden, per sats, knappen <b>Momsfil till Skatteverket</b>, <b>Egna uppgifter</b> och Momsunderlag. Violett flik.</td></tr>
+        <tr><td><b>Kontroll</b></td><td>Allt du bör se över före du lämnar något till redovisaren, i en lista: Z-rapporter som saknas eller skiljer sig, fakturor att fylla i, förfallna fakturor. Tryck på en rad för att öppna den. Bärnstensfärgad flik.</td></tr>
         <tr><td><b>Bokslut</b></td><td>Två delar, som du väljer överst: <b>Resultat</b> (orange) med diagram från intäkter till resultat, sedan intäkter, kostnader per typ och resultat, utan moms, och en lila ruta med fakturor att rätta. <b>Balans</b> (grågrön) visar balansräkningen som utkast: tillgångar till vänster i summan, eget kapital och skulder därunder, och en etikett som säger att den balanserar. Balans kräver att du lagt in ingående balanser.</td></tr>
-        <tr><td><b>Redovisning</b></td><td>Allt för din redovisare på ett ställe, i den ordning du använder det: den stora knappen <b>Redovisarpaket</b>, <b>SIE-fil</b> och förhandsvisning, <b>Bokföringsrapporter</b> (Momsunderlag, Verifikationslista, Huvudbok, Saldobalans och Resultaträkning (BAS)) och <b>Balansunderlag</b> (Balansräkning, Avskrivningsplan och Lånplan) med länk till Ingående balanser. Petrolfärgad flik.</td></tr>
+        <tr><td><b>Redovisning</b></td><td>Allt för din redovisare på ett ställe, i den ordning du använder det: den stora knappen <b>Redovisarpaket</b>, <b>SIE-fil</b> och förhandsvisning, <b>Bokföringsrapporter</b> (Månadsrapport eller Årsrapport, Momsunderlag, Verifikationslista, Huvudbok, Saldobalans och Resultaträkning (BAS)) och <b>Balansunderlag</b> (Balansräkning, Avskrivningsplan och Lånplan) med länk till Ingående balanser. Petrolfärgad flik.</td></tr>
       </table>
       <p>Varje rapport har <span class="kbd">PDF</span>, <span class="kbd">Excel</span> och <span class="kbd">Skriv ut</span>. Varje flik börjar med en stor ruta med det viktigaste talet, och fliken har samma färg som rutan.</p>
       <h2>Redovisarpaket</h2>
@@ -571,6 +571,10 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
       <p>Under rubriken står <b>status</b>: <i>Klart att skicka</i>, <i>Klart, med några punkter du har godkänt</i> eller <i>saker att se över</i> (tryck för att öppna listan). Paketet har också en <b>Kassarapport</b> (kontant och kort per dag) och, när något inte är klart, ett papper <b>Att känna till</b> som säger till din redovisare vad som är öppet och vad du har godkänt.</p>
       <p>Under listan finns ett <b>meddelande till redovisaren</b>. Appen skriver texten själv, med det som är öppet, och du kan ändra den fritt. Den följer med i mejlet och i läsmig-filen. <b>Skriv om automatiskt</b> tar tillbaka appens text.</p>
       <p>Tre val: <b>Skapa mapp och spara</b> (en ZIP-fil med en mapp i), <b>Skicka filerna med e-post</b> eller <b>Välj papper att skriva ut</b> där du bockar för de rapporter du vill lämna på papper och ser antal sidor.</p>
+      <h2>Jämför år</h2>
+      <p>Knappen <b>Jämför år</b> på startsidan, ovanför Senaste registreringar, jämför två till fyra år månad för månad eller kvartal för kvartal: försäljning, utgifter, resultat eller moms. Du ser diagram, tabell och en mening om hur det senaste året ligger mot året före.</p>
+      <h2>Kassa och bank</h2>
+      <p>Försäljning, Utgifter och Månad visar kontant och kort. På Försäljning står <b>Z mot bank</b>, på Utgifter <b>Mot bank</b>: tryck, välj en CSV från internetbanken, så letar appen efter kortinsättningar som motsvarar Z-rapporterna (några dagar senare, ibland flera dagar i en insättning, minus avgift) och efter betalningar som motsvarar kvitton och fakturor. Filen läses bara där. Appen sparar bara ja eller nej per Z-rapport och faktura, så räknaren (till exempel 3 av 4) finns kvar.</p>
       <h2>Momsfil till Skatteverket</h2>
       <p>Under <b>Redovisning</b> finns <b>Momsfil till Skatteverket</b> för en månad, ett kvartal eller ett år. Appen visar rutorna 05, 10–12, 42, 48 och 49 och gör en XML-fil. Du sparar filen, loggar in hos Skatteverket, väljer <i>Lämna momsdeklaration</i> och <i>Deklarera via fil</i>, kontrollerar uppgifterna där och skriver under med e-legitimation. Appen skickar inget. Företagets organisationsnummer måste vara ifyllt.</p>
       <p>Det appen inte kan veta, som EU-handel, import och köp med omvänd skattskyldighet, kan du skriva in själv under <b>Lägg till egna uppgifter</b>, om du har siffrorna. De markeras <b>DINA</b> och kontrolleras inte av appen. De finns inte i SIE-filen, så berätta om dem för din redovisare. Säljer du varor till företag i andra EU-länder behöver du också lämna en periodisk sammanställning hos Skatteverket, och det gör inte appen.</p>
@@ -598,7 +602,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     </div>
     <div>
       <div class="phone"><div class="screen"><div class="bar"><span>09:41</span><span>●●●</span></div><div class="apphead"><div>Rapporter</div><div class="gear"></div></div><div class="body">
-  <div class="tabs"><div>Månad</div><div>År</div><div class="on">Resultat</div><div>Jämför</div></div>
+  <div class="tabs"><div>Period</div><div>Moms</div><div>Kontroll</div><div class="on">Bokslut</div></div>
   <div class="month">‹ &nbsp; November 2026 &nbsp; ›</div>
   <div class="btns"><span>PDF</span><span>Excel</span><span>Skriv ut</span></div>
   <div class="card"><div class="rl"><span>Försäljning exkl. moms</span><b>35 745</b></div><div class="rl"><span>Utgifter exkl. moms</span><b>−61 652</b></div><div class="rl t"><span>Resultat före skatt</span><b>−25 907</b></div></div>
@@ -650,7 +654,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
     <tr><td><b>Företag</b></td><td>Namn, företagsform, organisationsnummer, adress, räkenskapsårets startmånad, uppskattad skatt (egen procent eller preliminär skatt per år för enskild firma), andra namn på dokument och aktivering.</td></tr>
     <tr><td><b>Försäljning</b></td><td>Kategorier med momssats (dra för ordning), vad varje rad på Z-rapporten registreras som och <b>Stängda dagar</b>: veckodagar som alltid är stängda och enstaka dagar.</td></tr>
     <tr><td><b>Utgifter och dokument</b></td><td>Kostnadstyper (lägg till egna), avrunda utgifter (hela kronor i listor och rapporter), behåll originalbilder, inlärda fält och lagring.</td></tr>
-    <tr><td><b>Påminnelser</b></td><td>Avisering före förfallodagen. Överst står om telefonen tillåter aviseringar från Quee. Är de blockerade trycker du på <b>Tillåt</b>: Android frågar, eller öppnar telefonens inställningar. Vill du stänga av dem trycker du på <b>Inställningar</b>; Android låter bara dig göra det där.</td></tr>
+    <tr><td><b>Påminnelser</b></td><td>Avisering före förfallodagen, och en kvällspåminnelse kl 18 när en Z-rapport saknas (samma kväll, nästa kväll eller två kvällar efter; stängda dagar hoppas över). Överst står om telefonen tillåter aviseringar från Quee. Är de blockerade trycker du på <b>Tillåt</b>: Android frågar, eller öppnar telefonens inställningar. Vill du stänga av dem trycker du på <b>Inställningar</b>; Android låter bara dig göra det där.</td></tr>
     <tr><td><b>Säkerhet</b></td><td>PIN-kod med 4–6 siffror, och <b>fingeravtryck</b> för att låsa upp snabbare (PIN-koden finns kvar). Appen låser sig när den varit borta i mer än 2 minuter.</td></tr>
     <tr><td><b>Data</b></td><td>Automatisk säkerhetskopia, kopia till molnet, export, import och historik. Är kopian av visar Översikt en varning med senaste kopian.</td></tr>
     <tr><td><b>Mer</b></td><td>Förbättrad analys online (av som standard), sök efter uppdateringar (en gång om dagen; du bestämmer när den installeras), Integritet, Visa rundtur, <b>Nyheter</b> (vad som ändrats i varje version; efter en uppdatering visas det nya en gång, och en orange prick på raden visar att det finns något du inte har läst), Användarguide och Om appen.</td></tr>
@@ -677,7 +681,7 @@ table.t th { font-weight: 500; color: var(--muted); font-size: 7.8pt; }
   <p>Nej. Allt ligger krypterat i telefonen och i dina säkerhetskopior. Appen skickar inga uppgifter någonstans om du inte själv slår på "Förbättrad analys online" eller skickar en säkerhetskopia. Ingen inloggning behövs.</p>
   <h3>Telefonen frågar om appen är säker vid installation.</h3>
   <p>Appen installeras utanför Google Play, därför frågar Android. Ladda bara ner den via QR-koden på kortet.</p>
-  <div class="tip" style="margin-top:6mm"><b>Behöver du hjälp?</b> Kontakta den som sålde appen till dig. Ha gärna versionen till hands: Inställningar → Om appen.</div>
+  <div class="tip" style="margin-top:6mm"><b>Behöver du hjälp?</b> Skriv till Quee.apps@gmail.com (Inställningar → Mer → Kontakt) eller kontakta den som sålde appen till dig. Ha gärna versionen till hands: Inställningar → Om appen.</div>
   <div class="folio"><span>Vanliga frågor</span><span>15</span></div>
 </section>
 

@@ -87,3 +87,5 @@ The automated suite is a strong base for the numbers and reading rules. Release 
 | Product owner | | | |
 
 **Addendum 2026-11-20.** `flutter analyze` is clean and 441 tests pass locally (new: `moms_xml_test` for the XML, the own figures and ruta 49; `package_accept_test` for status, "Att känna till", the mail text and the README; `bank_layouts_test` for SEB, Handelsbanken and Nordea column names with invented rows). **Not yet checked on a phone:** the status line, the message field, the moms file screen and its upload at Skatteverket, and the three bank layouts on real files.
+
+**Addendum 2026-11-21.** `flutter analyze` is clean and 462 tests pass locally (new: `cash_summary_test`, `bank_match_test`, `split_payment_test`, `z_reminder_test`, and more layouts in `bank_layouts_test`). **Not yet checked on a phone:** every new screen (tabs, Jämför år, hero rows, bank matching, split payment, Kontroll, Moms), the notification test and the Z-report reminder, the database upgrade from version 11 on the owner's own data, and the bank layouts on real files.

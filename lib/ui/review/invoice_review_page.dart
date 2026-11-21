@@ -83,6 +83,9 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
 
   /// How it was paid. Only a default or a suggestion from the paper until the owner has chosen.
   PayMethod _payMethod = PayMethod.bank;
+
+  /// A split payment (part cash, part card), parts in absolute kronor; empty when not split.
+  List<PaymentPart> _split = [];
   bool _methodConfirmed = false;
   String? _methodReason;
   CompanyForm? _companyForm;
@@ -152,6 +155,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     if (e != null) {
       _paid = e.paid;
       _payMethod = e.payMethod;
+      if (e.paymentSplit.length > 1) _split = [for (final x in e.paymentSplit) PaymentPart(x.method, x.amount.abs())];
       _methodConfirmed = true;
     } else if (p != null && p.kind != PaymentKind.unknown) {
       _payMethod = p.method ?? PayMethod.bank;
@@ -245,6 +249,21 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
 
   void _changed([String? _]) => setState(() => _edited = true);
 
+  /// The split with signs like the total; the last part is always the rest, so the
+  /// parts add up even if the total was changed after the split was made.
+  List<PaymentPart> _signedSplit(Money total) {
+    if (_split.length < 2) return const [];
+    final sign = total.isNegative ? -1 : 1;
+    var rest = total.abs();
+    final out = <PaymentPart>[];
+    for (var i = 0; i < _split.length; i++) {
+      final amount = i == _split.length - 1 ? rest : _split[i].amount;
+      rest -= amount;
+      out.add(PaymentPart(_split[i].method, Money(amount.ore * sign)));
+    }
+    return out;
+  }
+
   Invoice? _build() {
     // On a kreditnota every amount counts as minus, also one typed without it.
     Money signed(Money m) => _isCredit ? -m.abs() : m;
@@ -254,6 +273,7 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     final parsedVat = _vat.text.trim().isEmpty ? Money.zero : Money.parse(_vat.text);
     if (parsedVat == null) return null;
     final vat = signed(parsedVat);
+    final split = _paid == true ? _signedSplit(total) : const <PaymentPart>[];
     final lines = <InvoiceVatLine>[];
     for (final r in _vatRows) {
       final v = Money.parse(_rowText(r));
@@ -282,7 +302,12 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
       bankgiro: _bankgiro.text.trim(),
       plusgiro: _plusgiro.text.trim(),
       costType: _costType,
-      payMethod: _paid == true ? _payMethod : PayMethod.bank,
+      payMethod: _paid != true
+          ? PayMethod.bank
+          : split.isEmpty
+              ? _payMethod
+              : (split.toList()..sort((a, b) => b.amount.ore.abs().compareTo(a.amount.ore.abs()))).first.method,
+      paymentSplit: split,
     );
   }
 
@@ -303,6 +328,12 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
     }
     final inv = _build();
     if (inv == null) return;
+    if (inv.paymentSplit.isNotEmpty && !PaymentPart.valid(inv.paymentSplit, inv.total)) {
+      setState(() => _editing = true);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Varje del av betalningen måste vara över 0 och delarna ska bli hela summan.')));
+      return;
+    }
     if (_paid == null) {
       setState(() => _editing = true);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -643,6 +674,15 @@ class _InvoiceReviewPageState extends State<InvoiceReviewPage> {
                   confirmed: _methodConfirmed,
                   suggestion: _methodReason,
                   form: _companyForm,
+                  total: Money.parse(_total.text),
+                  split: _split,
+                  onSplit: !_editing
+                      ? null
+                      : (p) => setState(() {
+                            _split = p;
+                            _methodConfirmed = true;
+                            _edited = true;
+                          }),
                   onChanged: !_editing
                       ? (_) {}
                       : (m) => setState(() {

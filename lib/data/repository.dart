@@ -502,6 +502,7 @@ class Repository {
         'plusgiro': inv.plusgiro.trim(),
         'cost_type': inv.costType,
         'pay_method': inv.paid ? inv.payMethod.name : PayMethod.bank.name,
+        'pay_split': inv.paid && inv.paymentSplit.length > 1 ? PaymentPart.encode(inv.paymentSplit) : null,
         'updated_at': _now(),
       };
       int id;
@@ -806,7 +807,8 @@ class Repository {
   }
 
   /// "Markera som betald" / "Markera som obetald", with an audit entry.
-  Future<void> setInvoicePaid(int id, {required bool paid, String? paidDate, PayMethod? payMethod}) async {
+  Future<void> setInvoicePaid(int id,
+      {required bool paid, String? paidDate, PayMethod? payMethod, List<PaymentPart> split = const []}) async {
     await db.transaction((txn) async {
       await txn.update(
           'invoices',
@@ -815,6 +817,7 @@ class Repository {
             'paid_date': paid ? paidDate : null,
             // An invoice that is not paid again is booked from the bank until it is paid.
             if (!paid) 'pay_method': PayMethod.bank.name else if (payMethod != null) 'pay_method': payMethod.name,
+            if (!paid || payMethod != null) 'pay_split': paid && split.length > 1 ? PaymentPart.encode(split) : null,
             'updated_at': _now(),
           },
           where: 'id = ?',
@@ -856,6 +859,7 @@ class Repository {
       plusgiro: r['plusgiro'] as String? ?? '',
       costType: r['cost_type'] as String? ?? '',
       payMethod: PayMethod.parse(r['pay_method'] as String?),
+      paymentSplit: PaymentPart.decode(r['pay_split'] as String?),
       vatLines: [
         for (final v in vat)
           InvoiceVatLine(
@@ -877,6 +881,7 @@ class Repository {
         'betald': i.paid,
         'betaldatum': i.paidDate,
         'betalsatt': i.payMethod.name,
+        if (i.paymentSplit.length > 1) 'betaldelar': [for (final p in i.paymentSplit) {'satt': p.method.name, 'ore': p.amount.ore}],
         'summa_ore': i.total.ore,
         'moms_ore': i.vatTotal.ore,
         'moms': [

@@ -127,9 +127,9 @@ Future<void> showPaySheet(BuildContext context, Invoice inv) => showBlurSheet<vo
                   final messenger = ScaffoldMessenger.of(c);
                   final form = await controller.repo.companyForm();
                   if (!c.mounted) return;
-                  final paid = await askPayment(c, form: form);
+                  final paid = await askPayment(c, form: form, total: inv.total);
                   if (paid == null) return;
-                  await controller.repo.setInvoicePaid(inv.id!, paid: true, paidDate: paid.date, payMethod: paid.method);
+                  await controller.repo.setInvoicePaid(inv.id!, paid: true, paidDate: paid.date, payMethod: paid.method, split: paid.split);
                   controller.dataChanged();
                   navigator.pop();
                   messenger.showSnackBar(const SnackBar(content: Text('Fakturan är markerad som betald.')));

@@ -1,3 +1,4 @@
+import 'reports/compare_page.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -102,7 +103,35 @@ class DashboardPage extends StatelessWidget {
                   to: ym.lastDay,
                   period: ym.title),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: 14),
+            Material(
+              color: AppTheme.surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: AppTheme.fixBorder, width: 1.5)),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ComparePage())),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(color: AppTheme.fixTint, borderRadius: BorderRadius.circular(12)),
+                      child: Icon(AppIcons.swap, size: 20, color: AppTheme.compare),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Jämför år', style: t.titleSmall),
+                        Text('Månad för månad, flera år: försäljning, utgifter, resultat och moms', style: t.bodySmall),
+                      ]),
+                    ),
+                    Icon(AppIcons.chevronRight, size: 18, color: AppTheme.muted),
+                  ]),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text('Senaste registreringar', style: t.titleMedium),
               TextButton(

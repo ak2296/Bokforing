@@ -5,12 +5,23 @@ import '../../domain/money.dart';
 import '../app_icons.dart';
 import '../theme.dart';
 
+/// One figure in a hero's row: label, value and, when it opens something, a tap.
+class HeroStat {
+  final String label;
+  final String value;
+  final VoidCallback? onTap;
+  const HeroStat(this.label, this.value, {this.onTap});
+}
+
 /// The big figure at the top of Försäljning and Utgifter: a coloured card
 /// with the month's total and a few key numbers below it.
 class SummaryHero extends StatelessWidget {
   final String label;
   final Money total;
   final List<(String, String)> stats;
+
+  /// A second row under [stats] (cash and card): label, value and what a tap opens.
+  final List<HeroStat> extraStats;
   final Color color;
   final IconData icon;
   const SummaryHero({
@@ -20,7 +31,37 @@ class SummaryHero extends StatelessWidget {
     required this.stats,
     required this.color,
     required this.icon,
+    this.extraStats = const [],
   });
+
+  Widget _statsRow(TextTheme t, List<HeroStat> items) {
+    const onColor = Colors.white;
+    return Row(children: [
+      for (final (i, s) in items.indexed) ...[
+        if (i > 0) Container(width: 1, height: 30, color: onColor.withValues(alpha: 0.18)),
+        Expanded(
+          child: InkWell(
+            onTap: s.onTap,
+            child: Padding(
+              padding: EdgeInsets.only(left: i == 0 ? 0 : 12),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(s.label, style: t.bodySmall?.copyWith(color: onColor.withValues(alpha: 0.75)), maxLines: 1),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(s.value, style: t.titleSmall?.merge(moneyStyle).copyWith(color: onColor)),
+                    if (s.onTap != null) Icon(AppIcons.chevronRight, size: 16, color: onColor.withValues(alpha: 0.8)),
+                  ]),
+                ),
+              ]),
+            ),
+          ),
+        ),
+      ],
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,25 +99,13 @@ class SummaryHero extends StatelessWidget {
           const SizedBox(height: 14),
           Container(height: 1, color: onColor.withValues(alpha: 0.18)),
           const SizedBox(height: 12),
-          Row(children: [
-            for (final (i, s) in stats.indexed) ...[
-              if (i > 0) Container(width: 1, height: 30, color: onColor.withValues(alpha: 0.18)),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(left: i == 0 ? 0 : 12),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(s.$1, style: t.bodySmall?.copyWith(color: onColor.withValues(alpha: 0.75))),
-                    const SizedBox(height: 2),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(s.$2, style: t.titleSmall?.merge(moneyStyle).copyWith(color: onColor)),
-                    ),
-                  ]),
-                ),
-              ),
-            ],
-          ]),
+          _statsRow(t, [for (final s in stats) HeroStat(s.$1, s.$2)]),
+          if (extraStats.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(height: 1, color: onColor.withValues(alpha: 0.18)),
+            const SizedBox(height: 11),
+            _statsRow(t, extraStats),
+          ],
         ],
       ]),
     );

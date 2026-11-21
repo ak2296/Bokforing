@@ -117,19 +117,27 @@ class SieExport {
       // Paid on the day (kvitto): straight from where the money came: the bank,
       // the till or the owner's own money. Otherwise a debt until it is paid.
       final paidAtOnce = i.paid && (i.paidDate == null || i.paidDate == i.bookingDate);
-      final from = i.payMethod.account(form);
+      final parts = i.parts;
       if (inPeriod(i.bookingDate)) {
         final v = _Ver('C', i.bookingDate, text.isEmpty ? 'Leverantörsfaktura' : text);
         v.add(cost.account, i.total - i.vatTotal, name: cost.label);
         if (!i.vatTotal.isZero) v.add(inputVat, i.vatTotal);
-        v.add(paidAtOnce ? from : supplierDebt, -i.total);
+        if (paidAtOnce) {
+          for (final p in parts) {
+            v.add(p.method.account(form), -p.amount);
+          }
+        } else {
+          v.add(supplierDebt, -i.total);
+        }
         vers.add(v);
       }
       // A payment in the period, also for an invoice from before it.
       if (!paidAtOnce && i.paid && inPeriod(i.paidDate)) {
-        vers.add(_Ver('C', i.paidDate!, 'Betalning ${text.isEmpty ? 'leverantörsfaktura' : text}')
-          ..add(supplierDebt, i.total)
-          ..add(from, -i.total));
+        final pay = _Ver('C', i.paidDate!, 'Betalning ${text.isEmpty ? 'leverantörsfaktura' : text}')..add(supplierDebt, i.total);
+        for (final p in parts) {
+          pay.add(p.method.account(form), -p.amount);
+        }
+        vers.add(pay);
       }
     }
 

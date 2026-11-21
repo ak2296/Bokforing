@@ -112,6 +112,10 @@ Mark each line Pass / Fail / N/A with the build number.
 - [ ] Redovisarpaket: the status line shows ready, "med punkter du har godkänt" or "saker att se över"; the folder holds a Kassarapport and, with open points, "Att känna till"; the message field fills itself, keeps the owner's edit when leaving and coming back, and "Skriv om automatiskt" restores it; the message is in the mail and in the README.
 - [ ] Redovisning → Momsfil till Skatteverket: the figures equal the Momsunderlag; with your own figures the DINA marks show and the file cannot be saved before the confirm box; the saved XML uploads in Skatteverket's "Deklarera via fil" (test with a real month before relying on it).
 - [ ] Bank file from SEB, Handelsbanken and Nordea (own file, private): payments are read; tell the owner which layouts failed.
+- [ ] Försäljning, Utgifter and Månad: the second hero row shows cash and card; the chips on Månad are the same size; "Z mot bank" reads a bank file (own file, private) and the count stays after closing it.
+- [ ] A receipt paid partly in cash and partly by card: "Dela upp betalningen" saves; the details page lists both parts; Kassa on Månad counts each; the SIE file shows 1910 and 1930 on the verification; an old receipt still opens.
+- [ ] Rapporter shows Period, Moms, Kontroll, Bokslut and Redovisning; Jämför år opens from the start page with two to four years; Månadsrapport or Årsrapport is under Redovisning.
+- [ ] Notifications on the Galaxy S23 Ultra: "Skicka testavisering" shows one at once and one a minute later, in the list and as a symbol top left. Then remove the test tile. The Z-report reminder comes at 18:00 the chosen evening.
 - [ ] Redovisarpaket: a yellow row opens "Att se över"; a tap on a point opens the Z-report or invoice; after "Godkänn och ta med" the row is ticked and goes into the folder; after a fix the row is green again.
 - [ ] Redovisning has a Kassarapport; the SIE file shows 1910 and 1930 on the Dagskassa verification.
 

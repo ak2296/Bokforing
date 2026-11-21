@@ -212,6 +212,16 @@ sequenceDiagram
 
 Both apps use the Firestore REST interface with a plain HTTP client (no Firebase SDK). The rules (`firebase/firestore.rules`, kept outside the repositories) allow a customer to create one request and one trial and to read only its own request, and allow the owner (one fixed user id, password sign-in) to list, change and delete requests. `LicenseChecker` accepts a code only if the Ed25519 signature matches the public key in the app; `Repository.licenseState` returns the code state, else the trial, and `mismatch` when the company in Företag differs from the code or trial. The key app unlocks the secret key (PBKDF2-SHA256 600 000 rounds, AES-256-GCM) off the UI thread through a top-level function, because a closure made inside a screen carries the screen's objects and Dart refuses to send them to an isolate.
 
+### 4.4f Cash and card, bank matching, split payment
+
+`CashSummary.of(sales, invoices)` adds Z-report cash and card/Swish (only reports that carry the figures) and what the paid invoices were paid with, per part. "Bank / kort" cannot be split into card and bank: the app has one choice for both. The figures are net, not a balance.
+
+`ZBankMatcher.matchZ` walks the deposits (positive rows) oldest first. A deposit pays the oldest open run of card-takings days (one to seven days, starting at one of the three oldest open days) when it is not above the run's card total and at most 6 % below it. Open days that no deposit paid are grouped into runs; days younger than five days are "väntar". Invoices and receipts paid from the bank or by card use the existing `BankMatcher`, where only the bank part has to equal the payment (`Invoice.bankPart`). `BankMatchFlags` (settings key `bank_match`) keep yes or no per Z-report day and per invoice id; nothing else from the bank file is stored. The hero count reads "x av y" or "–" when no file was read for those days.
+
+A split payment is stored in the invoices column `pay_split` (database version 12) as JSON `[["cash",ore],["bank",ore]]`; `payMethod` holds the method of the biggest part. `Invoice.parts` is the split, or the whole amount with `payMethod`. The editor always makes the last part the rest, and `_build` recomputes it from the current total, so the parts add up even if the total is changed afterwards. The SIE file credits one account per part, both for a receipt and for a later payment of an invoice.
+
+The Z-report reminder (`Reminders.zTimes`) is a pure function of the date, the scanned days and the closed days. It is rebuilt with the payment reminders on every data change, so a scanned Z-report cancels its reminder.
+
 ## 5. Visual and interaction design
 
 - Brand colours: green (seed) and pumpkin orange; expenses and "Kontrollera" use orange; credit notes and good changes use green; overdue uses red; unpaid uses brown.

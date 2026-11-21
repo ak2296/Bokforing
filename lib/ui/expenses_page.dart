@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_controller.dart';
+import '../data/bank_match_store.dart';
+import '../domain/cash_summary.dart';
 import '../domain/cost_types.dart';
 import '../domain/dates.dart';
 import '../domain/invoice_filter.dart';
 import '../domain/models.dart';
 import '../domain/money.dart';
 import 'app_icons.dart';
+import 'bank_match_page.dart';
 import 'bank_import_page.dart';
 import 'incomplete_page.dart';
 import 'record_details.dart';
@@ -95,15 +98,17 @@ class _ExpensesPageState extends State<ExpensesPage> {
   // Every invoice is loaded with the month, so typing filters in place and
   // the search field keeps its focus (no reload between letters).
   @override
-  Widget build(BuildContext context) => Reloading<(MonthData, List<Invoice>, List<Invoice>)>(
+  Widget build(BuildContext context) => Reloading<(MonthData, List<Invoice>, List<Invoice>, BankMatchFlags)>(
         deps: _ym.title,
         loader: (c) async => (
           await MonthData.load(c, _ym),
           await c.repo.unpaidInvoices(),
           await c.repo.invoicesBetween('0000-01-01', '9999-12-31'),
+          await loadBankMatch(c.repo),
         ),
         builder: (context, data) {
-          final (m, unpaid, all) = data;
+          final (m, unpaid, all, flags) = data;
+          final cash = CashSummary.of(m.sales, m.invoices);
           final r = m.report;
           final byType = <String, Money>{};
           for (final i in m.invoices) {
@@ -151,6 +156,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   ('Ingående moms', r.totalInputVat.format(compact: true)),
                   ('Fakturor', '${m.invoices.length}'),
                   ('Obetalda', '$unpaidThisMonth'),
+                ],
+                extraStats: [
+                  HeroStat('Kontant', cash.cashOut.format(compact: true)),
+                  HeroStat('Bank / kort', cash.bankOut.format(compact: true)),
+                  HeroStat('Mot bank', flags.invoiceText(m.invoices),
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BankMatchPage(invoices: true)))),
                 ],
               ),
               if (parts.isNotEmpty) ...[
@@ -248,7 +259,7 @@ Widget _invoiceRow(BuildContext context, Invoice inv, {bool rounded = false}) =>
         if (!inv.paid) _dueChip(inv),
         // Grey, so it cannot be mistaken for the coloured status labels.
         if (inv.paid && !inv.total.isNegative)
-          StatusChip(inv.payMethod.label, color: AppTheme.ink.withValues(alpha: 0.78), background: AppTheme.hairline),
+          StatusChip(inv.payLabel, color: AppTheme.ink.withValues(alpha: 0.78), background: AppTheme.hairline),
       ],
       amountNote: inv.isIncomplete
           ? StatusChip('Fyll i: ${inv.missingFields.join(', ')}', color: AppTheme.fix, background: AppTheme.fixTint)

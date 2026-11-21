@@ -39,10 +39,11 @@ class BankStatement {
     final headerAt = lines.indexWhere((l) => l.toLowerCase().contains('belopp'));
     if (headerAt < 0) throw const FormatException('Filen har ingen rubrikrad med kolumnen Belopp.');
     final delimiter = _delimiter(lines[headerAt]);
-    final header = [for (final h in _split(lines[headerAt], delimiter)) h.trim().toLowerCase()];
+    // Compared without å, ä and ö: some exports write "Bokforingsdag" and "Avsandare".
+    final header = [for (final h in _split(lines[headerAt], delimiter)) _fold(h.trim().toLowerCase())];
     int? col(List<String> names) {
       for (final n in names) {
-        final i = header.indexOf(n);
+        final i = header.indexOf(_fold(n));
         if (i >= 0) return i;
       }
       return null;
@@ -109,6 +110,8 @@ class BankStatement {
     }
     return BankStatement(rows, warnings);
   }
+
+  static String _fold(String s) => s.replaceAll('å', 'a').replaceAll('ä', 'a').replaceAll('ö', 'o');
 
   /// UTF-8 when the bytes are valid UTF-8, otherwise Windows-1252, which
   /// Swedish banks use. å, ä and ö are the same bytes in Latin-1.

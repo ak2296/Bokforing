@@ -27,6 +27,22 @@ import '../widgets/common.dart';
 /// "Redovisarpaket": every document the accountant needs for a month, made
 /// in one go. Save it as one folder (a ZIP), send the files by e-mail, or pick
 /// the papers to print. Says what is missing before anything is made.
+/// Opens the document or page where a point to look at is fixed.
+Future<void> openReviewIssue(BuildContext context, ReviewIssue issue) async {
+  switch (issue.target) {
+    case IssueTarget.zReport:
+      if (issue.id != null) await openRecord(context, 'daily_sales', issue.id!);
+    case IssueTarget.invoice:
+      if (issue.invoice != null) {
+        await Navigator.of(context).push(MaterialPageRoute(builder: (_) => InvoiceReviewPage(existing: issue.invoice)));
+      }
+    case IssueTarget.balances:
+      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BalancesPage()));
+    case IssueTarget.none:
+      break;
+  }
+}
+
 class PackagePage extends StatefulWidget {
   /// Where the picker starts when the default is one month.
   final YearMonth? ym;
@@ -398,16 +414,7 @@ class _PackagePageState extends State<PackagePage> {
     );
     if (!mounted) return;
     if (result is ReviewIssue) {
-      switch (result.target) {
-        case IssueTarget.zReport:
-          if (result.id != null) await openRecord(context, 'daily_sales', result.id!);
-        case IssueTarget.invoice:
-          if (result.invoice != null) await Navigator.of(context).push(MaterialPageRoute(builder: (_) => InvoiceReviewPage(existing: result.invoice)));
-        case IssueTarget.balances:
-          await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BalancesPage()));
-        case IssueTarget.none:
-          break;
-      }
+      await openReviewIssue(context, result);
       // Fixed things turn normal again; what is still yellow needs a new confirmation.
       if (mounted) {
         setState(() {

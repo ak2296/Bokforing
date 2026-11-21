@@ -107,6 +107,14 @@ Priority: **M** must, **S** should, **C** could. "Verified by" names automated t
 | FR-74 | "Momsfil till Skatteverket" (Redovisning) builds the momsdeklaration of a month, quarter or year as the XML file of Skatteverket's file upload (eSKDUpload 6.0): whole kronor, boxes in the form's order, ruta 49 = 10+11+12+30+31+32+60+61+62 minus 48, ISO-8859-1. The owner saves or shares it, uploads it and signs at Skatteverket. The app sends nothing. | S | `moms_xml_test`, on a phone |
 | FR-75 | The owner can type the boxes the app cannot know (EU trade, reverse charge, import, withdrawals, extra input VAT) per period; they are marked DINA, are not checked and are not in the SIE file, and the file can be saved only after the owner confirms responsibility for them. | S | `moms_xml_test`, on a phone |
 | FR-76 | The bank file import also finds the column names of SEB, Handelsbanken and Nordea exports (layouts from memory, not tried on real files). | C | `bank_layouts_test` |
+| FR-77 | Försäljning, Utgifter and Månad show cash and card: a second row in the hero (Kontant, Kort och Swish / Bank / kort, and a bank count), and on Månad a card "Kassa denna månad (netto)" with cash in minus cash out and card in minus bank/card out. The text says netto, not saldo. | S | `cash_summary_test` |
+| FR-78 | "Z mot bank" and "Mot bank" read a bank file the owner picks and match card takings to deposits (several days in one deposit, a fee of up to 6 % below) and bank/card payments to receipts and invoices; only yes or no per Z-report day and invoice is kept. | S | `bank_match_test`, on a phone |
+| FR-79 | A payment can be split into parts (Kontant, Bank / kort, Privat) with an amount each; the last part is the rest. The split is saved, booked per part in the SIE file, counted per part in the cash figures, and only the bank part is looked for in the bank file. | S | `split_payment_test` |
+| FR-80 | The report tabs are Period (Månad | År), Moms, Kontroll, Bokslut and Redovisning. "Jämför år" is a button on the start page and compares two to four years month by month or quarter by quarter. | S | on a phone |
+| FR-81 | Bokföringsrapporter holds the Månadsrapport (a month) or Årsrapport / Periodrapport (a year, quarter or half-year) with PDF, Excel and print. | C | on a phone |
+| FR-82 | A reminder at 18:00 for an open day with no Z-report: the same evening, the evening after (default) or two evenings after, or off; days that fall on the same evening come in one notification. | C | `z_reminder_test`, on a phone |
+| FR-83 | Payment reminders use their own notification channel with high importance and a white status-bar symbol. A temporary "Skicka testavisering" tile checks the notifications on the owner's phone and is to be removed afterwards. | C | on a phone |
+| FR-84 | Settings → Mer has a Kontakt tile (Quee.apps@gmail.com) and the same line in Om appen. | C | on a phone |
 
 ### 4.5 Data protection and administration
 

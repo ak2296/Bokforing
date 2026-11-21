@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../app/app_controller.dart';
 import '../domain/bank_matcher.dart';
 import '../domain/bank_statement.dart';
+import '../domain/money.dart';
 import '../domain/pay_method.dart';
 import 'app_icons.dart';
 import 'theme.dart';
@@ -40,7 +41,7 @@ class _BankImportPageState extends State<BankImportPage> {
       final statement = BankStatement.parse(await File(path).readAsBytes());
       final paidByBank = [
         for (final i in await controller.repo.invoicesBetween('2000-01-01', '9999-12-31'))
-          if (i.paid && i.payMethod == PayMethod.bank && !i.total.isNegative) i,
+          if (i.paid && i.bankPart > Money.zero) i,
       ];
       final result = BankMatcher.match(statement.rows, await controller.repo.unpaidInvoices(), paidByBank: paidByBank);
       if (!mounted) return;

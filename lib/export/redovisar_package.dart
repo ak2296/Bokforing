@@ -367,6 +367,42 @@ Future<PackageData> loadPackage(AppController c, ReportPeriod period) async {
   return PackageData(period, profile, month, items, !empty, issues: issueList);
 }
 
+/// Månad för månad inside a period of more than one month, as a report: "Årsrapport" for a
+/// year, "Periodrapport" for a quarter or half-year. For one month the Månadsrapport has its
+/// own layout (see monthlyTable).
+Future<ReportTable> loadPeriodTable(AppController c, ReportPeriod period) async {
+  final repo = c.repo;
+  final rows = <YearRow>[];
+  for (final y in {for (final (y, _) in period.months) y}) {
+    final yr = const ReportGenerator().yearly(
+      year: y,
+      sales: await repo.dailySalesBetween('$y-01-01', '$y-12-31'),
+      invoices: await repo.invoicesForReports('$y-01-01', '$y-12-31'),
+      online: await repo.onlineSalesBetween('$y-01-01', '$y-12-31'),
+    );
+    for (final (py, pm) in period.months) {
+      if (py == y) rows.add(yr.rows[pm - 1]);
+    }
+  }
+  String m(Money v) => excelNumber(v);
+  final name = period.kind == PeriodKind.year ? 'Årsrapport' : 'Periodrapport';
+  return ReportTable(
+    title: '$name ${period.title}',
+    fileName: '${name.toLowerCase()}_${period.fileTag}',
+    headers: const ['Månad', 'Försäljning', 'Varav online', 'Utgifter', 'Utgående moms', 'Ingående moms', 'Momsskillnad'],
+    rows: [for (final r in rows) [r.monthName, m(r.sales), m(r.online), m(r.expenses), m(r.outputVat), m(r.inputVat), m(r.vatDifference)]],
+    totals: [
+      'Totalt',
+      m(Money.sum(rows.map((r) => r.sales))),
+      m(Money.sum(rows.map((r) => r.online))),
+      m(Money.sum(rows.map((r) => r.expenses))),
+      m(Money.sum(rows.map((r) => r.outputVat))),
+      m(Money.sum(rows.map((r) => r.inputVat))),
+      m(Money.sum(rows.map((r) => r.vatDifference))),
+    ],
+  );
+}
+
 /// The files of one item as (file name, bytes): PDF and Excel, or the SIE file.
 Future<List<(String, Uint8List)>> itemFiles(PackageData d, PackageItem i) async {
   if (i.sie != null) return [(i.sieName ?? 'sie.se', i.sie!)];

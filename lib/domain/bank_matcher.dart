@@ -1,7 +1,6 @@
 import 'bank_statement.dart';
 import 'dates.dart';
 import 'models.dart';
-import 'pay_method.dart';
 import 'text_patterns.dart';
 
 /// A bank payment that pays one of the unpaid invoices.
@@ -130,7 +129,9 @@ class BankMatcher {
   /// from a week before the purchase to ten days after it (the bank books a card payment a
   /// few days late).
   static bool _fitsPaid(BankRow row, Invoice inv) {
-    if (inv.payMethod != PayMethod.bank || !inv.paid || inv.total.isZero || row.amount != -inv.total) return false;
+    // With a split payment only the part paid from the bank or by card is in the bank file.
+    final bank = inv.bankPart;
+    if (!inv.paid || bank.isZero || row.amount != -bank) return false;
     final days = _days(inv.paidDate ?? inv.invoiceDate, row.date);
     return days == null || (days >= -7 && days <= 10);
   }

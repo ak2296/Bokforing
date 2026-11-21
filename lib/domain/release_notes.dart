@@ -14,6 +14,15 @@ class ReleaseNote {
 }
 
 const releaseNotes = <ReleaseNote>[
+  ReleaseNote(15, '21 november 2026', 'Kassa, bank, delad betalning och nya flikar', [
+    ('Kontant och kort:', 'Försäljning, Utgifter och Månad visar kontant och kort. På Månad finns kortet Kassa denna månad (netto).'),
+    ('Mot bank:', 'tryck på Z mot bank eller Mot bank, välj en bankfil och se vilka Z-rapporter och betalningar som stämmer. Appen sparar bara ja eller nej.'),
+    ('Delad betalning:', 'betalade du delvis kontant och delvis med kort trycker du på Dela upp betalningen.'),
+    ('Rapporter:', 'flikarna är nu Period (Månad och År), Moms, Kontroll, Bokslut och Redovisning. Jämför år är en knapp på startsidan och jämför upp till fyra år.'),
+    ('Redovisning:', 'Månadsrapport och Årsrapport finns också under Bokföringsrapporter.'),
+    ('Påminnelser:', 'en kvällspåminnelse när en Z-rapport saknas, och tydligare aviseringar. Under Inställningar finns tillfälligt Skicka testavisering.'),
+    ('Kontakt:', 'Quee.apps@gmail.com finns under Inställningar → Mer.'),
+  ]),
   ReleaseNote(14, '20 november 2026', 'Momsfil och bättre redovisarpaket', [
     ('Momsfil:', 'under Redovisning finns Momsfil till Skatteverket. Du sparar filen och lämnar in den hos Skatteverket via Deklarera via fil. Har du siffror för EU-handel, import eller omvänd skattskyldighet kan du skriva in dem själv.'),
     ('Redovisarpaket:', 'en statusrad visar om allt är klart. Kassarapporten följer med, och ett papper Att känna till visar din redovisare vad som är öppet.'),

@@ -1,3 +1,4 @@
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 
 import '../app_icons.dart';
@@ -54,6 +55,9 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _notifAllowed = true;
   bool _notesNew = false;
   int _reminderDays = Reminders.defaultDays;
+
+  /// Days after a day without a Z-report that the reminder comes; null is off.
+  int? _zDelay = Reminders.defaultZDelay;
   BusinessProfile _profile = const BusinessProfile();
   CompanyForm? _form;
   LicenseState? _license;
@@ -81,6 +85,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final updateCheck = await repo.boolSetting(SettingsKeys.updateCheck, fallback: true);
     final reminders = await Reminders.enabled(repo);
     final days = await Reminders.days(repo);
+    final zDelay = await Reminders.zDelay(repo);
     final bio = await pinLock?.biometricAvailable ?? false;
     final notesNew = await notesSeen(repo) < latestNoteId;
     if (!mounted) return;
@@ -93,6 +98,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _updateCheck = updateCheck;
       _reminders = reminders;
       _reminderDays = days;
+      _zDelay = zDelay;
       _bioAvailable = bio;
       _notesNew = notesNew;
       _loading = false;
@@ -272,6 +278,43 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         if (_reminders)
           _Entry(
+            'påminn z-rapport saknas kväll',
+            ListTile(
+              leading: const Icon(AppIcons.notifications, color: Colors.transparent),
+              title: const Text('Påminn om saknad Z-rapport'),
+              subtitle: const Text('Kl 18, om dagen inte är stängd och Z-rapporten inte är skannad.'),
+              trailing: DropdownButton<int>(
+                value: _zDelay ?? -1,
+                items: const [
+                  DropdownMenuItem(value: -1, child: Text('Av')),
+                  DropdownMenuItem(value: 0, child: Text('Samma kväll')),
+                  DropdownMenuItem(value: 1, child: Text('Nästa kväll')),
+                  DropdownMenuItem(value: 2, child: Text('Två kvällar efter')),
+                ],
+                onChanged: (v) async {
+                  if (v == null) return;
+                  await controller.repo.setSetting(Reminders.zDelayKey, v < 0 ? 'off' : '$v');
+                  controller.dataChanged();
+                  if (mounted) setState(() => _zDelay = v < 0 ? null : v);
+                },
+              ),
+            ),
+          ),
+        // TEMP: remove after the notification test.
+        _Entry(
+          'testavisering notis test',
+          ListTile(
+            leading: const Icon(AppIcons.notifications),
+            title: const Text('Skicka testavisering'),
+            subtitle: const Text('Tillfälligt: en avisering nu och en till om en minut. Lämna appen och titta i listan och uppe till vänster.'),
+            onTap: () async {
+              await controller.reminders?.requestPermission();
+              await controller.reminders?.sendTest();
+            },
+          ),
+        ),
+        if (_reminders)
+          _Entry(
             'påminn dagar före förfallodagen',
             ListTile(
               leading: const Icon(AppIcons.notifications, color: Colors.transparent),
@@ -413,6 +456,15 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GuideReaderPage())),
           ),
         ),
+        _Entry(
+          'kontakt e-post mejl hjälp support',
+          ListTile(
+            leading: const Icon(AppIcons.mail),
+            title: const Text('Kontakt'),
+            subtitle: const Text('Quee.apps@gmail.com'),
+            onTap: () => launchUrl(Uri(scheme: 'mailto', path: 'Quee.apps@gmail.com', queryParameters: {'subject': 'Quee'})),
+          ),
+        ),
         const _Entry(
           'om appen version',
           AboutListTile(
@@ -422,6 +474,8 @@ class _SettingsPageState extends State<SettingsPage> {
             aboutBoxChildren: [
               Text('Lokal bokföringsassistent för småföretag i Sverige. '
                   'Beräkningarna är ett stöd och ersätter inte en fullständig bokföring eller momsdeklaration.'),
+              SizedBox(height: 8),
+              Text('Kontakt: Quee.apps@gmail.com'),
             ],
             child: Text('Om appen'),
           ),

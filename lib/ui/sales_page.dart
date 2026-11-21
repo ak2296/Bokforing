@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_controller.dart';
+import '../data/bank_match_store.dart';
+import '../domain/cash_summary.dart';
 import '../domain/closed_days.dart';
 import '../domain/dates.dart';
 import '../domain/money.dart';
 import 'app_icons.dart';
+import 'bank_match_page.dart';
 import 'record_details.dart';
 import 'scan/scan_flow.dart';
 import 'theme.dart';
@@ -23,11 +26,12 @@ class _SalesPageState extends State<SalesPage> {
   YearMonth _ym = YearMonth.now();
 
   @override
-  Widget build(BuildContext context) => Reloading<(MonthData, ClosedDays)>(
+  Widget build(BuildContext context) => Reloading<(MonthData, ClosedDays, BankMatchFlags)>(
         deps: _ym.title,
-        loader: (c) async => (await MonthData.load(c, _ym), await c.repo.closedDays()),
+        loader: (c) async => (await MonthData.load(c, _ym), await c.repo.closedDays(), await loadBankMatch(c.repo)),
         builder: (context, data) {
-          final (m, closed) = data;
+          final (m, closed, flags) = data;
+          final cash = CashSummary.of(m.sales, m.invoices);
           final r = m.report;
           final coverage = ZCoverage.of(
             year: _ym.year,
@@ -96,6 +100,12 @@ class _SalesPageState extends State<SalesPage> {
                   ('Utgående moms', r.totalOutputVat.format(compact: true)),
                   ('Z-rapporter', coverage.text),
                   ('Online', r.totalOnline.format(compact: true)),
+                ],
+                extraStats: [
+                  HeroStat('Kontant', cash.cashIn.format(compact: true)),
+                  HeroStat('Kort och Swish', cash.cardIn.format(compact: true)),
+                  HeroStat('Z mot bank', flags.zText(m.sales),
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BankMatchPage(invoices: false)))),
                 ],
               ),
               if (coverage.missing.isNotEmpty) ...[

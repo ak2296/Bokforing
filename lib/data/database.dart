@@ -6,7 +6,7 @@ import 'package:sqflite/sqflite.dart';
 /// except amounts printed on the document itself (e.g. reported Z total).
 class AppDatabase {
   static const fileName = 'bokforing.db';
-  static const version = 11;
+  static const version = 12;
 
   static Future<Database> open({DatabaseFactory? factory, String? path}) async {
     final f = factory ?? databaseFactory;
@@ -54,6 +54,11 @@ class AppDatabase {
           if (oldVersion < 11) {
             final batch = db.batch();
             _v11Changes(batch);
+            await batch.commit(noResult: true);
+          }
+          if (oldVersion < 12) {
+            final batch = db.batch();
+            _v12Changes(batch);
             await batch.commit(noResult: true);
           }
           if (oldVersion < 7) {
@@ -188,6 +193,7 @@ class AppDatabase {
     _v9Tables(batch);
     _v10Changes(batch);
     _v11Changes(batch);
+    _v12Changes(batch);
     for (final bp in const [0, 600, 1200, 2500]) {
       batch.insert('vat_rates', {'basis_points': bp, 'active': 1});
     }
@@ -255,6 +261,11 @@ class AppDatabase {
   }
 
   /// v11: what a Z-report says about payments and the till (null when it does not say).
+  /// v12: a payment can be split (part cash, part card): the parts as JSON, null when not split.
+  static void _v12Changes(Batch batch) {
+    batch.execute('ALTER TABLE invoices ADD COLUMN pay_split TEXT');
+  }
+
   static void _v11Changes(Batch batch) {
     for (final c in const ['card_ore', 'cash_ore', 'cash_in_ore', 'cash_out_ore', 'cash_left_ore']) {
       batch.execute('ALTER TABLE daily_sales ADD COLUMN $c INTEGER');

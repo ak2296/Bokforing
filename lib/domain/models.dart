@@ -191,7 +191,23 @@ class Invoice {
   final String costType;
 
   /// How it was paid (matters for the books when [paid]); [PayMethod.bank] until chosen.
+  /// With a split payment this is the method of the biggest part.
   final PayMethod payMethod;
+
+  /// When the payment was split (part cash, part card): the parts, adding up to [total].
+  /// Empty when the whole amount was paid one way.
+  final List<PaymentPart> paymentSplit;
+
+  /// What was paid in which way: the split, or the whole amount with [payMethod].
+  List<PaymentPart> get parts => paymentSplit.length > 1 ? paymentSplit : [PaymentPart(payMethod, total)];
+
+  /// The part paid from the company's bank or card; zero when none was.
+  Money get bankPart => Money.sum(parts.where((p) => p.method == PayMethod.bank).map((p) => p.amount));
+
+  /// "Kontant 500 + Bank / kort 750" for a split, the method's name otherwise.
+  String get payLabel => paymentSplit.length > 1
+      ? [for (final p in paymentSplit) '${p.method.label} ${p.amount.format(unit: false, compact: true)}'].join(' + ')
+      : payMethod.label;
 
   /// The day the expense counts on in reports, moms and SIE: the due date
   /// (förfallodatum) when there is one, otherwise the document date. A
@@ -201,6 +217,7 @@ class Invoice {
   const Invoice({
     this.costType = '',
     this.payMethod = PayMethod.bank,
+    this.paymentSplit = const [],
     this.paid = false,
     this.paidDate,
     this.bankgiro = '',
@@ -257,7 +274,13 @@ extension InvoiceCopy on Invoice {
   /// A copy with other payment details or a new scan link; everything else
   /// is kept as it is.
   Invoice copyWith(
-          {bool? paid, String? paidDate, bool clearPaidDate = false, RecordMeta? meta, int? id, PayMethod? payMethod}) =>
+          {bool? paid,
+          String? paidDate,
+          bool clearPaidDate = false,
+          RecordMeta? meta,
+          int? id,
+          PayMethod? payMethod,
+          List<PaymentPart>? paymentSplit}) =>
       Invoice(
         id: id ?? this.id,
         invoiceDate: invoiceDate,
@@ -276,6 +299,7 @@ extension InvoiceCopy on Invoice {
         plusgiro: plusgiro,
         costType: costType,
         payMethod: payMethod ?? this.payMethod,
+        paymentSplit: paymentSplit ?? this.paymentSplit,
       );
 
   /// A copy with summa and moms in whole kronor, for reports and lists when
@@ -299,6 +323,7 @@ extension InvoiceCopy on Invoice {
         plusgiro: plusgiro,
         costType: costType,
         payMethod: payMethod,
+        paymentSplit: paymentSplit,
       );
 
   /// What the reports need but the invoice lacks, in Swedish, e.g.

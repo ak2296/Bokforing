@@ -21,6 +21,7 @@ import '../../domain/money.dart';
 import '../../domain/result_report.dart';
 import '../../export/cash_report.dart';
 import '../../export/moms_xml.dart';
+import '../../export/redovisar_package.dart';
 import '../../export/sie_export.dart';
 import '../../export/table_export.dart';
 import '../app_icons.dart';
@@ -31,6 +32,7 @@ import '../widgets/common.dart';
 import '../widgets/ledger_parts.dart';
 import '../widgets/result_charts.dart';
 import 'moms_file_page.dart';
+import 'moms_kontroll.dart';
 import 'package_page.dart';
 import 'sie_preview_page.dart';
 import '../widgets/blur_overlay.dart';
@@ -49,7 +51,7 @@ class _Period {
 }
 
 /// Which part of the period's figures a [ResultView] shows.
-enum ResultMode { resultat, balans, redovisning }
+enum ResultMode { resultat, balans, redovisning, moms, kontroll }
 
 /// The body of Bokslut (Resultat and Balans) and of Redovisning. The period is
 /// chosen on the reports page, so the three views always show the same one.
@@ -65,13 +67,17 @@ class ResultView extends StatelessWidget {
         children: [
           PeriodPicker(value: period, onChanged: onChanged),
           Expanded(
-            child: Reloading<_Data>(
+            child: mode == ResultMode.kontroll
+                ? ControlTab(period: period)
+                : Reloading<_Data>(
               deps: '${period.kind.name} ${period.fileTag}',
               loader: (c) => _Data.load(c, period),
               builder: (context, data) => switch (mode) {
                 ResultMode.resultat => _ResultBody(data: data),
                 ResultMode.balans => _BalanceBody(data: data),
                 ResultMode.redovisning => _AccountingBody(data: data, ym: ym, period: period),
+                ResultMode.moms => MomsTab(period: period, ledger: data.ledger(), profile: data.profile),
+                ResultMode.kontroll => const SizedBox.shrink(),
               },
             ),
           ),
@@ -620,6 +626,39 @@ class _AccountingBody extends StatelessWidget {
           )
         else
           LedgerCard(children: [
+            // The same report as under Period: here too, so every report for the accountant is in one place.
+            if (period.kind == PeriodKind.month)
+              _ExportRow(
+                label: 'Månadsrapport',
+                onPdf: () async {
+                  final m = await MonthData.load(AppScope.read(context), YearMonth(period.fromDate.year, period.fromDate.month));
+                  if (context.mounted) await exportMonthlyPdf(context, m);
+                },
+                onExcel: () async {
+                  final m = await MonthData.load(AppScope.read(context), YearMonth(period.fromDate.year, period.fromDate.month));
+                  if (context.mounted) await exportTableCsv(context, monthlyTable(m.report));
+                },
+                onPrint: () async {
+                  final m = await MonthData.load(AppScope.read(context), YearMonth(period.fromDate.year, period.fromDate.month));
+                  if (context.mounted) await printMonthly(context, m);
+                },
+              )
+            else
+              _ExportRow(
+                label: period.kind == PeriodKind.year ? 'Årsrapport' : 'Periodrapport',
+                onPdf: () async {
+                  final t = await loadPeriodTable(AppScope.read(context), period);
+                  if (context.mounted) await exportTablePdf(context, t, data.profile);
+                },
+                onExcel: () async {
+                  final t = await loadPeriodTable(AppScope.read(context), period);
+                  if (context.mounted) await exportTableCsv(context, t);
+                },
+                onPrint: () async {
+                  final t = await loadPeriodTable(AppScope.read(context), period);
+                  if (context.mounted) await printTable(context, t, data.profile);
+                },
+              ),
             for (final (label, build) in <(String, ReportTable Function(Ledger, String))>[
               ('Momsunderlag', vatBasisTable),
               ('Verifikationslista', voucherListTable),
