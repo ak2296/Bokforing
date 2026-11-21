@@ -38,4 +38,19 @@ void main() {
     expect(m.inKind(PeriodKind.year).to, '2026-12-31');
     expect(m.step(-2).from, '2025-12-01');
   });
+
+  test('a month, then a quarter or a year, then the month again: back to the same month', () {
+    final nov = ReportPeriod.containing(PeriodKind.month, DateTime(2026, 11, 20), 1);
+    expect(nov.inKind(PeriodKind.quarter).inKind(PeriodKind.month).title, nov.title);
+    expect(nov.inKind(PeriodKind.year).inKind(PeriodKind.month).title, nov.title);
+    expect(nov.inKind(PeriodKind.half).inKind(PeriodKind.quarter).inKind(PeriodKind.month).title, nov.title);
+  });
+
+  test('stepping moves the day being looked at, so the month follows', () {
+    final nov = ReportPeriod.containing(PeriodKind.month, DateTime(2026, 11, 20), 1);
+    // A year back, then to the month: November 2025, not January 2025.
+    expect(nov.inKind(PeriodKind.year).step(-1).inKind(PeriodKind.month).title, 'November 2025');
+    // A quarter forward from Q4 2026 is Q1 2027, and the month three months on is February 2027.
+    expect(nov.inKind(PeriodKind.quarter).step(1).inKind(PeriodKind.month).title, 'Februari 2027');
+  });
 }

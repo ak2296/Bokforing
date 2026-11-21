@@ -28,13 +28,16 @@ class ReportPeriod {
 
   /// The month the financial year starts in (1 = January).
   final int startMonth;
-  const ReportPeriod(this.kind, this.fyStartYear, this.slot, this.startMonth);
+  /// The day the owner is looking at. Switching from a month to a quarter or year and back
+  /// returns to this day's month, not to the first month of the bigger period.
+  final DateTime? anchor;
+  const ReportPeriod(this.kind, this.fyStartYear, this.slot, this.startMonth, {this.anchor});
 
   /// The period of [kind] that [date] falls in.
   factory ReportPeriod.containing(PeriodKind kind, DateTime date, int startMonth) {
     final fy = date.month >= startMonth ? date.year : date.year - 1;
     final into = (date.year - fy) * 12 + date.month - startMonth;
-    return ReportPeriod(kind, fy, into ~/ kind.months, startMonth);
+    return ReportPeriod(kind, fy, into ~/ kind.months, startMonth, anchor: DateTime(date.year, date.month, 1));
   }
 
   int get _perYear => 12 ~/ kind.months;
@@ -89,11 +92,12 @@ class ReportPeriod {
       s -= _perYear;
       fy++;
     }
-    return ReportPeriod(kind, fy, s, startMonth);
+    final a = anchor ?? fromDate;
+    return ReportPeriod(kind, fy, s, startMonth, anchor: DateTime(a.year, a.month + delta * kind.months, 1));
   }
 
   /// The period of another kind that holds the start of this one.
-  ReportPeriod inKind(PeriodKind other) => ReportPeriod.containing(other, fromDate, startMonth);
+  ReportPeriod inKind(PeriodKind other) => ReportPeriod.containing(other, anchor ?? fromDate, startMonth);
 
   @override
   bool operator ==(Object other) =>

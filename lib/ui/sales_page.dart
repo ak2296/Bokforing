@@ -128,6 +128,16 @@ class _SalesPageState extends State<SalesPage> {
                 const SectionTitle('Per kategori'),
                 ShareBar(parts: categories, colors: salesPalette),
               ],
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.sales,
+                  side: BorderSide(color: AppTheme.sales, width: 1.5),
+                ),
+                icon: const Icon(AppIcons.file, size: 18),
+                label: const Text('Matcha Z-rapporter mot bankfil'),
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BankMatchPage(invoices: false))),
+              ),
               SectionTitle('Dagar', trailing: entries.isEmpty ? null : '${entries.length} st'),
               if (entries.isEmpty)
                 const _Empty(icon: AppIcons.register, text: 'Inga Z-rapporter eller onlineförsäljning den här månaden.')

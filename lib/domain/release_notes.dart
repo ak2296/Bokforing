@@ -14,6 +14,10 @@ class ReleaseNote {
 }
 
 const releaseNotes = <ReleaseNote>[
+  ReleaseNote(16, '21 november 2026', 'Rättningar', [
+    ('Perioder:', 'när du byter från Månad till Kvartal, Halvår eller År och tillbaka kommer du nu tillbaka till samma månad, inte till januari.'),
+    ('Försäljning:', 'en knapp, Matcha Z-rapporter mot bankfil, finns nu även på Försäljning.'),
+  ]),
   ReleaseNote(15, '21 november 2026', 'Kassa, bank, delad betalning och nya flikar', [
     ('Kontant och kort:', 'Försäljning, Utgifter och Månad visar kontant och kort. På Månad finns kortet Kassa denna månad (netto).'),
     ('Mot bank:', 'tryck på Z mot bank eller Mot bank, välj en bankfil och se vilka Z-rapporter och betalningar som stämmer. Appen sparar bara ja eller nej.'),
